@@ -3,7 +3,11 @@ import { expect, test } from "@playwright/test";
 test("POS 화면은 상품 카드와 결제 확인 액션을 노출한다", async ({ page }) => {
   await page.goto("/sales/pos");
   await expect(page.getByText("SCR-S002", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("PT 20회").first()).toBeVisible();
+  // 카테고리 탭 "이용권"이 기본 활성: 회원권 3개월 상품 카드 확인
+  await expect(page.getByText("회원권 3개월").first()).toBeVisible();
+  // PT 카테고리 탭 클릭 → PT 20회권 노출
+  await page.getByRole("button", { name: /^PT/ }).first().click();
+  await expect(page.getByText("PT 20회권").first()).toBeVisible();
   await expect(page.getByRole("button", { name: "결제 확인" }).first()).toBeVisible();
 });
 

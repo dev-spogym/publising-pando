@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { AlertTriangle, Bell, Building2, CheckCircle2, ChevronRight, ClipboardCheck, Lock, LogOut, Menu, MessageSquare, Search, ShieldCheck, UserRound } from "lucide-react";
+import { AlertTriangle, Bell, Building2, Calendar, CheckCircle2, ChevronRight, ClipboardCheck, Clock, CreditCard, Lock, LogOut, Menu, MessageSquare, Pin, Search, ShieldCheck, ShoppingCart, UserRound, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -608,13 +608,6 @@ const salesLedgerRows = [
   { id: "S-260528-002", buyer: "박서연", product: "회원권 3개월", gross: "450,000", discount: "0", paid: "330,000", status: "미수", method: "현금", owner: "최매니저", route: "수기", date: "오늘 11:20" },
   { id: "S-260527-003", buyer: "정하준", product: "락커 1개월", gross: "30,000", discount: "0", paid: "30,000", status: "환불요청", method: "계좌", owner: "박트레이너", route: "링크", date: "어제 17:03" },
   { id: "S-260526-004", buyer: "오지우", product: "할부 회원권", gross: "900,000", discount: "90,000", paid: "300,000", status: "할부", method: "복합", owner: "이FC", route: "POS", date: "05-26 14:10" }
-];
-
-const posProducts = [
-  { name: "PT 20회", category: "수강권", price: 1200000, stock: "판매중", color: "bg-blue-50 text-blue-700" },
-  { name: "회원권 3개월", category: "회원권", price: 450000, stock: "판매중", color: "bg-emerald-50 text-emerald-700" },
-  { name: "락커 1개월", category: "락커", price: 30000, stock: "재고 부족 3개", color: "bg-amber-50 text-amber-700" },
-  { name: "운동복", category: "운동복", price: 15000, stock: "품절", color: "bg-rose-50 text-rose-700" }
 ];
 
 function HandoffContractCard({ screen }: { screen: ScreenDefinition }) {
@@ -1943,9 +1936,280 @@ function SalesOverviewScreen({ screen, role, branch, openDialog, notify }: Speci
 }
 
 function PosSalesScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
-  const [cart, setCart] = useState(posProducts.slice(0, 2));
-  const total = cart.reduce((sum, item) => sum + item.price, 0);
-  return <div className="space-y-5"><DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="현장 판매 POS" /><div className="grid grid-cols-[minmax(0,1fr)_380px] gap-5"><Card className="shadow-none"><CardHeader><CardTitle>상품 선택</CardTitle><CardDescription>재고/품절/안전재고 상태를 클릭 차단까지 표현합니다.</CardDescription></CardHeader><CardContent className="grid grid-cols-2 gap-3">{posProducts.map((product) => <button key={product.name} disabled={product.stock === "품절"} className="rounded-xl border p-4 text-left disabled:opacity-45" onClick={() => { setCart((current) => [...current, product]); notify(`${product.name} 장바구니 추가`, "info"); }}><Badge className={product.color}>{product.category}</Badge><div className="mt-3 text-lg font-bold">{product.name}</div><div className="mt-1 text-sm text-content-tertiary">{product.price.toLocaleString()}원</div><div className="mt-3 text-xs">{product.stock}</div></button>)}</CardContent></Card><aside className="min-w-0 space-y-5"><Card className="shadow-none"><CardHeader><CardTitle>장바구니 / 결제</CardTitle><CardDescription>회원 검색 후 외부 POS 완료 건을 CRM에 기록합니다.</CardDescription></CardHeader><CardContent className="space-y-3"><Button data-dialog-id="DLG-S002" variant="outline" className="w-full" onClick={() => openDialog("DLG-S002")}>구매자 검색</Button><div className="space-y-2">{cart.map((item, index) => <div key={`${item.name}-${index}`} className="flex items-center justify-between rounded-lg border p-2 text-sm"><span>{item.name}</span><span>{item.price.toLocaleString()}원</span></div>)}</div><div className="rounded-2xl bg-gradient-to-br from-primary via-primary to-[#ff907f] p-4 text-white shadow-[0_16px_32px_rgba(255,127,110,0.22)]"><div className="text-sm text-white/85">최종 결제금액</div><div className="text-2xl font-bold">{total.toLocaleString()}원</div></div><Button data-dialog-id="DLG-S003" className="w-full" onClick={() => openDialog("DLG-S003")}>결제 확인</Button><Button data-dialog-id="DLG-S004" variant="outline" className="w-full" onClick={() => openDialog("DLG-S004")}>중복 결제 경고 보기</Button></CardContent></Card><DialogDock screen={screen} openDialog={openDialog} /><DialogDock screen={screen} openDialog={openDialog} /><HandoffContractCard screen={screen} /></aside></div></div>;
+  // admin-pando /pos/page.tsx 구조 1:1 이식
+  // 카테고리 탭 (이용권/PT/GX/기타) + 상품 그리드 + 우측 장바구니
+  // docs4 V1 D03-매출관리 / D05-상품관리 컨텐츠 반영
+  const categoryTabs = [
+    { key: "이용권", label: "이용권", color: "bg-blue-100 text-blue-700" },
+    { key: "PT", label: "PT", color: "bg-emerald-100 text-emerald-700" },
+    { key: "GX", label: "GX", color: "bg-violet-100 text-violet-700" },
+    { key: "기타", label: "기타", color: "bg-amber-100 text-amber-700" }
+  ];
+
+  // docs4 V1/V2 상품 타입 배지 정책 (회원권/수강권/대여권/일반)
+  const productTypeBadge: Record<string, { label: string; className: string }> = {
+    MEMBERSHIP: { label: "회원권", className: "bg-blue-100 text-blue-700" },
+    LESSON: { label: "수강권", className: "bg-emerald-100 text-emerald-700" },
+    RENTAL: { label: "대여권", className: "bg-amber-100 text-amber-700" },
+    GENERAL: { label: "일반", className: "bg-slate-100 text-slate-700" }
+  };
+
+  type PosProduct = {
+    id: number;
+    name: string;
+    category: "이용권" | "PT" | "GX" | "기타";
+    productType: keyof typeof productTypeBadge;
+    cashPrice: number;
+    cardPrice: number;
+    period: string;
+    count: string;
+    stock: number | null;
+  };
+
+  const productsAll: PosProduct[] = [
+    { id: 1, name: "회원권 3개월", category: "이용권", productType: "MEMBERSHIP", cashPrice: 450000, cardPrice: 480000, period: "90일", count: "-", stock: null },
+    { id: 2, name: "회원권 6개월", category: "이용권", productType: "MEMBERSHIP", cashPrice: 780000, cardPrice: 820000, period: "180일", count: "-", stock: null },
+    { id: 3, name: "회원권 12개월", category: "이용권", productType: "MEMBERSHIP", cashPrice: 1400000, cardPrice: 1480000, period: "365일", count: "-", stock: null },
+    { id: 4, name: "락커 1개월", category: "이용권", productType: "RENTAL", cashPrice: 30000, cardPrice: 33000, period: "30일", count: "-", stock: 12 },
+    { id: 5, name: "PT 10회권", category: "PT", productType: "LESSON", cashPrice: 650000, cardPrice: 680000, period: "60일", count: "10회", stock: null },
+    { id: 6, name: "PT 20회권", category: "PT", productType: "LESSON", cashPrice: 1200000, cardPrice: 1260000, period: "120일", count: "20회", stock: null },
+    { id: 7, name: "PT 30회권", category: "PT", productType: "LESSON", cashPrice: 1700000, cardPrice: 1780000, period: "150일", count: "30회", stock: null },
+    { id: 8, name: "GX 요가 8회", category: "GX", productType: "LESSON", cashPrice: 180000, cardPrice: 190000, period: "60일", count: "8회", stock: null },
+    { id: 9, name: "GX 필라테스 8회", category: "GX", productType: "LESSON", cashPrice: 220000, cardPrice: 230000, period: "60일", count: "8회", stock: null },
+    { id: 10, name: "운동복 대여 1개월", category: "기타", productType: "RENTAL", cashPrice: 20000, cardPrice: 22000, period: "30일", count: "-", stock: 0 },
+    { id: 11, name: "프로틴 셰이크", category: "기타", productType: "GENERAL", cashPrice: 5000, cardPrice: 5500, period: "-", count: "1개", stock: 4 },
+    { id: 12, name: "스포츠 음료", category: "기타", productType: "GENERAL", cashPrice: 2500, cardPrice: 2800, period: "-", count: "1병", stock: 18 }
+  ];
+
+  const [activeCategory, setActiveCategory] = useState<"이용권" | "PT" | "GX" | "기타">("이용권");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [cart, setCart] = useState<Array<PosProduct & { cartId: string; priceType: "cash" | "card"; quantity: number }>>([]);
+  const [cartSeq, setCartSeq] = useState(0);
+  const [buyer, setBuyer] = useState<{ name: string; phone: string } | null>(null);
+
+  const filteredProducts = productsAll
+    .filter((p) => p.category === activeCategory)
+    .filter((p) => !searchQuery || p.name.includes(searchQuery));
+
+  const addToCart = (product: PosProduct) => {
+    if (product.stock === 0) {
+      notify(`${product.name}은(는) 품절 상태입니다.`, "warning");
+      return;
+    }
+    const nextSeq = cartSeq + 1;
+    setCartSeq(nextSeq);
+    const cartId = `${product.id}-${nextSeq}`;
+    setCart((current) => [...current, { ...product, cartId, priceType: "cash", quantity: 1 }]);
+    notify(`${product.name} 장바구니 추가`, "info");
+  };
+
+  const removeFromCart = (cartId: string) => {
+    setCart((current) => current.filter((item) => item.cartId !== cartId));
+  };
+
+  const updateQuantity = (cartId: string, delta: number) => {
+    setCart((current) => current.map((item) => item.cartId === cartId ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item));
+  };
+
+  const togglePriceType = (cartId: string) => {
+    setCart((current) => current.map((item) => item.cartId === cartId ? { ...item, priceType: item.priceType === "cash" ? "card" : "cash" } : item));
+  };
+
+  const subtotal = cart.reduce((sum, item) => sum + (item.priceType === "cash" ? item.cashPrice : item.cardPrice) * item.quantity, 0);
+  const cashTotal = cart.filter((i) => i.priceType === "cash").reduce((s, i) => s + i.cashPrice * i.quantity, 0);
+  const cardTotal = cart.filter((i) => i.priceType === "card").reduce((s, i) => s + i.cardPrice * i.quantity, 0);
+
+  return (
+    <div className="space-y-5">
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="현장 판매 POS · 외부 결제 완료 → CRM 기록" />
+      <div className="grid grid-cols-[minmax(0,1fr)_400px] gap-5">
+        {/* 좌측: 카테고리 + 검색 + 상품 그리드 */}
+        <div className="space-y-3">
+          <Card className="shadow-none">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>상품 선택</CardTitle>
+                <CardDescription className="text-xs">재고 0 = 품절 클릭 차단 · 5개 이하 = 안전재고 경고</CardDescription>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-content-tertiary" />
+                  <Input placeholder="상품명 검색" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-9" />
+                </div>
+              </div>
+              <div className="mt-2 flex gap-1 border-b border-line">
+                {categoryTabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveCategory(tab.key as typeof activeCategory)}
+                    className={cn(
+                      "px-4 py-2 text-sm font-semibold border-b-2 transition-colors",
+                      activeCategory === tab.key ? "border-primary text-primary" : "border-transparent text-content-secondary hover:text-content"
+                    )}
+                  >
+                    {tab.label}
+                    <span className={cn("ml-1.5 rounded-full px-1.5 py-0.5 text-[10px]", tab.color)}>
+                      {productsAll.filter((p) => p.category === tab.key).length}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                {filteredProducts.length === 0 ? (
+                  <div className="col-span-full py-12 text-center text-sm text-content-tertiary">{searchQuery ? "검색 결과 없음" : "해당 카테고리 상품 없음"}</div>
+                ) : filteredProducts.map((product) => {
+                  const isOut = product.stock === 0;
+                  const isLow = product.stock !== null && product.stock > 0 && product.stock <= 5;
+                  const typeBadge = productTypeBadge[product.productType];
+                  return (
+                    <button
+                      key={product.id}
+                      disabled={isOut}
+                      onClick={() => addToCart(product)}
+                      className={cn(
+                        "group relative flex flex-col rounded-xl border p-3 text-left transition-all",
+                        isOut ? "border-line opacity-50 cursor-not-allowed grayscale" : "border-line hover:border-primary hover:shadow-md cursor-pointer"
+                      )}
+                    >
+                      <div className="mb-2 flex items-center gap-1 flex-wrap">
+                        <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", typeBadge.className)}>{typeBadge.label}</span>
+                        {isOut && <Badge variant="destructive" className="text-[10px]">품절</Badge>}
+                        {isLow && <Badge variant="warning" className="text-[10px]">재고 부족 ({product.stock}개)</Badge>}
+                        {!isOut && !isLow && product.stock !== null && <Badge variant="success" className="text-[10px]">재고 {product.stock}개</Badge>}
+                      </div>
+                      <h4 className="text-sm font-semibold text-content line-clamp-1">{product.name}</h4>
+                      <div className="mt-1 flex flex-col gap-0.5 text-[11px] text-content-tertiary">
+                        <div className="flex items-center gap-1"><Calendar size={11} /> 기간: {product.period}</div>
+                        <div className="flex items-center gap-1"><Clock size={11} /> 횟수: {product.count}</div>
+                      </div>
+                      <div className="mt-3 pt-2 border-t border-line">
+                        <div className="flex justify-between items-baseline">
+                          <span className="text-[10px] text-content-tertiary">현금가</span>
+                          <span className="text-sm font-bold text-primary tabular-nums">{product.cashPrice.toLocaleString()}원</span>
+                        </div>
+                        <div className="flex justify-between items-baseline mt-0.5">
+                          <span className="text-[10px] text-content-tertiary">카드가</span>
+                          <span className="text-xs font-medium text-content-secondary tabular-nums">{product.cardPrice.toLocaleString()}원</span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 우측: 장바구니 + 결제 */}
+        <aside className="min-w-0 space-y-4">
+          {/* 구매자 카드 */}
+          <Card className="shadow-none">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm flex items-center gap-1.5"><UserRound size={14} /> 구매자</CardTitle>
+                <Button data-dialog-id="DLG-S002" size="sm" variant="outline" onClick={() => { openDialog("DLG-S002"); setBuyer({ name: "김민준", phone: "010-1234-5678" }); }}>
+                  {buyer ? "변경" : "검색"}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {buyer ? (
+                <div className="rounded-lg bg-surface-secondary p-3">
+                  <div className="font-semibold text-sm">{buyer.name}</div>
+                  <div className="text-xs text-content-tertiary mt-0.5">{buyer.phone}</div>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-line p-3 text-center text-xs text-content-tertiary">
+                  구매자를 검색하거나 비회원으로 진행하세요
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 장바구니 */}
+          <Card className="shadow-none">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm flex items-center gap-1.5"><ShoppingCart size={14} /> 장바구니 ({cart.length})</CardTitle>
+                {cart.length > 0 && <Button size="sm" variant="ghost" onClick={() => setCart([])}>전체 비우기</Button>}
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {cart.length === 0 ? (
+                <div className="py-8 text-center text-xs text-content-tertiary">
+                  좌측 상품을 선택해 추가하세요
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[280px] overflow-y-auto">
+                  {cart.map((item) => {
+                    const itemPrice = item.priceType === "cash" ? item.cashPrice : item.cardPrice;
+                    return (
+                      <div key={item.cartId} className="rounded-lg border bg-white p-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-xs truncate">{item.name}</div>
+                            <div className="text-[10px] text-content-tertiary">{productTypeBadge[item.productType].label} · {item.period}</div>
+                          </div>
+                          <button onClick={() => removeFromCart(item.cartId)} className="text-content-tertiary hover:text-rose-600">
+                            <X size={14} />
+                          </button>
+                        </div>
+                        <div className="mt-1.5 flex items-center justify-between">
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => updateQuantity(item.cartId, -1)} className="size-5 rounded border text-xs">−</button>
+                            <span className="w-7 text-center text-xs font-semibold">{item.quantity}</span>
+                            <button onClick={() => updateQuantity(item.cartId, 1)} className="size-5 rounded border text-xs">+</button>
+                          </div>
+                          <button onClick={() => togglePriceType(item.cartId)} className={cn(
+                            "text-[10px] px-1.5 py-0.5 rounded font-semibold",
+                            item.priceType === "cash" ? "bg-primary-light text-primary" : "bg-accent-light text-accent"
+                          )}>
+                            {item.priceType === "cash" ? "현금" : "카드"}
+                          </button>
+                          <span className="text-sm font-bold tabular-nums">{(itemPrice * item.quantity).toLocaleString()}원</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 결제 */}
+          <Card className="shadow-none border-primary/20">
+            <CardContent className="p-3 space-y-3">
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between"><span className="text-content-tertiary">현금 결제</span><span className="font-semibold tabular-nums">{cashTotal.toLocaleString()}원</span></div>
+                <div className="flex justify-between"><span className="text-content-tertiary">카드 결제</span><span className="font-semibold tabular-nums">{cardTotal.toLocaleString()}원</span></div>
+              </div>
+              <div className="rounded-2xl bg-gradient-to-br from-primary via-primary to-[#ff907f] p-3 text-white shadow-[0_16px_32px_rgba(255,127,110,0.22)]">
+                <div className="text-xs text-white/85">최종 결제금액</div>
+                <div className="text-2xl font-bold tabular-nums">{subtotal.toLocaleString()}원</div>
+              </div>
+              <div className="space-y-2">
+                <Button data-dialog-id="DLG-S003" className="w-full" disabled={cart.length === 0} onClick={() => openDialog("DLG-S003")}>
+                  <CreditCard size={14} className="mr-1.5" /> 결제 확인
+                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button data-dialog-id="DLG-S004" size="sm" variant="outline" onClick={() => openDialog("DLG-S004")}>중복 결제 경고</Button>
+                  <Button data-dialog-id="DLG-S009" size="sm" variant="outline" onClick={() => openDialog("DLG-S009")}>할부 등록</Button>
+                </div>
+              </div>
+              <p className="text-[10px] text-content-tertiary text-center">
+                외부 POS/현금 수납 완료 후 CRM에 기록됩니다
+              </p>
+            </CardContent>
+          </Card>
+
+          <DialogDock screen={screen} openDialog={openDialog} />
+          <HandoffContractCard screen={screen} />
+        </aside>
+      </div>
+    </div>
+  );
 }
 
 function PaymentProcessingScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
@@ -4013,38 +4277,225 @@ function ExerciseRoomScreen({ screen, role, branch, openDialog, notify }: Specia
 // ---- D07 직원관리 ----
 
 function StaffListScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
-  // admin-pando staff 시각 차용
+  // admin-pando /staff/page.tsx 구조 1:1 이식
+  // 통계 카드 4종 + 검색/필터 + 직원 원장 + 직무 배지 + 재직 상태 배지
+  // docs4 V1/V2 D07-직원관리 컨텐츠 반영
+  type StaffRole = "primary" | "owner" | "manager" | "fc" | "trainer" | "staff";
+  type StaffStatus = "active" | "leave" | "locked" | "resigned";
+
+  const roleConfig: Record<StaffRole, { label: string; className: string }> = {
+    primary: { label: "최고관리자", className: "bg-rose-100 text-rose-700 border-rose-300" },
+    owner: { label: "센터장", className: "bg-orange-100 text-orange-700 border-orange-300" },
+    manager: { label: "매니저", className: "bg-violet-100 text-violet-700 border-violet-300" },
+    fc: { label: "FC", className: "bg-blue-100 text-blue-700 border-blue-300" },
+    trainer: { label: "트레이너", className: "bg-emerald-100 text-emerald-700 border-emerald-300" },
+    staff: { label: "스태프", className: "bg-slate-100 text-slate-700 border-slate-300" }
+  };
+
+  const statusConfig: Record<StaffStatus, { label: string; variant: "success" | "warning" | "destructive" | "secondary" }> = {
+    active: { label: "재직", variant: "success" },
+    leave: { label: "휴직", variant: "warning" },
+    locked: { label: "잠금", variant: "warning" },
+    resigned: { label: "퇴사", variant: "secondary" }
+  };
+
+  type StaffRow = {
+    id: number; name: string; role: StaffRole; branchName: string;
+    contact: string; email: string; joinDate: string; status: StaffStatus; memo: string;
+  };
+
+  const staffData: StaffRow[] = [
+    { id: 1, name: "김본사", role: "primary", branchName: "본사 통합", contact: "010-0000-0001", email: "primary@pando.com", joinDate: "2023-01-02", status: "active", memo: "본사 최고 운영 책임자" },
+    { id: 2, name: "이센터", role: "owner", branchName: "강남점", contact: "010-1111-0001", email: "owner.gangnam@pando.com", joinDate: "2023-03-10", status: "active", memo: "강남점 OPEN 책임자, 매출 책임 권한" },
+    { id: 3, name: "박매니저", role: "manager", branchName: "강남점", contact: "010-2222-0001", email: "manager.gn@pando.com", joinDate: "2024-02-14", status: "active", memo: "회원 운영·POS 업무 담당" },
+    { id: 4, name: "최FC", role: "fc", branchName: "강남점", contact: "010-3333-0001", email: "fc.gn1@pando.com", joinDate: "2024-08-01", status: "active", memo: "신규 회원 상담 전문" },
+    { id: 5, name: "정FC", role: "fc", branchName: "강남점", contact: "010-3333-0002", email: "fc.gn2@pando.com", joinDate: "2025-01-15", status: "leave", memo: "5/15~6/15 육아 휴직" },
+    { id: 6, name: "한트레이너", role: "trainer", branchName: "강남점", contact: "010-4444-0001", email: "tr.gn1@pando.com", joinDate: "2024-05-20", status: "active", memo: "PT 20회 · 골프 시뮬레이터 담당" },
+    { id: 7, name: "윤트레이너", role: "trainer", branchName: "서초점", contact: "010-4444-0002", email: "tr.sc1@pando.com", joinDate: "2025-03-01", status: "active", memo: "GX 요가·필라테스 전담" },
+    { id: 8, name: "장스태프", role: "staff", branchName: "서초점", contact: "010-5555-0001", email: "staff.sc1@pando.com", joinDate: "2025-09-12", status: "active", memo: "프론트·POS 보조" },
+    { id: 9, name: "오트레이너", role: "trainer", branchName: "잠실점", contact: "010-4444-0003", email: "tr.js1@pando.com", joinDate: "2024-11-08", status: "active", memo: "PT + 골프프로 자격" },
+    { id: 10, name: "임스태프", role: "staff", branchName: "잠실점", contact: "010-5555-0002", email: "staff.js1@pando.com", joinDate: "2024-04-22", status: "resigned", memo: "2026-04-30 퇴사" }
+  ];
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterRole, setFilterRole] = useState<StaffRole | "">("");
+  const [filterStatus, setFilterStatus] = useState<StaffStatus | "">("");
+  const [filterBranch, setFilterBranch] = useState<string>("");
+
+  const filtered = staffData.filter((s) => {
+    const matchSearch = !searchQuery || s.name.includes(searchQuery) || s.contact.includes(searchQuery) || s.branchName.includes(searchQuery);
+    const matchRole = !filterRole || s.role === filterRole;
+    const matchStatus = !filterStatus || s.status === filterStatus;
+    const matchBranch = !filterBranch || s.branchName === filterBranch;
+    return matchSearch && matchRole && matchStatus && matchBranch;
+  });
+
+  const totalCount = staffData.length;
+  const activeCount = staffData.filter((s) => s.status === "active").length;
+  const leaveCount = staffData.filter((s) => s.status === "leave").length;
+  const resignedCount = staffData.filter((s) => s.status === "resigned").length;
+
   return (
     <div className="space-y-5">
-      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="재직·휴직·퇴사 합산" />
-      <MetricGrid metrics={screen.metrics} />
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="재직·휴직·퇴사 · 직원 1명 = 계정 1개" />
+
+      {/* 통계 카드 4종 (admin-pando StatCardGrid 패턴) */}
+      <div className="grid grid-cols-4 gap-3">
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><UserRound size={14} /> 전체 직원</CardDescription><CardTitle className="text-2xl tabular-nums">{totalCount}명</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">전 지점 합산</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-600" /> 재직</CardDescription><CardTitle className="text-2xl tabular-nums text-emerald-600">{activeCount}명</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">활성 계정</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><Clock size={14} className="text-amber-600" /> 휴직/잠금</CardDescription><CardTitle className="text-2xl tabular-nums text-amber-600">{leaveCount}명</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">일시 비활성</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><LogOut size={14} className="text-slate-500" /> 퇴사</CardDescription><CardTitle className="text-2xl tabular-nums text-slate-600">{resignedCount}명</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">90일 후 PII 마스킹</p></CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5">
         <div className="space-y-4">
           <Card className="shadow-none">
-            <CardHeader><CardTitle>직원 원장</CardTitle><CardDescription>직무 배지·재직 상태 배지·메모 미리보기</CardDescription></CardHeader>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>직원 원장</CardTitle>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => notify("엑셀 내보내기 mock", "info")}>내보내기</Button>
+                  <Button size="sm" onClick={() => openDialog("DLG-H001")}>직원 등록</Button>
+                </div>
+              </div>
+              <CardDescription>총 {filtered.length}명 · 직무 배지 6종 · 재직 상태 4종</CardDescription>
+            </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex flex-wrap gap-2">{screen.tabs.map((t) => <Button key={t} size="sm" variant="outline" onClick={() => notify(`${t} 탭`, "info")}>{t}</Button>)}</div>
-              <FilterChips filters={screen.filters} notify={notify} />
+              {/* 검색 & 필터 */}
+              <div className="grid grid-cols-[2fr_repeat(3,1fr)_auto] gap-2 items-end">
+                <div>
+                  <Label className="text-[10px] text-content-tertiary mb-1 block">검색</Label>
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-content-tertiary" />
+                    <Input placeholder="이름·연락처·지점" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-9" />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-[10px] text-content-tertiary mb-1 block">직무</Label>
+                  <Select value={filterRole} onValueChange={(v) => setFilterRole(v as StaffRole | "")}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="전체" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      {(Object.keys(roleConfig) as StaffRole[]).map((r) => (<SelectItem key={r} value={r}>{roleConfig[r].label}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[10px] text-content-tertiary mb-1 block">재직 상태</Label>
+                  <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as StaffStatus | "")}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="전체" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      {(Object.keys(statusConfig) as StaffStatus[]).map((s) => (<SelectItem key={s} value={s}>{statusConfig[s].label}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[10px] text-content-tertiary mb-1 block">소속</Label>
+                  <Select value={filterBranch} onValueChange={setFilterBranch}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="전체" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      {branches.map((b) => (<SelectItem key={b} value={b}>{b}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => { setSearchQuery(""); setFilterRole(""); setFilterStatus(""); setFilterBranch(""); }}>초기화</Button>
+              </div>
+
+              {/* 직원 테이블 */}
               <Table>
-                <TableHeader><TableRow><TableHead>#</TableHead><TableHead>직원</TableHead><TableHead>소속</TableHead><TableHead>직무</TableHead><TableHead>연락처</TableHead><TableHead>입사일</TableHead><TableHead>상태</TableHead><TableHead>메모</TableHead></TableRow></TableHeader>
-                <TableBody>{screen.rows.map((row, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell>{row["번호"]}</TableCell>
-                    <TableCell className="font-semibold">{row["직원명"]}</TableCell>
-                    <TableCell className="text-xs">{row["소속 지점"]}</TableCell>
-                    <TableCell><Badge variant="outline">{row["직무 배지"]}</Badge></TableCell>
-                    <TableCell className="text-xs">{row["연락처"]}</TableCell>
-                    <TableCell className="text-xs">{row["입사일"]}</TableCell>
-                    <TableCell>{statusAwareValue(String(row["재직 상태 배지"] ?? "-"))}</TableCell>
-                    <TableCell className="text-xs text-content-tertiary">{row["메모(manager+ 30자 미리보기)"]}</TableCell>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12 text-center">No</TableHead>
+                    <TableHead>직원</TableHead>
+                    <TableHead>소속 지점</TableHead>
+                    <TableHead>직무</TableHead>
+                    <TableHead>연락처</TableHead>
+                    <TableHead>이메일</TableHead>
+                    <TableHead>입사일</TableHead>
+                    <TableHead className="w-20 text-center">상태</TableHead>
+                    <TableHead>메모</TableHead>
+                    <TableHead className="w-24 text-center">관리</TableHead>
                   </TableRow>
-                ))}</TableBody>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((s) => {
+                    const roleCfg = roleConfig[s.role];
+                    const statusCfg = statusConfig[s.status];
+                    return (
+                      <TableRow key={s.id}>
+                        <TableCell className="text-center text-xs">{s.id}</TableCell>
+                        <TableCell className="font-semibold">{s.name}</TableCell>
+                        <TableCell className="text-xs">{s.branchName}</TableCell>
+                        <TableCell>
+                          <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border", roleCfg.className)}>
+                            {roleCfg.label}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs tabular-nums">{s.contact}</TableCell>
+                        <TableCell className="text-xs text-content-tertiary truncate max-w-[180px]">{s.email}</TableCell>
+                        <TableCell className="text-xs tabular-nums">{s.joinDate}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={statusCfg.variant} className="text-[10px]">{statusCfg.label}</Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-content-tertiary truncate max-w-[180px]">{s.memo}</TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex gap-1 justify-center">
+                            <Button size="sm" variant="ghost" onClick={() => notify(`${s.name} 정보 수정`, "info")}>수정</Button>
+                            {s.status !== "resigned" && (
+                              <Button size="sm" variant="ghost" onClick={() => notify(`${s.name} 퇴사 처리 확인`, "warning")}>퇴사</Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
               </Table>
+              {filtered.length === 0 && (
+                <div className="py-12 text-center text-sm text-content-tertiary">조건에 맞는 직원이 없습니다.</div>
+              )}
             </CardContent>
           </Card>
         </div>
         <aside className="space-y-4">
-          <Card className="shadow-none"><CardHeader><CardTitle>인사 액션</CardTitle></CardHeader><CardContent><PrimaryActionRow screen={screen} role={role} openDialog={openDialog} notify={notify} /></CardContent></Card>
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>인사 액션</CardTitle><CardDescription>등록·수정·퇴사·계정 잠금</CardDescription></CardHeader>
+            <CardContent className="space-y-2">
+              <PrimaryActionRow screen={screen} role={role} openDialog={openDialog} notify={notify} />
+            </CardContent>
+          </Card>
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>직무 정책 (참고)</CardTitle></CardHeader>
+            <CardContent className="space-y-1.5 text-xs">
+              {(Object.keys(roleConfig) as StaffRole[]).map((r) => (
+                <div key={r} className="flex items-center justify-between gap-2 rounded-lg border bg-white px-2 py-1.5">
+                  <span className={cn("inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border", roleConfig[r].className)}>{roleConfig[r].label}</span>
+                  <span className="text-content-tertiary text-[10px]">
+                    {r === "primary" && "본사 전 지점 · 위험 액션"}
+                    {r === "owner" && "지점 전체 · 위험 액션"}
+                    {r === "manager" && "지점 운영 · 회원/매출"}
+                    {r === "fc" && "담당 회원 · 상담·등록"}
+                    {r === "trainer" && "담당 회원 · PT·체성분"}
+                    {r === "staff" && "조회·POS 보조"}
+                  </span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
           <DialogDock screen={screen} openDialog={openDialog} />
           <HandoffContractCard screen={screen} />
           <FrontStateNote screen={screen} />
@@ -4099,37 +4550,276 @@ function StaffAttendanceScreen({ screen, role, branch, openDialog, notify }: Spe
 }
 
 function PayrollManagementScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
-  // admin-pando payroll 시각 차용: 직급별 정책 + 확정 워크플로
+  // admin-pando /payroll/page.tsx 구조 1:1 이식
+  // 월 선택 + 확정 액션 + 통계 카드 4종 + 급여 테이블 + 합계/평균 행 + 명세서 발급 카드
+  // docs4 V1/V2 D07-직원관리/급여관리 (SCR-062 UI-098~100) 컨텐츠 반영
+  type PayrollStatus = "paid" | "pending" | "hold";
+  type PayrollRow = {
+    id: number; name: string; role: string; baseSalary: number;
+    incentive: number; deduction: number; netPay: number; status: PayrollStatus;
+  };
+
+  function getRecentMonths() {
+    const months: { value: string; label: string }[] = [];
+    const now = new Date(2026, 4, 29); // 고정 mock 기준 (2026-05)
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
+      months.push({ value, label });
+    }
+    return months;
+  }
+
+  const MONTHS = getRecentMonths();
+  const [selectedMonth, setSelectedMonth] = useState(MONTHS[0].value);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState<PayrollStatus | "">("");
+
+  const initialPayroll: PayrollRow[] = [
+    { id: 1, name: "이센터", role: "센터장", baseSalary: 5500000, incentive: 1800000, deduction: 642000, netPay: 6658000, status: "paid" },
+    { id: 2, name: "박매니저", role: "매니저", baseSalary: 4200000, incentive: 920000, deduction: 458000, netPay: 4662000, status: "paid" },
+    { id: 3, name: "최FC", role: "FC", baseSalary: 3200000, incentive: 1240000, deduction: 364000, netPay: 4076000, status: "pending" },
+    { id: 4, name: "정FC", role: "FC", baseSalary: 1600000, incentive: 0, deduction: 152000, netPay: 1448000, status: "hold" },
+    { id: 5, name: "한트레이너", role: "트레이너", baseSalary: 2800000, incentive: 2200000, deduction: 412000, netPay: 4588000, status: "paid" },
+    { id: 6, name: "윤트레이너", role: "트레이너", baseSalary: 2800000, incentive: 1450000, deduction: 348000, netPay: 3902000, status: "pending" },
+    { id: 7, name: "장스태프", role: "스태프", baseSalary: 2400000, incentive: 220000, deduction: 246000, netPay: 2374000, status: "paid" },
+    { id: 8, name: "오트레이너", role: "트레이너", baseSalary: 2800000, incentive: 1820000, deduction: 384000, netPay: 4236000, status: "pending" }
+  ];
+
+  const [payrollData, setPayrollData] = useState<PayrollRow[]>(initialPayroll);
+
+  const filtered = payrollData.filter((r) => {
+    const matchSearch = !searchQuery || r.name.includes(searchQuery) || r.role.includes(searchQuery);
+    const matchStatus = !filterStatus || r.status === filterStatus;
+    return matchSearch && matchStatus;
+  });
+
+  const totals = filtered.reduce(
+    (acc, r) => ({
+      baseSalary: acc.baseSalary + r.baseSalary,
+      incentive: acc.incentive + r.incentive,
+      deduction: acc.deduction + r.deduction,
+      netPay: acc.netPay + r.netPay
+    }),
+    { baseSalary: 0, incentive: 0, deduction: 0, netPay: 0 }
+  );
+
+  const paidCount = filtered.filter((r) => r.status === "paid").length;
+  const pendingCount = filtered.filter((r) => r.status === "pending").length;
+  const holdCount = filtered.filter((r) => r.status === "hold").length;
+  const fmt = (n: number) => n.toLocaleString("ko-KR");
+
+  const statusConfig: Record<PayrollStatus, { label: string; variant: "success" | "warning" | "secondary" }> = {
+    paid: { label: "지급완료", variant: "success" },
+    pending: { label: "미지급", variant: "warning" },
+    hold: { label: "보류", variant: "secondary" }
+  };
+
   return (
     <div className="space-y-5">
-      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="당월 미확정 → 확정 → 명세서" />
-      <MetricGrid metrics={screen.metrics} />
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="당월 미확정 → 확정 → 명세서 발급" />
+
+      {/* 상단: 월 선택 + 액션 */}
+      <Card className="shadow-none">
+        <CardContent className="p-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Label className="text-xs">대상 월</Label>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-40 h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MONTHS.map((m) => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button onClick={() => {
+              const unpaidCount = payrollData.filter((r) => r.status !== "paid").length;
+              if (unpaidCount === 0) { notify("이미 모든 급여가 확정되었습니다.", "info"); return; }
+              setPayrollData((current) => current.map((r) => r.status !== "paid" ? { ...r, status: "paid" as const } : r));
+              notify(`${unpaidCount}건 급여가 확정되었습니다.`);
+            }}>
+              <CheckCircle2 size={14} className="mr-1.5" /> 전체 급여 확정
+            </Button>
+            <Button variant="outline" onClick={() => notify(`${selectedMonth} 엑셀 내보내기 mock`, "info")}>
+              내보내기
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 통계 카드 4종 */}
+      <div className="grid grid-cols-4 gap-3">
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><UserRound size={14} /> 총 지급 대상</CardDescription><CardTitle className="text-2xl tabular-nums">{filtered.length}명</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">{selectedMonth.replace("-", "년 ")}월</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5">총 실지급액</CardDescription><CardTitle className="text-xl tabular-nums text-primary">{fmt(totals.netPay)}원</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">평균 {fmt(filtered.length ? Math.round(totals.netPay / filtered.length) : 0)}원</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-600" /> 지급완료</CardDescription><CardTitle className="text-2xl tabular-nums text-emerald-600">{paidCount}명</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">확정 완료</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><Clock size={14} className="text-amber-600" /> 미지급/보류</CardDescription><CardTitle className="text-2xl tabular-nums text-amber-600">{pendingCount + holdCount}명</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">미지급 {pendingCount} · 보류 {holdCount}</p></CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5">
         <div className="space-y-4">
+          {/* 검색 & 필터 */}
           <Card className="shadow-none">
-            <CardHeader><CardTitle>급여 테이블</CardTitle><CardDescription>기본급 · 수당 · 공제 · 수수료 · 실지급액 · 확정 상태</CardDescription></CardHeader>
+            <CardHeader>
+              <CardTitle>급여 테이블</CardTitle>
+              <CardDescription>기본급 + 인센티브 - 공제 = 실지급액</CardDescription>
+            </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex flex-wrap gap-2">{screen.tabs.map((t) => <Button key={t} size="sm" variant="outline" onClick={() => notify(`${t} 탭`, "info")}>{t}</Button>)}</div>
-              <FilterChips filters={screen.filters} notify={notify} />
+              <div className="grid grid-cols-[2fr_1fr_auto] gap-2 items-end">
+                <div>
+                  <Label className="text-[10px] text-content-tertiary mb-1 block">검색</Label>
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-content-tertiary" />
+                    <Input placeholder="직원명·역할 검색" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-9" />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-[10px] text-content-tertiary mb-1 block">지급 상태</Label>
+                  <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as PayrollStatus | "")}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="전체" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      <SelectItem value="paid">지급완료</SelectItem>
+                      <SelectItem value="pending">미지급</SelectItem>
+                      <SelectItem value="hold">보류</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => { setSearchQuery(""); setFilterStatus(""); }}>초기화</Button>
+              </div>
+
               <Table>
-                <TableHeader><TableRow>{screen.tableColumns.map((c) => <TableHead key={c}>{c}</TableHead>)}</TableRow></TableHeader>
-                <TableBody>{screen.rows.map((row, idx) => (
-                  <TableRow key={idx}>{screen.tableColumns.map((c) => <TableCell key={c}>{statusAwareValue(String(row[c] ?? "-"))}</TableCell>)}</TableRow>
-                ))}</TableBody>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>직원명</TableHead>
+                    <TableHead className="w-24">역할</TableHead>
+                    <TableHead className="text-right">기본급</TableHead>
+                    <TableHead className="text-right">인센티브</TableHead>
+                    <TableHead className="text-right">공제</TableHead>
+                    <TableHead className="text-right">실지급액</TableHead>
+                    <TableHead className="w-24 text-center">지급상태</TableHead>
+                    <TableHead className="w-28 text-center">관리</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((r) => {
+                    const statusCfg = statusConfig[r.status];
+                    return (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-semibold">{r.name}</TableCell>
+                        <TableCell className="text-xs">{r.role}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmt(r.baseSalary)}원</TableCell>
+                        <TableCell className="text-right tabular-nums text-emerald-600">+{fmt(r.incentive)}원</TableCell>
+                        <TableCell className="text-right tabular-nums text-rose-600">-{fmt(r.deduction)}원</TableCell>
+                        <TableCell className="text-right tabular-nums font-bold text-primary">{fmt(r.netPay)}원</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={statusCfg.variant} className="text-[10px]">{statusCfg.label}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex gap-1 justify-center">
+                            {r.status !== "paid" && (
+                              <Button size="sm" variant="outline" onClick={() => notify(`${r.name} 급여 수정`, "info")}>수정</Button>
+                            )}
+                            <Button size="sm" variant="outline" onClick={() => notify(`${r.name} 명세서 PDF 다운로드`, "info")}>명세서</Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
               </Table>
+              {filtered.length === 0 && (
+                <div className="py-12 text-center text-sm text-content-tertiary">조건에 맞는 급여 데이터가 없습니다.</div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 합계/평균 행 (admin-pando UI-100 패턴) */}
+          {filtered.length > 0 && (
+            <Card className="shadow-none">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <span className="text-sm font-bold">합계 / 평균 ({filtered.length}명)</span>
+                  <div className="flex items-center gap-6 flex-wrap">
+                    <div className="text-right">
+                      <p className="text-[10px] text-content-tertiary">기본급 합계</p>
+                      <p className="text-sm font-bold tabular-nums">{fmt(totals.baseSalary)}원</p>
+                      <p className="text-[10px] text-content-tertiary">평균 {fmt(Math.round(totals.baseSalary / filtered.length))}원</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-content-tertiary">인센티브 합계</p>
+                      <p className="text-sm font-bold tabular-nums text-emerald-600">{fmt(totals.incentive)}원</p>
+                      <p className="text-[10px] text-content-tertiary">평균 {fmt(Math.round(totals.incentive / filtered.length))}원</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-content-tertiary">공제 합계</p>
+                      <p className="text-sm font-bold tabular-nums text-rose-600">{fmt(totals.deduction)}원</p>
+                      <p className="text-[10px] text-content-tertiary">평균 {fmt(Math.round(totals.deduction / filtered.length))}원</p>
+                    </div>
+                    <div className="text-right border-l border-line pl-6">
+                      <p className="text-[10px] text-content-tertiary">실지급액 합계</p>
+                      <p className="text-lg font-bold tabular-nums text-primary">{fmt(totals.netPay)}원</p>
+                      <p className="text-[10px] text-content-tertiary">평균 {fmt(Math.round(totals.netPay / filtered.length))}원</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t text-[10px] text-content-tertiary">
+                  <span className="font-semibold text-accent">계산식</span> 실지급액 = 기본급 + 인센티브 − 공제액
+                  &nbsp;|&nbsp; {fmt(totals.baseSalary)} + {fmt(totals.incentive)} − {fmt(totals.deduction)} = <span className="font-bold text-primary">{fmt(totals.netPay)}원</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 명세서 발급 카드 */}
+          <Card className="shadow-none bg-surface-secondary/40">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="size-10 bg-primary-light rounded-full grid place-items-center text-primary">
+                  <ClipboardCheck size={20} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold">급여 명세서 발급</p>
+                  <p className="text-xs text-content-tertiary">직원별 급여 명세서를 조회하고 PDF로 다운로드</p>
+                </div>
+              </div>
+              <Button size="sm" onClick={() => notify("명세서 페이지 이동 mock", "info")}>명세서 바로가기</Button>
             </CardContent>
           </Card>
         </div>
+
         <aside className="space-y-4">
           <Card className="shadow-none">
             <CardHeader><CardTitle>급여 액션</CardTitle><CardDescription>편집 → 확정 → 명세서</CardDescription></CardHeader>
             <CardContent className="space-y-2"><PrimaryActionRow screen={screen} role={role} openDialog={openDialog} notify={notify} /></CardContent>
           </Card>
           <Card className="shadow-none">
-            <CardHeader><CardTitle>직급별 정책 (참고)</CardTitle></CardHeader>
-            <CardContent className="space-y-2 text-xs">
-              {[{ 직군: "FC", 방식: "정률 + 매출커미션" }, { 직군: "PT", 방식: "건별 + 수업료" }, { 직군: "GX", 방식: "시급 + 수업료" }, { 직군: "공통", 방식: "고정급" }].map((p) => (
-                <div key={p.직군} className="flex items-center justify-between rounded-lg border bg-white px-2 py-1.5"><b>{p.직군}</b><span className="text-content-tertiary">{p.방식}</span></div>
+            <CardHeader><CardTitle>직급별 정책 (참고)</CardTitle><CardDescription>V1+V2 정책 합집합</CardDescription></CardHeader>
+            <CardContent className="space-y-1.5 text-xs">
+              {[
+                { 직군: "센터장", 방식: "고정급 + 매출커미션 5%" },
+                { 직군: "매니저", 방식: "고정급 + 운영 보너스" },
+                { 직군: "FC", 방식: "정률 + 매출커미션 8~12%" },
+                { 직군: "PT 트레이너", 방식: "기본급 + PT 건당 30~45%" },
+                { 직군: "GX 트레이너", 방식: "시급 + 수업료 60%" },
+                { 직군: "스태프", 방식: "고정급" }
+              ].map((p) => (
+                <div key={p.직군} className="flex items-center justify-between rounded-lg border bg-white px-2 py-1.5">
+                  <b>{p.직군}</b>
+                  <span className="text-content-tertiary text-[10px]">{p.방식}</span>
+                </div>
               ))}
             </CardContent>
           </Card>
@@ -4144,131 +4834,873 @@ function PayrollManagementScreen({ screen, role, branch, openDialog, notify }: S
 // ---- D08 마케팅 ----
 
 function LeadManagementScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
-  // admin-pando (marketing)/leads 시각 차용: 칸반 뷰 + 목록 뷰 전환
+  // admin-pando (marketing)/leads 패턴 + 운영자 UX
+  // 칸반/목록 뷰 + 단계 이동 + 신규 리드 등록 + 상담 메모 + 권한 차등
+  type LeadStage = "신규" | "연락완료" | "상담예정" | "방문완료" | "등록완료" | "보류";
+  type Lead = {
+    id: number; name: string; phone: string; inquiry: string;
+    source: string; fc: string; stage: LeadStage; createdAt: string; memo: string;
+  };
+
+  const stages: LeadStage[] = ["신규", "연락완료", "상담예정", "방문완료", "등록완료", "보류"];
+  const stageColors: Record<LeadStage, string> = {
+    "신규": "bg-blue-100 text-blue-700 border-blue-200",
+    "연락완료": "bg-indigo-100 text-indigo-700 border-indigo-200",
+    "상담예정": "bg-violet-100 text-violet-700 border-violet-200",
+    "방문완료": "bg-emerald-100 text-emerald-700 border-emerald-200",
+    "등록완료": "bg-primary-light text-primary border-primary/30",
+    "보류": "bg-slate-100 text-slate-700 border-slate-200"
+  };
+
+  const initialLeads: Lead[] = [
+    { id: 1, name: "강민지", phone: "010-1111-1234", inquiry: "회원권 + PT", source: "지인 소개", fc: "최FC", stage: "신규", createdAt: "오늘", memo: "동료 추천, 평일 저녁 위주" },
+    { id: 2, name: "이재훈", phone: "010-2222-2345", inquiry: "GX 요가", source: "인스타그램", fc: "최FC", stage: "신규", createdAt: "오늘", memo: "체험 1회 가능?" },
+    { id: 3, name: "박지영", phone: "010-3333-3456", inquiry: "다이어트 PT", source: "검색 광고", fc: "정FC", stage: "연락완료", createdAt: "어제", memo: "2회 통화, 가격 비교 중" },
+    { id: 4, name: "최서윤", phone: "010-4444-4567", inquiry: "회원권 3개월", source: "지점 방문", fc: "최FC", stage: "상담예정", createdAt: "어제", memo: "5/30 14:00 상담 예약" },
+    { id: 5, name: "김도현", phone: "010-5555-5678", inquiry: "골프 시뮬레이터", source: "지인 소개", fc: "정FC", stage: "방문완료", createdAt: "2일 전", memo: "투어 완료, 회원권 검토 중" },
+    { id: 6, name: "윤하늘", phone: "010-6666-6789", inquiry: "회원권 6개월", source: "전단지", fc: "최FC", stage: "등록완료", createdAt: "3일 전", memo: "6개월 + PT 10회 결제 완료" },
+    { id: 7, name: "임채영", phone: "010-7777-7890", inquiry: "PT 단기", source: "검색 광고", fc: "정FC", stage: "보류", createdAt: "5일 전", memo: "예산 부족 — 7월 재상담" }
+  ];
+
+  const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [viewMode, setViewMode] = useState<"칸반" | "목록">("칸반");
-  const stages = ["신규", "연락완료", "상담예정", "방문완료", "등록완료", "보류"];
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterFC, setFilterFC] = useState<string>("");
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({ name: "", phone: "", inquiry: "회원권", source: "지점 방문", fc: "최FC", memo: "" });
+  const [detailLead, setDetailLead] = useState<Lead | null>(null);
+
+  const filtered = leads.filter((l) => {
+    const matchSearch = !searchQuery || l.name.includes(searchQuery) || l.phone.includes(searchQuery);
+    const matchFC = !filterFC || l.fc === filterFC;
+    return matchSearch && matchFC;
+  });
+
+  const stageCounts = stages.reduce((acc, stage) => ({ ...acc, [stage]: filtered.filter((l) => l.stage === stage).length }), {} as Record<LeadStage, number>);
+  const conversionRate = leads.length > 0 ? Math.round((leads.filter((l) => l.stage === "등록완료").length / leads.length) * 100) : 0;
+
+  const moveLeadStage = (leadId: number, newStage: LeadStage) => {
+    setLeads((curr) => curr.map((l) => l.id === leadId ? { ...l, stage: newStage } : l));
+    notify(`상담 단계: ${newStage}로 이동`, "info");
+  };
+
   return (
     <div className="space-y-5">
-      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="잠재 고객 상담 단계 추적" />
-      <MetricGrid metrics={screen.metrics} />
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="잠재 고객 상담 단계 6종 추적" />
+
+      {/* 상단 통계 */}
+      <div className="grid grid-cols-4 gap-3">
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><UserRound size={14} /> 전체 리드</CardDescription><CardTitle className="text-2xl tabular-nums">{leads.length}건</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">이번 달 누계</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><Bell size={14} className="text-blue-600" /> 신규</CardDescription><CardTitle className="text-2xl tabular-nums text-blue-600">{stageCounts["신규"]}건</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">미연락 (당일 응대 필요)</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><ClipboardCheck size={14} className="text-violet-600" /> 상담예정</CardDescription><CardTitle className="text-2xl tabular-nums text-violet-600">{stageCounts["상담예정"]}건</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">예약 일정 확인</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-600" /> 전환율</CardDescription><CardTitle className="text-2xl tabular-nums text-emerald-600">{conversionRate}%</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">등록 {stageCounts["등록완료"]} / 전체 {leads.length}</p></CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5">
         <div className="space-y-4">
           <Card className="shadow-none">
             <CardHeader>
-              <div className="flex items-center justify-between"><CardTitle>리드 관리 ({viewMode} 뷰)</CardTitle>
-                <div className="flex gap-1">{(["칸반", "목록"] as const).map((v) => <Button key={v} size="sm" variant={viewMode === v ? "default" : "outline"} onClick={() => setViewMode(v)}>{v}</Button>)}</div>
+              <div className="flex items-center justify-between">
+                <CardTitle>리드 관리 ({viewMode} 뷰)</CardTitle>
+                <div className="flex gap-2">
+                  <div className="flex gap-1">
+                    {(["칸반", "목록"] as const).map((v) => (
+                      <Button key={v} size="sm" variant={viewMode === v ? "default" : "outline"} onClick={() => { setViewMode(v); notify(`${v} 뷰`, "info"); }}>{v}</Button>
+                    ))}
+                  </div>
+                  <Button size="sm" onClick={() => setShowCreate(true)}>+ 리드 등록</Button>
+                </div>
               </div>
-              <CardDescription>상담 단계 7종 · 문의 유형 · 가입경로 추적</CardDescription>
+              <CardDescription>{filtered.length}건 · 상담 단계 6종 · 문의 유형 · 가입경로 추적</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <FilterChips filters={screen.filters} notify={notify} />
+              {/* 검색 */}
+              <div className="grid grid-cols-[2fr_1fr_auto] gap-2 items-end">
+                <div>
+                  <Label className="text-[10px] text-content-tertiary mb-1 block">통합 검색</Label>
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-content-tertiary" />
+                    <Input placeholder="이름·연락처" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-9" />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-[10px] text-content-tertiary mb-1 block">담당 FC</Label>
+                  <Select value={filterFC} onValueChange={setFilterFC}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="전체" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      <SelectItem value="최FC">최FC</SelectItem>
+                      <SelectItem value="정FC">정FC</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => { setSearchQuery(""); setFilterFC(""); }}>초기화</Button>
+              </div>
+
               {viewMode === "칸반" ? (
                 <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
-                  {stages.map((stage, sidx) => (
-                    <div key={stage} className="rounded-lg border bg-surface-secondary p-2">
-                      <div className="mb-2 flex items-center justify-between text-xs font-semibold"><span>{stage}</span><Badge variant="secondary">{[28, 32, 18, 12, 62, 16][sidx]}</Badge></div>
+                  {stages.map((stage) => (
+                    <div key={stage} className="rounded-xl border bg-surface-secondary p-2.5 min-h-[260px]">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className={cn("inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border", stageColors[stage])}>{stage}</span>
+                        <Badge variant="secondary" className="text-[10px]">{stageCounts[stage]}</Badge>
+                      </div>
                       <div className="space-y-2">
-                        {screen.rows.filter((_, i) => i % stages.length === sidx % screen.rows.length).slice(0, 1).map((row, idx) => (
-                          <div key={idx} className="rounded border bg-white p-2 text-xs">
-                            <div className="font-semibold">{row["이름"]}</div>
-                            <div className="text-content-tertiary">{row["문의 유형"]}</div>
-                            <div className="mt-1 text-[10px] text-content-tertiary">{row["담당 FC"]}</div>
-                          </div>
+                        {filtered.filter((l) => l.stage === stage).map((lead) => (
+                          <button
+                            key={lead.id}
+                            onClick={() => setDetailLead(lead)}
+                            className="w-full rounded-lg border bg-white p-2 text-xs text-left hover:border-primary/40 hover:shadow-sm transition"
+                          >
+                            <div className="font-semibold text-content">{lead.name}</div>
+                            <div className="text-[10px] text-content-tertiary mt-0.5">{lead.inquiry}</div>
+                            <div className="mt-1 flex items-center justify-between text-[10px] text-content-tertiary">
+                              <span>{lead.fc}</span>
+                              <span>{lead.createdAt}</span>
+                            </div>
+                          </button>
                         ))}
+                        {filtered.filter((l) => l.stage === stage).length === 0 && (
+                          <div className="text-[10px] text-center text-content-tertiary py-4">-</div>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <Table>
-                  <TableHeader><TableRow>{screen.tableColumns.map((c) => <TableHead key={c}>{c}</TableHead>)}</TableRow></TableHeader>
-                  <TableBody>{screen.rows.map((row, idx) => (
-                    <TableRow key={idx}>{screen.tableColumns.map((c) => <TableCell key={c}>{statusAwareValue(String(row[c] ?? "-"))}</TableCell>)}</TableRow>
-                  ))}</TableBody>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>이름</TableHead>
+                      <TableHead>연락처</TableHead>
+                      <TableHead>문의 유형</TableHead>
+                      <TableHead>가입경로</TableHead>
+                      <TableHead>담당 FC</TableHead>
+                      <TableHead className="w-28 text-center">상담 단계</TableHead>
+                      <TableHead>접수일</TableHead>
+                      <TableHead className="w-20 text-center">관리</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((l) => (
+                      <TableRow key={l.id} className="cursor-pointer" onClick={() => setDetailLead(l)}>
+                        <TableCell className="font-semibold">{l.name}</TableCell>
+                        <TableCell className="text-xs tabular-nums">{l.phone}</TableCell>
+                        <TableCell className="text-xs">{l.inquiry}</TableCell>
+                        <TableCell className="text-xs text-content-tertiary">{l.source}</TableCell>
+                        <TableCell className="text-xs">{l.fc}</TableCell>
+                        <TableCell className="text-center">
+                          <span className={cn("inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border", stageColors[l.stage])}>{l.stage}</span>
+                        </TableCell>
+                        <TableCell className="text-xs text-content-tertiary">{l.createdAt}</TableCell>
+                        <TableCell className="text-center">
+                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setDetailLead(l); }}>상세</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
                 </Table>
+              )}
+              {filtered.length === 0 && (
+                <div className="py-12 text-center text-sm text-content-tertiary">조건에 맞는 리드가 없습니다.</div>
               )}
             </CardContent>
           </Card>
         </div>
         <aside className="space-y-4">
-          <Card className="shadow-none"><CardHeader><CardTitle>리드 액션</CardTitle></CardHeader><CardContent><PrimaryActionRow screen={screen} role={role} openDialog={openDialog} notify={notify} /></CardContent></Card>
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>리드 액션</CardTitle><CardDescription>운영 빈도 매우 높음</CardDescription></CardHeader>
+            <CardContent className="space-y-2">
+              <Button className="w-full" onClick={() => setShowCreate(true)}>+ 새 리드 등록</Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("일괄 SMS 발송 mock", "info")}>일괄 SMS 발송</Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("자동 follow-up mock", "info")}>자동 follow-up 정책</Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("CSV 내보내기 mock", "info")}>CSV 내보내기</Button>
+            </CardContent>
+          </Card>
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>가입경로별 (TOP 3)</CardTitle></CardHeader>
+            <CardContent className="space-y-1.5 text-xs">
+              {[
+                { 경로: "지인 소개", 건수: 2 },
+                { 경로: "검색 광고", 건수: 2 },
+                { 경로: "지점 방문", 건수: 1 }
+              ].map((p) => (
+                <div key={p.경로} className="flex items-center justify-between rounded-lg border bg-white px-2 py-1.5">
+                  <b>{p.경로}</b>
+                  <span className="text-content-tertiary">{p.건수}건</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
           <DialogDock screen={screen} openDialog={openDialog} />
           <HandoffContractCard screen={screen} />
           <FrontStateNote screen={screen} />
         </aside>
       </div>
+
+      {/* 리드 등록 모달 */}
+      {showCreate && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4" onClick={() => setShowCreate(false)}>
+          <div className="bg-white rounded-2xl shadow-xl border w-full max-w-[480px]" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <h3 className="text-base font-bold">새 리드 등록</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowCreate(false)}><X size={16} /></Button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block">이름 *</Label>
+                <Input placeholder="홍길동" value={createForm.name} onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })} />
+                {createForm.name && createForm.name.length < 2 && (<p className="text-[10px] text-rose-600 mt-1">이름은 2자 이상 입력해주세요.</p>)}
+              </div>
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block">연락처 *</Label>
+                <Input placeholder="010-1234-5678" value={createForm.phone} onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })} />
+                {createForm.phone && !/^010-\d{4}-\d{4}$/.test(createForm.phone) && (<p className="text-[10px] text-rose-600 mt-1">010-1234-5678 형식으로 입력해주세요.</p>)}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs font-semibold mb-1.5 block">문의 유형</Label>
+                  <Select value={createForm.inquiry} onValueChange={(v) => setCreateForm({ ...createForm, inquiry: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {["회원권", "PT", "GX 요가", "GX 필라테스", "골프 시뮬레이터", "다이어트 PT", "기타"].map((i) => (<SelectItem key={i} value={i}>{i}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold mb-1.5 block">가입경로</Label>
+                  <Select value={createForm.source} onValueChange={(v) => setCreateForm({ ...createForm, source: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {["지점 방문", "지인 소개", "검색 광고", "인스타그램", "전단지", "타지점 이관"].map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block">담당 FC</Label>
+                <Select value={createForm.fc} onValueChange={(v) => setCreateForm({ ...createForm, fc: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="최FC">최FC</SelectItem>
+                    <SelectItem value="정FC">정FC</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block">상담 메모</Label>
+                <Textarea rows={3} placeholder="첫 통화 내용, 관심 분야, 예산 등" value={createForm.memo} onChange={(e) => setCreateForm({ ...createForm, memo: e.target.value })} />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowCreate(false)}>취소</Button>
+              <Button className="flex-1" onClick={() => {
+                if (createForm.name.length < 2) { notify("이름 2자 이상", "warning"); return; }
+                if (!/^010-\d{4}-\d{4}$/.test(createForm.phone)) { notify("연락처 형식 확인", "warning"); return; }
+                const newLead: Lead = {
+                  id: Math.max(...leads.map((l) => l.id)) + 1,
+                  name: createForm.name, phone: createForm.phone, inquiry: createForm.inquiry,
+                  source: createForm.source, fc: createForm.fc, stage: "신규",
+                  createdAt: "방금 전", memo: createForm.memo
+                };
+                setLeads([newLead, ...leads]);
+                setShowCreate(false);
+                setCreateForm({ name: "", phone: "", inquiry: "회원권", source: "지점 방문", fc: "최FC", memo: "" });
+                notify(`${newLead.name} 리드 등록 완료 (신규 단계)`);
+              }}>등록</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 리드 상세/단계 이동 모달 */}
+      {detailLead && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4" onClick={() => setDetailLead(null)}>
+          <div className="bg-white rounded-2xl shadow-xl border w-full max-w-[520px]" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold">{detailLead.name}</h3>
+                <p className="text-xs text-content-tertiary mt-0.5">{detailLead.phone} · {detailLead.createdAt}</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setDetailLead(null)}><X size={16} /></Button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="rounded-lg border p-2.5"><div className="text-content-tertiary">문의 유형</div><div className="font-bold mt-0.5">{detailLead.inquiry}</div></div>
+                <div className="rounded-lg border p-2.5"><div className="text-content-tertiary">가입경로</div><div className="font-bold mt-0.5">{detailLead.source}</div></div>
+                <div className="rounded-lg border p-2.5"><div className="text-content-tertiary">담당 FC</div><div className="font-bold mt-0.5">{detailLead.fc}</div></div>
+                <div className="rounded-lg border p-2.5"><div className="text-content-tertiary">현재 단계</div><div className="font-bold mt-0.5"><span className={cn("inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border", stageColors[detailLead.stage])}>{detailLead.stage}</span></div></div>
+              </div>
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block">상담 메모</Label>
+                <div className="rounded-lg bg-surface-secondary border p-3 text-sm">{detailLead.memo || "(메모 없음)"}</div>
+              </div>
+              <div>
+                <Label className="text-xs font-semibold mb-2 block">단계 이동</Label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {stages.map((s) => (
+                    <Button
+                      key={s}
+                      size="sm"
+                      variant={detailLead.stage === s ? "default" : "outline"}
+                      onClick={() => { moveLeadStage(detailLead.id, s); setDetailLead({ ...detailLead, stage: s }); }}
+                    >{s}</Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t flex gap-2">
+              <Button variant="outline" onClick={() => { setDetailLead(null); notify("회원 등록 화면 이동 mock", "info"); }}>회원 등록 연결</Button>
+              <Button variant="outline" onClick={() => { setDetailLead(null); notify("SMS 발송 mock", "info"); }}>SMS 발송</Button>
+              <Button className="flex-1" onClick={() => setDetailLead(null)}>닫기</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function MessageDispatchScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
+  // admin-pando (marketing)/messages 패턴 + 운영자 UX
+  // 채널 3종 + 발송 미리보기 + 대상 세그먼트 + 결과 통계
+  type Channel = "all" | "push" | "kakao" | "sms";
+  const channelMeta: Record<Channel, { label: string; color: string; cost: string }> = {
+    all: { label: "전체", color: "bg-slate-100 text-slate-700 border-slate-200", cost: "-" },
+    push: { label: "Push", color: "bg-blue-100 text-blue-700 border-blue-200", cost: "무료" },
+    kakao: { label: "카카오톡", color: "bg-yellow-100 text-yellow-700 border-yellow-200", cost: "15원/건" },
+    sms: { label: "SMS", color: "bg-emerald-100 text-emerald-700 border-emerald-200", cost: "30원/건" }
+  };
+
+  type DispatchRow = {
+    id: number; sentAt: string; channel: Exclude<Channel, "all">;
+    title: string; segment: string; total: number; success: number; failed: number; status: "완료" | "발송중" | "실패";
+  };
+
+  const initialHistory: DispatchRow[] = [
+    { id: 1, sentAt: "오늘 09:00", channel: "push", title: "5월 신규 GX 클래스 안내", segment: "활성 회원 (2,614명)", total: 2614, success: 2580, failed: 34, status: "완료" },
+    { id: 2, sentAt: "오늘 10:30", channel: "kakao", title: "만료 임박 D-3 (재등록 안내)", segment: "만료임박 자동", total: 92, success: 89, failed: 3, status: "완료" },
+    { id: 3, sentAt: "오늘 11:15", channel: "sms", title: "미수금 납부 요청", segment: "미수금 회원", total: 18, success: 17, failed: 1, status: "완료" },
+    { id: 4, sentAt: "어제 14:20", channel: "push", title: "여름 휴가 운영 시간 변경", segment: "전 회원", total: 3248, success: 3201, failed: 47, status: "완료" },
+    { id: 5, sentAt: "어제 16:00", channel: "kakao", title: "PT 트레이너 신규 입사", segment: "PT 보유 회원", total: 256, success: 243, failed: 13, status: "완료" },
+    { id: 6, sentAt: "방금 전", channel: "sms", title: "결제 영수증 발송", segment: "결제완료", total: 8, success: 6, failed: 0, status: "발송중" }
+  ];
+
+  const [history, setHistory] = useState<DispatchRow[]>(initialHistory);
+  const [activeChannel, setActiveChannel] = useState<Channel>("all");
+  const [showCompose, setShowCompose] = useState(false);
+  const [composeForm, setComposeForm] = useState({ channel: "push" as Exclude<Channel, "all">, title: "", message: "", segment: "활성 회원" });
+  const [previewMode, setPreviewMode] = useState(false);
+
+  const filtered = history.filter((h) => activeChannel === "all" || h.channel === activeChannel);
+  const successTotal = history.reduce((s, h) => s + h.success, 0);
+  const failedTotal = history.reduce((s, h) => s + h.failed, 0);
+  const successRate = successTotal + failedTotal > 0 ? Math.round((successTotal / (successTotal + failedTotal)) * 100) : 100;
+
+  const channelCounts: Record<Channel, number> = {
+    all: history.length,
+    push: history.filter((h) => h.channel === "push").length,
+    kakao: history.filter((h) => h.channel === "kakao").length,
+    sms: history.filter((h) => h.channel === "sms").length
+  };
+
+  const segmentOptions = ["활성 회원 (2,614명)", "만료임박 자동 (184명)", "이탈위험 (86명)", "신규 회원 (52명)", "PT 보유 (256명)", "미수금 (18명)", "전 회원 (3,248명)"];
+  const charLimit = composeForm.channel === "sms" ? 90 : composeForm.channel === "kakao" ? 1000 : 200;
+  const overLimit = composeForm.message.length > charLimit;
+
   return (
     <div className="space-y-5">
-      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="Push · 카카오톡 · SMS 통합" />
-      <MetricGrid metrics={screen.metrics} />
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="Push · 카카오톡 · SMS 통합 발송" />
+
+      {/* 통계 카드 */}
+      <div className="grid grid-cols-4 gap-3">
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><Bell size={14} /> 오늘 발송</CardDescription><CardTitle className="text-2xl tabular-nums">{history.filter((h) => h.sentAt.startsWith("오늘") || h.sentAt === "방금 전").length}건</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">전일 +2건</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-600" /> 성공률</CardDescription><CardTitle className="text-2xl tabular-nums text-emerald-600">{successRate}%</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">성공 {successTotal.toLocaleString()} / 실패 {failedTotal}</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><MessageSquare size={14} className="text-blue-600" /> 대상자 합계</CardDescription><CardTitle className="text-2xl tabular-nums text-blue-600">{(successTotal + failedTotal).toLocaleString()}</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">중복 제거 없음</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><AlertTriangle size={14} className="text-amber-600" /> 발송 비용 (예상)</CardDescription><CardTitle className="text-2xl tabular-nums text-amber-600">₩{((history.filter((h) => h.channel === "kakao").reduce((s, h) => s + h.total, 0) * 15) + (history.filter((h) => h.channel === "sms").reduce((s, h) => s + h.total, 0) * 30)).toLocaleString()}</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">카카오 15원·SMS 30원</p></CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5">
         <div className="space-y-4">
           <Card className="shadow-none">
-            <CardHeader><CardTitle>발송 이력</CardTitle><CardDescription>채널별 성공/실패</CardDescription></CardHeader>
-            <CardContent className="space-y-3">
-              <FilterChips filters={screen.filters} notify={notify} />
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>발송 이력</CardTitle>
+                <Button size="sm" onClick={() => setShowCompose(true)}>
+                  <MessageSquare size={14} className="mr-1.5" /> 새 메시지 발송
+                </Button>
+              </div>
+              <CardDescription>{filtered.length}건 · 채널별 성공/실패 추적</CardDescription>
+              {/* 채널 탭 */}
+              <div className="mt-2 flex gap-1 border-b border-line">
+                {(Object.keys(channelMeta) as Channel[]).map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => { setActiveChannel(c); notify(`${channelMeta[c].label} 필터`, "info"); }}
+                    className={cn(
+                      "px-4 py-2 text-sm font-semibold border-b-2 transition-colors",
+                      activeChannel === c ? "border-primary text-primary" : "border-transparent text-content-secondary hover:text-content"
+                    )}
+                  >
+                    {channelMeta[c].label} <span className="text-[10px] text-content-tertiary">({channelCounts[c]})</span>
+                  </button>
+                ))}
+              </div>
+            </CardHeader>
+            <CardContent>
               <Table>
-                <TableHeader><TableRow>{screen.tableColumns.map((c) => <TableHead key={c}>{c}</TableHead>)}</TableRow></TableHeader>
-                <TableBody>{screen.rows.map((row, idx) => (
-                  <TableRow key={idx}>{screen.tableColumns.map((c) => <TableCell key={c}>{statusAwareValue(String(row[c] ?? "-"))}</TableCell>)}</TableRow>
-                ))}</TableBody>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-24">발송 시각</TableHead>
+                    <TableHead className="w-24">채널</TableHead>
+                    <TableHead>제목</TableHead>
+                    <TableHead>대상 세그먼트</TableHead>
+                    <TableHead className="text-right w-20">대상자</TableHead>
+                    <TableHead className="text-right w-20">성공</TableHead>
+                    <TableHead className="text-right w-20">실패</TableHead>
+                    <TableHead className="w-20 text-center">상태</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((h) => {
+                    const cfg = channelMeta[h.channel];
+                    return (
+                      <TableRow key={h.id} className="cursor-pointer" onClick={() => notify(`${h.title} 발송 결과 상세`, "info")}>
+                        <TableCell className="text-xs">{h.sentAt}</TableCell>
+                        <TableCell><span className={cn("inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border", cfg.color)}>{cfg.label}</span></TableCell>
+                        <TableCell className="font-semibold">{h.title}</TableCell>
+                        <TableCell className="text-xs text-content-tertiary">{h.segment}</TableCell>
+                        <TableCell className="text-right tabular-nums">{h.total.toLocaleString()}</TableCell>
+                        <TableCell className="text-right tabular-nums text-emerald-600">{h.success.toLocaleString()}</TableCell>
+                        <TableCell className="text-right tabular-nums text-rose-600">{h.failed}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={h.status === "완료" ? "success" : h.status === "발송중" ? "info" : "destructive"} className="text-[10px]">{h.status}</Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
               </Table>
+              {filtered.length === 0 && (
+                <div className="py-12 text-center text-sm text-content-tertiary">발송 이력이 없습니다.</div>
+              )}
             </CardContent>
           </Card>
         </div>
+
         <aside className="space-y-4">
-          <Card className="shadow-none"><CardHeader><CardTitle>발송 액션</CardTitle></CardHeader><CardContent><PrimaryActionRow screen={screen} role={role} openDialog={openDialog} notify={notify} /></CardContent></Card>
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>발송 액션</CardTitle><CardDescription>운영 빈도 매우 높음</CardDescription></CardHeader>
+            <CardContent className="space-y-2">
+              <Button className="w-full" onClick={() => setShowCompose(true)}>
+                <MessageSquare size={14} className="mr-1.5" /> 새 메시지 발송
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("자동 알림 정책 화면 이동 mock", "info")}>자동 알림 정책</Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("템플릿 라이브러리 mock", "info")}>템플릿 라이브러리</Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("CSV 내보내기 mock", "info")}>CSV 내보내기</Button>
+            </CardContent>
+          </Card>
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>채널 정책</CardTitle></CardHeader>
+            <CardContent className="space-y-1.5 text-xs">
+              {(["push", "kakao", "sms"] as const).map((c) => (
+                <div key={c} className="flex items-center justify-between gap-2 rounded-lg border bg-white px-2 py-1.5">
+                  <span className={cn("inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border", channelMeta[c].color)}>{channelMeta[c].label}</span>
+                  <span className="text-content-tertiary text-[10px]">{channelMeta[c].cost}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
           <DialogDock screen={screen} openDialog={openDialog} />
           <HandoffContractCard screen={screen} />
         </aside>
       </div>
+
+      {/* 메시지 작성 모달 */}
+      {showCompose && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4" onClick={() => setShowCompose(false)}>
+          <div className="bg-white rounded-2xl shadow-xl border w-full max-w-[640px] max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <h3 className="text-base font-bold flex items-center gap-2"><MessageSquare size={16} className="text-primary" /> 새 메시지 발송</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowCompose(false)}><X size={16} /></Button>
+            </div>
+            <div className="p-6 space-y-4">
+              {/* 채널 선택 */}
+              <div>
+                <Label className="text-xs font-semibold mb-2 block">발송 채널 *</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["push", "kakao", "sms"] as const).map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setComposeForm({ ...composeForm, channel: c })}
+                      className={cn(
+                        "rounded-xl border p-3 text-left transition-all",
+                        composeForm.channel === c ? cn(channelMeta[c].color, "ring-2 ring-primary scale-[1.02]") : "border-line hover:border-primary/50"
+                      )}
+                    >
+                      <div className="font-bold text-sm">{channelMeta[c].label}</div>
+                      <div className="text-[10px] text-content-tertiary mt-0.5">{channelMeta[c].cost}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 대상 세그먼트 */}
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block">대상 세그먼트 *</Label>
+                <Select value={composeForm.segment} onValueChange={(v) => setComposeForm({ ...composeForm, segment: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {segmentOptions.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* 제목 */}
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block">제목 *</Label>
+                <Input placeholder="메시지 제목" value={composeForm.title} onChange={(e) => setComposeForm({ ...composeForm, title: e.target.value })} />
+                {composeForm.title && composeForm.title.length < 3 && (
+                  <p className="text-[10px] text-rose-600 mt-1">제목은 3자 이상 입력해주세요.</p>
+                )}
+              </div>
+
+              {/* 내용 */}
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block flex items-center justify-between">
+                  <span>내용 *</span>
+                  <span className={cn("text-[10px]", overLimit ? "text-rose-600 font-bold" : "text-content-tertiary")}>
+                    {composeForm.message.length} / {charLimit}자
+                  </span>
+                </Label>
+                <Textarea rows={5} placeholder={`${channelMeta[composeForm.channel].label} 메시지 내용`} value={composeForm.message} onChange={(e) => setComposeForm({ ...composeForm, message: e.target.value })} />
+                {overLimit && (
+                  <p className="text-[10px] text-rose-600 mt-1">{channelMeta[composeForm.channel].label} 채널은 최대 {charLimit}자까지 지원합니다.</p>
+                )}
+              </div>
+
+              {/* 미리보기 */}
+              {previewMode && composeForm.message && (
+                <div className="rounded-xl border-2 border-dashed border-primary/40 bg-primary-light/30 p-4">
+                  <div className="text-[10px] text-content-tertiary mb-2">📱 미리보기 (실제 발송 화면 mock)</div>
+                  <div className="bg-white rounded-lg p-3 border shadow-sm">
+                    <div className="text-xs font-bold text-primary mb-1">{composeForm.title || "(제목 없음)"}</div>
+                    <div className="text-sm whitespace-pre-wrap">{composeForm.message}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* 비용 안내 */}
+              {composeForm.segment && composeForm.channel !== "push" && (() => {
+                const match = composeForm.segment.match(/\((\d{1,3}(?:,\d{3})*)명\)/);
+                const count = match ? parseInt(match[1].replace(/,/g, "")) : 0;
+                const cost = count * (composeForm.channel === "kakao" ? 15 : 30);
+                return (
+                  <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs">
+                    <AlertTriangle size={14} className="inline text-amber-600 mr-1.5" />
+                    <b>예상 비용:</b> {count.toLocaleString()}명 × {composeForm.channel === "kakao" ? "15원" : "30원"} = <b className="text-amber-700">₩{cost.toLocaleString()}</b>
+                  </div>
+                );
+              })()}
+            </div>
+            <div className="px-6 py-4 border-t flex gap-2">
+              <Button variant="outline" onClick={() => setShowCompose(false)}>취소</Button>
+              <Button variant="outline" onClick={() => setPreviewMode(!previewMode)}>{previewMode ? "미리보기 닫기" : "미리보기"}</Button>
+              <Button className="flex-1" onClick={() => {
+                if (composeForm.title.length < 3) { notify("제목은 3자 이상 입력해주세요.", "warning"); return; }
+                if (!composeForm.message.trim()) { notify("메시지 내용을 입력해주세요.", "warning"); return; }
+                if (overLimit) { notify(`${channelMeta[composeForm.channel].label} 최대 ${charLimit}자 초과`, "warning"); return; }
+                const match = composeForm.segment.match(/\((\d{1,3}(?:,\d{3})*)명\)/);
+                const count = match ? parseInt(match[1].replace(/,/g, "")) : 100;
+                const successCount = Math.floor(count * 0.96);
+                const newRow: DispatchRow = {
+                  id: Math.max(...history.map((h) => h.id)) + 1,
+                  sentAt: "방금 전", channel: composeForm.channel, title: composeForm.title,
+                  segment: composeForm.segment, total: count, success: successCount, failed: count - successCount,
+                  status: "발송중"
+                };
+                setHistory([newRow, ...history]);
+                setShowCompose(false);
+                setComposeForm({ channel: "push", title: "", message: "", segment: "활성 회원" });
+                setPreviewMode(false);
+                notify(`${count.toLocaleString()}명 대상 발송 시작 (성공률 약 96%)`);
+                window.setTimeout(() => {
+                  setHistory((curr) => curr.map((r) => r.id === newRow.id ? { ...r, status: "완료" as const } : r));
+                  notify(`발송 완료: 성공 ${successCount.toLocaleString()} / 실패 ${count - successCount}`);
+                }, 2000);
+              }}>
+                <MessageSquare size={14} className="mr-1.5" /> 발송하기
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function CouponManagementScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
+  // admin-pando coupons 패턴 + 운영자 UX
+  // 쿠폰 발급/사용률/만료/필터/일괄 발급 모달
+  type CouponStatus = "active" | "expired" | "scheduled" | "stopped";
+  type Coupon = {
+    id: number; name: string; type: "정액" | "정률";
+    discount: string; period: string; issued: number; used: number; status: CouponStatus;
+  };
+
+  const initialCoupons: Coupon[] = [
+    { id: 1, name: "신규 가입 10% 할인", type: "정률", discount: "10%", period: "26.05.01 ~ 26.06.30", issued: 421, used: 268, status: "active" },
+    { id: 2, name: "재등록 3만원 할인", type: "정액", discount: "30,000원", period: "26.04.20 ~ 26.05.31", issued: 184, used: 92, status: "active" },
+    { id: 3, name: "여름 시즌 5만원 할인", type: "정액", discount: "50,000원", period: "26.06.01 ~ 26.08.31", issued: 0, used: 0, status: "scheduled" },
+    { id: 4, name: "1주년 기념 20% (종료)", type: "정률", discount: "20%", period: "26.03.01 ~ 26.03.31", issued: 642, used: 521, status: "expired" },
+    { id: 5, name: "친구 추천 1만원", type: "정액", discount: "10,000원", period: "26.05.10 ~ 26.07.10", issued: 102, used: 64, status: "active" },
+    { id: 6, name: "GX 첫 클래스 50%", type: "정률", discount: "50%", period: "26.05.01 ~ 26.05.31", issued: 56, used: 12, status: "stopped" }
+  ];
+
+  const [coupons, setCoupons] = useState<Coupon[]>(initialCoupons);
+  const [filterStatus, setFilterStatus] = useState<CouponStatus | "">("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({ name: "", type: "정률" as "정액" | "정률", value: "", periodStart: "", periodEnd: "", quantity: 100 });
+
+  const filtered = coupons.filter((c) => {
+    const matchSearch = !searchQuery || c.name.includes(searchQuery);
+    const matchStatus = !filterStatus || c.status === filterStatus;
+    return matchSearch && matchStatus;
+  });
+
+  const totalIssued = coupons.reduce((s, c) => s + c.issued, 0);
+  const totalUsed = coupons.reduce((s, c) => s + c.used, 0);
+  const usageRate = totalIssued > 0 ? Math.round((totalUsed / totalIssued) * 100) : 0;
+  const activeCount = coupons.filter((c) => c.status === "active").length;
+
+  const statusConfig: Record<CouponStatus, { label: string; variant: "success" | "secondary" | "info" | "destructive" }> = {
+    active: { label: "사용 중", variant: "success" },
+    scheduled: { label: "예정", variant: "info" },
+    expired: { label: "만료", variant: "secondary" },
+    stopped: { label: "중지", variant: "destructive" }
+  };
+
+  const canManage = hasPermission(role, "salesWrite") || role === "OWNER" || role === "MANAGER";
+
   return (
     <div className="space-y-5">
-      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="할인 쿠폰 발급/사용률 통계" />
-      <MetricGrid metrics={screen.metrics} />
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="발급 · 사용률 · 만료 추적" />
+
+      {/* 통계 카드 4종 */}
+      <div className="grid grid-cols-4 gap-3">
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription>활성 쿠폰</CardDescription><CardTitle className="text-2xl tabular-nums text-emerald-600">{activeCount}건</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">사용 가능 상태</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription>총 발급</CardDescription><CardTitle className="text-2xl tabular-nums">{totalIssued.toLocaleString()}건</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">이번 달 누계</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription>총 사용</CardDescription><CardTitle className="text-2xl tabular-nums text-primary">{totalUsed.toLocaleString()}건</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">결제 시 적용</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription>사용률</CardDescription><CardTitle className="text-2xl tabular-nums text-blue-600">{usageRate}%</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">전월 +4%p</p></CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5">
         <div className="space-y-4">
           <Card className="shadow-none">
-            <CardHeader><CardTitle>쿠폰 목록</CardTitle><CardDescription>발급/사용 비율 · 사용률 막대</CardDescription></CardHeader>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>쿠폰 목록</CardTitle>
+                <Button size="sm" disabled={!canManage} onClick={() => canManage ? setShowCreate(true) : notify("매니저 이상 권한 필요", "warning")}>
+                  + 쿠폰 발급
+                </Button>
+              </div>
+              <CardDescription>총 {filtered.length}건 · 발급/사용 비율 · 사용률 막대</CardDescription>
+            </CardHeader>
             <CardContent className="space-y-3">
-              <FilterChips filters={screen.filters} notify={notify} />
-              <div className="grid gap-2">
-                {screen.rows.map((row, idx) => {
-                  const usage = Number(String(row["사용률"] ?? "0").replace("%", "")) || 0;
+              {/* 검색/필터 */}
+              <div className="grid grid-cols-[2fr_1fr_auto] gap-2 items-end">
+                <div>
+                  <Label className="text-[10px] text-content-tertiary mb-1 block">검색</Label>
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-content-tertiary" />
+                    <Input placeholder="쿠폰명 검색" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-9" />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-[10px] text-content-tertiary mb-1 block">상태</Label>
+                  <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as CouponStatus | "")}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="전체" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      <SelectItem value="active">사용 중</SelectItem>
+                      <SelectItem value="scheduled">예정</SelectItem>
+                      <SelectItem value="expired">만료</SelectItem>
+                      <SelectItem value="stopped">중지</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => { setSearchQuery(""); setFilterStatus(""); }}>초기화</Button>
+              </div>
+
+              {/* 쿠폰 카드 그리드 */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {filtered.map((c) => {
+                  const usage = c.issued > 0 ? Math.round((c.used / c.issued) * 100) : 0;
+                  const cfg = statusConfig[c.status];
                   return (
-                    <div key={idx} className="rounded-xl border bg-white p-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <div><b>{row["쿠폰명"]}</b> <span className="text-xs text-content-tertiary">{row["할인 유형"]} · {row["할인 금액/할인율"]}</span></div>
-                        {statusAwareValue(String(row["상태"] ?? "-"))}
+                    <div key={c.id} className="rounded-xl border bg-white p-3 hover:border-primary/40 hover:shadow-sm transition">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-sm truncate">{c.name}</div>
+                          <div className="text-xs text-content-tertiary mt-0.5">{c.type} · {c.discount}</div>
+                        </div>
+                        <Badge variant={cfg.variant} className="text-[10px] shrink-0">{cfg.label}</Badge>
                       </div>
-                      <div className="mt-1 text-xs text-content-tertiary">유효: {row["유효 기간"]}</div>
+                      <div className="mt-2 text-[11px] text-content-tertiary">유효 {c.period}</div>
                       <div className="mt-2 flex items-center gap-3 text-xs">
-                        <span>발급 {row["발급 수"]}</span><span>사용 {row["사용 수"]}</span><span className="font-bold text-blue-700">{usage}%</span>
+                        <span className="text-content-tertiary">발급 <b className="text-content">{c.issued.toLocaleString()}</b></span>
+                        <span className="text-content-tertiary">사용 <b className="text-primary">{c.used.toLocaleString()}</b></span>
+                        <span className="ml-auto font-bold text-blue-700 tabular-nums">{usage}%</span>
                       </div>
-                      <div className="mt-2 h-2 overflow-hidden rounded bg-surface-tertiary"><div className="h-full bg-emerald-500" style={{ width: `${usage}%` }} /></div>
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-tertiary">
+                        <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500" style={{ width: `${usage}%` }} />
+                      </div>
+                      <div className="mt-2 flex justify-end gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => notify(`${c.name} 발급 내역`, "info")}>발급 내역</Button>
+                        {c.status === "active" && (
+                          <Button size="sm" variant="ghost" disabled={!canManage} onClick={() => {
+                            setCoupons((curr) => curr.map((x) => x.id === c.id ? { ...x, status: "stopped" as const } : x));
+                            notify(`${c.name} 발급 중지`, "warning");
+                          }}>중지</Button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
+              {filtered.length === 0 && (
+                <div className="py-12 text-center text-sm text-content-tertiary">조건에 맞는 쿠폰이 없습니다.</div>
+              )}
             </CardContent>
           </Card>
         </div>
+
         <aside className="space-y-4">
-          <Card className="shadow-none"><CardHeader><CardTitle>쿠폰 액션</CardTitle></CardHeader><CardContent><PrimaryActionRow screen={screen} role={role} openDialog={openDialog} notify={notify} /></CardContent></Card>
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>쿠폰 액션</CardTitle><CardDescription>발급·중지·연장</CardDescription></CardHeader>
+            <CardContent className="space-y-2">
+              <Button className="w-full" disabled={!canManage} onClick={() => canManage ? setShowCreate(true) : notify("매니저 이상 권한 필요", "warning")}>
+                + 새 쿠폰 발급
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("일괄 발급 (세그먼트 연결) mock", "info")}>일괄 발급</Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("CSV 내보내기 mock", "info")}>CSV 내보내기</Button>
+            </CardContent>
+          </Card>
+          {!canManage && (
+            <Card className="shadow-none border-amber-200 bg-amber-50">
+              <CardContent className="p-3 text-xs">
+                <AlertTriangle size={14} className="inline text-amber-600 mr-1.5" />
+                <b>권한 안내:</b> 쿠폰 발급/중지는 매니저 이상 권한 필요
+              </CardContent>
+            </Card>
+          )}
           <DialogDock screen={screen} openDialog={openDialog} />
           <HandoffContractCard screen={screen} />
         </aside>
       </div>
+
+      {/* 쿠폰 발급 모달 */}
+      {showCreate && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4" onClick={() => setShowCreate(false)}>
+          <div className="bg-white rounded-2xl shadow-xl border w-full max-w-[520px]" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <h3 className="text-base font-bold">새 쿠폰 발급</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowCreate(false)}><X size={16} /></Button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block">쿠폰명 *</Label>
+                <Input placeholder="예: 신규 가입 10% 할인" value={createForm.name} onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs font-semibold mb-1.5 block">할인 유형 *</Label>
+                  <div className="flex gap-2">
+                    {(["정률", "정액"] as const).map((t) => (
+                      <Button key={t} size="sm" variant={createForm.type === t ? "default" : "outline"} className="flex-1" onClick={() => setCreateForm({ ...createForm, type: t })}>{t}</Button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold mb-1.5 block">{createForm.type === "정률" ? "할인율 (%)" : "할인 금액 (원)"} *</Label>
+                  <Input type="number" placeholder={createForm.type === "정률" ? "10" : "10000"} value={createForm.value} onChange={(e) => setCreateForm({ ...createForm, value: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs font-semibold mb-1.5 block">유효 시작일 *</Label>
+                  <Input type="date" value={createForm.periodStart} onChange={(e) => setCreateForm({ ...createForm, periodStart: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold mb-1.5 block">유효 종료일 *</Label>
+                  <Input type="date" value={createForm.periodEnd} onChange={(e) => setCreateForm({ ...createForm, periodEnd: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block">발급 수량</Label>
+                <Input type="number" value={createForm.quantity} onChange={(e) => setCreateForm({ ...createForm, quantity: Number(e.target.value) || 0 })} />
+                <p className="text-[10px] text-content-tertiary mt-1">발급 수량은 추후 추가 가능합니다.</p>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowCreate(false)}>취소</Button>
+              <Button className="flex-1" onClick={() => {
+                if (createForm.name.length < 3) { notify("쿠폰명 3자 이상", "warning"); return; }
+                if (!createForm.value) { notify("할인값 입력 필요", "warning"); return; }
+                if (!createForm.periodStart || !createForm.periodEnd) { notify("유효 기간 선택", "warning"); return; }
+                const discount = createForm.type === "정률" ? `${createForm.value}%` : `${Number(createForm.value).toLocaleString()}원`;
+                const newCoupon: Coupon = {
+                  id: Math.max(...coupons.map((c) => c.id)) + 1,
+                  name: createForm.name, type: createForm.type, discount,
+                  period: `${createForm.periodStart.slice(2).replace(/-/g, ".")} ~ ${createForm.periodEnd.slice(2).replace(/-/g, ".")}`,
+                  issued: 0, used: 0, status: "active"
+                };
+                setCoupons([newCoupon, ...coupons]);
+                setShowCreate(false);
+                setCreateForm({ name: "", type: "정률", value: "", periodStart: "", periodEnd: "", quantity: 100 });
+                notify(`${newCoupon.name} 발급 완료`);
+              }}>발급</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -4306,33 +5738,266 @@ function ReferralProgramScreen({ screen, role, branch, openDialog, notify }: Spe
 // ---- D09 설정 ----
 
 function NoticesScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
-  // V2 신규: 공지사항
+  // admin-pando /notices/page.tsx 구조 1:1 이식 (V2 신규)
+  // 상단 카드 통계 + 핀 고정 행 + 읽음/NEW 배지 + 작성 액션
+  // docs4 V2 D09-설정관리/공지사항 컨텐츠 반영
+  type NoticeRow = {
+    id: number;
+    title: string;
+    content: string;
+    authorName: string;
+    isPinned: boolean;
+    isPublic: boolean;
+    createdAt: string;
+    isRead: boolean;
+  };
+
+  const initialNotices: NoticeRow[] = [
+    { id: 1, title: "[중요] 6월 시설 점검 안내", content: "6월 12일(수) 02:00~05:00 사이 메인 운동기구 및 락커 시설 정기 점검이 진행됩니다. 점검 시간 동안 24시간 출입은 제한될 수 있습니다.", authorName: "본사 운영팀", isPinned: true, isPublic: true, createdAt: "2026-05-25", isRead: false },
+    { id: 2, title: "신규 GX 클래스 (요가/필라테스) 5월 31일 오픈", content: "강남점·서초점에서 주 4회 GX 요가, 주 3회 필라테스 클래스가 신규 개설됩니다. 회원 등급별 무료 체험 1회 제공.", authorName: "서초점 매니저", isPinned: true, isPublic: true, createdAt: "2026-05-24", isRead: true },
+    { id: 3, title: "여름 휴가 운영 시간 변경 (8/1~8/15)", content: "여름 휴가 기간 동안 영업 시간이 06:00~22:00로 축소 운영됩니다. 24시간 출입 회원은 이용권 자동 연장 처리.", authorName: "강남점 점장", isPinned: false, isPublic: true, createdAt: "2026-05-22", isRead: false },
+    { id: 4, title: "PT 트레이너 신규 입사 안내 (3명)", content: "5월 27일자로 PT 트레이너 3명이 신규 입사하였습니다. 회원 상세 페이지의 담당자 변경에서 새 트레이너를 지정할 수 있습니다.", authorName: "본사 인사팀", isPinned: false, isPublic: false, createdAt: "2026-05-20", isRead: true },
+    { id: 5, title: "회원 등급제 V2 시작 (브론즈/실버/골드/플래티넘)", content: "누적 결제 금액 + 방문 횟수 기준 자동 산정으로 회원 등급제가 시작됩니다. 등급별 마일리지 적립율, GX 우선 예약 혜택 제공.", authorName: "본사 마케팅팀", isPinned: false, isPublic: true, createdAt: "2026-05-18", isRead: true },
+    { id: 6, title: "[직원 전용] 급여 명세서 발급 안내", content: "이번 달 급여 명세서가 발급되었습니다. 급여 관리 페이지 > 명세서 발급 메뉴에서 PDF 다운로드 가능.", authorName: "본사 인사팀", isPinned: false, isPublic: false, createdAt: "2026-05-15", isRead: false }
+  ];
+
+  const [notices, setNotices] = useState<NoticeRow[]>(initialNotices);
+  const [filter, setFilter] = useState<"전체" | "게시 중" | "예정" | "종료">("전체");
+  const [showCreate, setShowCreate] = useState(false);
+  const [detailNotice, setDetailNotice] = useState<NoticeRow | null>(null);
+  const [form, setForm] = useState({ title: "", content: "", isPinned: false, isPublic: true });
+
+  const sortedNotices = [...notices].sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return b.createdAt.localeCompare(a.createdAt);
+  });
+
+  const readCount = notices.filter((n) => n.isRead).length;
+  const unreadCount = notices.length - readCount;
+  const pinnedCount = notices.filter((n) => n.isPinned).length;
+  const publicCount = notices.filter((n) => n.isPublic).length;
+
+  const markAsRead = (id: number) => {
+    setNotices((current) => current.map((n) => n.id === id ? { ...n, isRead: true } : n));
+  };
+
   return (
     <div className="space-y-5">
-      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="V2 신규 · 게시 대상/기간" />
-      <MetricGrid metrics={screen.metrics} />
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="V2 신규 · 게시 대상/기간/핀 고정" />
+
+      {/* 통계 카드 */}
+      <div className="grid grid-cols-4 gap-3">
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription>전체 공지</CardDescription><CardTitle className="text-2xl tabular-nums">{notices.length}건</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">읽음 {readCount} · 미읽음 {unreadCount}</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription>상단 고정</CardDescription><CardTitle className="text-2xl tabular-nums text-primary">{pinnedCount}건</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">목록 최상단 노출</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription>공개 공지</CardDescription><CardTitle className="text-2xl tabular-nums text-emerald-600">{publicCount}건</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">회원 앱 노출</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription>미읽음</CardDescription><CardTitle className="text-2xl tabular-nums text-rose-600">{unreadCount}건</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">NEW 배지 표시</p></CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5">
         <div className="space-y-4">
           <Card className="shadow-none">
-            <CardHeader><CardTitle>공지 목록</CardTitle><CardDescription>전체/게시 중/예정/종료</CardDescription></CardHeader>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>공지 목록</CardTitle>
+                <Button size="sm" onClick={() => { setForm({ title: "", content: "", isPinned: false, isPublic: true }); setShowCreate(true); }}>
+                  <Bell size={14} className="mr-1.5" /> 공지 작성
+                </Button>
+              </div>
+              <CardDescription>총 {notices.length}건 · 읽음 {readCount}건 · 핀 고정 우선 정렬</CardDescription>
+            </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex flex-wrap gap-2">{screen.tabs.map((t) => <Button key={t} size="sm" variant="outline" onClick={() => notify(`${t} 탭`, "info")}>{t}</Button>)}</div>
-              <FilterChips filters={screen.filters} notify={notify} />
+              <div className="flex gap-1 border-b border-line">
+                {(["전체", "게시 중", "예정", "종료"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={cn(
+                      "px-4 py-2 text-sm font-semibold border-b-2 transition-colors",
+                      filter === f ? "border-primary text-primary" : "border-transparent text-content-secondary hover:text-content"
+                    )}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
               <Table>
-                <TableHeader><TableRow>{screen.tableColumns.map((c) => <TableHead key={c}>{c}</TableHead>)}</TableRow></TableHeader>
-                <TableBody>{screen.rows.map((row, idx) => (
-                  <TableRow key={idx}>{screen.tableColumns.map((c) => <TableCell key={c}>{statusAwareValue(String(row[c] ?? "-"))}</TableCell>)}</TableRow>
-                ))}</TableBody>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10"></TableHead>
+                    <TableHead>제목</TableHead>
+                    <TableHead className="w-20 text-center">읽음</TableHead>
+                    <TableHead className="w-28">작성자</TableHead>
+                    <TableHead className="w-28">작성일</TableHead>
+                    <TableHead className="w-20 text-center">공개</TableHead>
+                    <TableHead className="w-24 text-center">관리</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedNotices.map((n) => (
+                    <TableRow key={n.id} className="cursor-pointer" onClick={() => { setDetailNotice(n); markAsRead(n.id); }}>
+                      <TableCell className="text-center">
+                        {n.isPinned ? <Pin size={14} className="text-primary mx-auto" /> : null}
+                      </TableCell>
+                      <TableCell>
+                        <div className={cn("flex items-center gap-1.5 text-sm font-semibold", n.isPinned && "text-primary")}>
+                          {n.isPinned && <span className="text-[10px] bg-primary-light text-primary px-1.5 py-0.5 rounded-full">공지</span>}
+                          <span className="truncate">{n.title}</span>
+                          {!n.isRead && <span className="inline-block h-2 w-2 rounded-full bg-primary shrink-0" title="읽지 않음" />}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {n.isRead ? <span className="text-[11px] text-content-tertiary">읽음</span> : <span className="text-[11px] font-semibold text-primary">NEW</span>}
+                      </TableCell>
+                      <TableCell className="text-xs">{n.authorName}</TableCell>
+                      <TableCell className="text-xs">{n.createdAt}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={n.isPublic ? "success" : "secondary"} className="text-[10px]">{n.isPublic ? "공개" : "비공개"}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex gap-1 justify-center">
+                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); notify(`${n.title} 수정`, "info"); }}>수정</Button>
+                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); notify(`${n.title} 삭제 확인`, "warning"); }}>삭제</Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
               </Table>
+              {sortedNotices.length === 0 && (
+                <div className="py-12 text-center text-sm text-content-tertiary">등록된 공지사항이 없습니다.</div>
+              )}
             </CardContent>
           </Card>
         </div>
+
         <aside className="space-y-4">
-          <Card className="shadow-none"><CardHeader><CardTitle>공지 액션</CardTitle></CardHeader><CardContent><PrimaryActionRow screen={screen} role={role} openDialog={openDialog} notify={notify} /></CardContent></Card>
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>공지 액션</CardTitle><CardDescription>작성·수정·삭제·핀 고정</CardDescription></CardHeader>
+            <CardContent className="space-y-2">
+              <Button className="w-full" onClick={() => { setForm({ title: "", content: "", isPinned: false, isPublic: true }); setShowCreate(true); }}>
+                <Bell size={14} className="mr-1.5" /> 공지 작성
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("전체 읽음 처리 mock", "info")}>전체 읽음 처리</Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("핀 고정 한도 5개 (V2 정책)", "info")}>핀 고정 정책</Button>
+            </CardContent>
+          </Card>
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>V2 게시 정책</CardTitle></CardHeader>
+            <CardContent className="space-y-1 text-xs text-content-secondary">
+              <div>• 게시 대상: 전 회원 / 직원 / 특정 등급</div>
+              <div>• 게시 기간: 시작일 ~ 종료일 (선택)</div>
+              <div>• 핀 고정 한도: 5개 (초과 시 마지막 게시 자동 해제)</div>
+              <div>• 미공개 = 직원 전용 (회원 앱 미노출)</div>
+              <div>• 읽음 상태: localStorage 기준 (회원/직원 분리)</div>
+            </CardContent>
+          </Card>
           <DialogDock screen={screen} openDialog={openDialog} />
           <HandoffContractCard screen={screen} />
         </aside>
       </div>
+
+      {/* 작성/수정 모달 (admin-pando 패턴 차용) */}
+      {showCreate && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4" onClick={() => setShowCreate(false)}>
+          <div className="bg-white rounded-xl shadow-lg border w-full max-w-[540px] max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2 px-6 py-4 border-b">
+              <Bell size={18} className="text-primary" />
+              <h3 className="text-base font-bold">공지사항 작성</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block">제목 *</Label>
+                <Input placeholder="공지 제목을 입력하세요" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block">내용 *</Label>
+                <Textarea rows={6} placeholder="공지 내용을 입력하세요" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center justify-between p-3 bg-surface-secondary rounded-lg border">
+                  <div>
+                    <p className="text-xs font-semibold">상단 고정</p>
+                    <p className="text-[10px] text-content-tertiary">목록 맨 위에 고정</p>
+                  </div>
+                  <button type="button" onClick={() => setForm({ ...form, isPinned: !form.isPinned })}
+                    className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", form.isPinned ? "bg-primary" : "bg-line")}>
+                    <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform", form.isPinned ? "translate-x-4" : "translate-x-0.5")} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-surface-secondary rounded-lg border">
+                  <div>
+                    <p className="text-xs font-semibold">공개 여부</p>
+                    <p className="text-[10px] text-content-tertiary">회원 앱 노출</p>
+                  </div>
+                  <button type="button" onClick={() => setForm({ ...form, isPublic: !form.isPublic })}
+                    className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", form.isPublic ? "bg-emerald-500" : "bg-line")}>
+                    <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform", form.isPublic ? "translate-x-4" : "translate-x-0.5")} />
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 px-6 py-4 border-t">
+              <Button variant="outline" className="flex-1" onClick={() => setShowCreate(false)}>취소</Button>
+              <Button className="flex-1" onClick={() => {
+                if (!form.title.trim()) { notify("제목을 입력해주세요.", "warning"); return; }
+                if (!form.content.trim()) { notify("내용을 입력해주세요.", "warning"); return; }
+                const newNotice: NoticeRow = {
+                  id: Math.max(...notices.map((n) => n.id)) + 1,
+                  title: form.title, content: form.content,
+                  authorName: "관리자", isPinned: form.isPinned, isPublic: form.isPublic,
+                  createdAt: new Date().toISOString().slice(0, 10), isRead: true
+                };
+                setNotices([newNotice, ...notices]);
+                notify("공지사항이 등록되었습니다.");
+                setShowCreate(false);
+              }}>등록</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 상세 보기 모달 */}
+      {detailNotice && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4" onClick={() => setDetailNotice(null)}>
+          <div className="bg-white rounded-xl shadow-lg border w-full max-w-[540px] max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    {detailNotice.isPinned && <Pin size={14} className="text-primary" />}
+                    <Badge variant={detailNotice.isPublic ? "success" : "secondary"} className="text-[10px]">
+                      {detailNotice.isPublic ? "공개" : "비공개"}
+                    </Badge>
+                  </div>
+                  <h3 className="text-base font-bold">{detailNotice.title}</h3>
+                  <p className="text-xs text-content-tertiary mt-1">{detailNotice.authorName} · {detailNotice.createdAt}</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setDetailNotice(null)}><X size={16} /></Button>
+              </div>
+            </div>
+            <div className="p-6">
+              <p className="text-sm whitespace-pre-wrap leading-relaxed">{detailNotice.content}</p>
+            </div>
+            <div className="px-6 py-4 border-t flex justify-end gap-2">
+              <Button variant="outline" onClick={() => { notify(`${detailNotice.title} 수정 mock`, "info"); setDetailNotice(null); }}>수정</Button>
+              <Button onClick={() => setDetailNotice(null)}>닫기</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -4719,57 +6384,166 @@ function BranchDashboardScreen({ screen, role, branch, openDialog, notify }: Spe
 }
 
 function KpiDashboardScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
-  // admin-pando kpi 시각 차용: 24종 KPI 카드 + 차트 영역 (SVG 막대)
-  const kpiCards = [
-    { label: "매출 달성률", value: "82%", target: 100, color: "bg-blue-500" },
-    { label: "신규 회원 달성률", value: "68%", target: 100, color: "bg-emerald-500" },
-    { label: "출석률 달성률", value: "91%", target: 100, color: "bg-violet-500" },
-    { label: "유지율 달성률", value: "76%", target: 100, color: "bg-amber-500" },
-    { label: "재등록률", value: "62%", target: 80, color: "bg-rose-500" },
-    { label: "GX 가입률", value: "54%", target: 70, color: "bg-cyan-500" },
-    { label: "OT 1차 완료", value: "84%", target: 95, color: "bg-pink-500" },
-    { label: "OT 2차 완료", value: "62%", target: 80, color: "bg-indigo-500" }
+  // admin-pando KPI 시각 + 운영자 UX (탭/필터/모달 모두 동작)
+  // docs4 V1+V2 D10 본사관리/D11 통합운영 KPI 24종 컨텐츠
+  type KpiCategory = "전체" | "매출" | "회원" | "출석" | "수업" | "OT";
+  const [activeCategory, setActiveCategory] = useState<KpiCategory>("전체");
+  const [comparePeriod, setComparePeriod] = useState<"이번달" | "지난달" | "전년동월">("이번달");
+  const [selectedKpi, setSelectedKpi] = useState<string | null>(null);
+
+  const kpiAll = [
+    { label: "매출 달성률", value: 82, target: 100, color: "bg-blue-500", category: "매출" as KpiCategory, hint: "MTD 18.4M / 22M" },
+    { label: "신규 매출 비중", value: 41, target: 50, color: "bg-blue-400", category: "매출" as KpiCategory, hint: "신규 7.5M / 18.4M" },
+    { label: "재등록 비중", value: 52, target: 60, color: "bg-blue-600", category: "매출" as KpiCategory, hint: "재등록 9.5M" },
+    { label: "환불률", value: 3, target: 5, color: "bg-rose-500", category: "매출" as KpiCategory, hint: "환불 620k / 매출 18.4M" },
+    { label: "신규 회원 달성률", value: 68, target: 100, color: "bg-emerald-500", category: "회원" as KpiCategory, hint: "신규 132 / 목표 195" },
+    { label: "활성 회원 비율", value: 80, target: 80, color: "bg-emerald-400", category: "회원" as KpiCategory, hint: "2,614 / 3,248명" },
+    { label: "이탈 위험 회원", value: 86, target: 50, color: "bg-rose-400", category: "회원" as KpiCategory, hint: "30일 무방문 활성" },
+    { label: "유지율 달성률", value: 76, target: 85, color: "bg-amber-500", category: "회원" as KpiCategory, hint: "전월 80%, 전년 71%" },
+    { label: "출석률 달성률", value: 91, target: 90, color: "bg-violet-500", category: "출석" as KpiCategory, hint: "주 8.4회 평균" },
+    { label: "키오스크 비중", value: 74, target: 70, color: "bg-violet-400", category: "출석" as KpiCategory, hint: "QR + 얼굴인식" },
+    { label: "수동 출석 비율", value: 8, target: 5, color: "bg-amber-400", category: "출석" as KpiCategory, hint: "기준 초과 시 점검" },
+    { label: "GX 가입률", value: 54, target: 70, color: "bg-cyan-500", category: "수업" as KpiCategory, hint: "요가/필라/스피닝/줌바" },
+    { label: "GX 노쇼율", value: 12, target: 10, color: "bg-cyan-400", category: "수업" as KpiCategory, hint: "예약 후 미방문" },
+    { label: "PT 진행률", value: 78, target: 85, color: "bg-indigo-500", category: "수업" as KpiCategory, hint: "잔여 PT 평균 12회" },
+    { label: "OT 1차 완료", value: 84, target: 95, color: "bg-pink-500", category: "OT" as KpiCategory, hint: "신규 132명 중 111건" },
+    { label: "OT 2차 완료", value: 62, target: 80, color: "bg-pink-400", category: "OT" as KpiCategory, hint: "OT 1차 후 14일 내" },
+    { label: "재등록률", value: 62, target: 80, color: "bg-blue-500", category: "회원" as KpiCategory, hint: "만료 184명 중 114명" }
   ];
+
+  const filtered = activeCategory === "전체" ? kpiAll : kpiAll.filter((k) => k.category === activeCategory);
+  const tabCounts: Record<KpiCategory, number> = {
+    전체: kpiAll.length,
+    매출: kpiAll.filter((k) => k.category === "매출").length,
+    회원: kpiAll.filter((k) => k.category === "회원").length,
+    출석: kpiAll.filter((k) => k.category === "출석").length,
+    수업: kpiAll.filter((k) => k.category === "수업").length,
+    OT: kpiAll.filter((k) => k.category === "OT").length
+  };
+  const tabsList: KpiCategory[] = ["전체", "매출", "회원", "출석", "수업", "OT"];
+
   const branchBars = [
-    { 지점: "강남점", 매출: 92, 회원: 78, 출석: 88 },
-    { 지점: "서초점", 매출: 76, 회원: 82, 출석: 91 },
-    { 지점: "잠실점", 매출: 64, 회원: 58, 출석: 72 }
+    { 지점: "강남점", 매출: 92, 회원: 78, 출석: 88, 수업: 81 },
+    { 지점: "서초점", 매출: 76, 회원: 82, 출석: 91, 수업: 74 },
+    { 지점: "잠실점", 매출: 64, 회원: 58, 출석: 72, 수업: 62 }
   ];
+
+  const compareLabel = comparePeriod === "이번달" ? "MTD" : comparePeriod === "지난달" ? "전월 대비" : "전년 동월 대비";
+  const isHqAdmin = role === "HQ_ADMIN";
+
   return (
     <div className="space-y-5">
-      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="24종 KPI · 목표 대비 실적" />
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix={`24종 KPI · 목표 대비 실적 (${compareLabel})`} />
       <MetricGrid metrics={screen.metrics} />
+
+      {/* 비교 기간 토글 (운영자가 자주 사용) */}
+      <Card className="shadow-none">
+        <CardContent className="p-3 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-2">
+            <Label className="text-xs">비교 기간</Label>
+            {(["이번달", "지난달", "전년동월"] as const).map((p) => (
+              <Button
+                key={p}
+                size="sm"
+                variant={comparePeriod === p ? "default" : "outline"}
+                onClick={() => { setComparePeriod(p); notify(`${p} 기준으로 KPI 갱신`, "info"); }}
+              >
+                {p}
+              </Button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => notify("CSV 내보내기 mock", "info")}>CSV 내보내기</Button>
+            <Button size="sm" variant="outline" onClick={() => notify("PDF 리포트 생성 mock", "info")}>PDF 리포트</Button>
+            {isHqAdmin && <Button size="sm" onClick={() => openDialog("DLG-H001")}>목표 설정</Button>}
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5">
         <div className="space-y-4">
           <Card className="shadow-none">
-            <CardHeader><CardTitle>KPI 카드 (24종 중 8종 미리보기)</CardTitle><CardDescription>달성률 비교 막대 · 목표 대비 실적</CardDescription></CardHeader>
+            <CardHeader>
+              <CardTitle>KPI 카드 ({filtered.length}/{kpiAll.length})</CardTitle>
+              <CardDescription>달성률 비교 막대 · 목표 대비 실적 · 클릭 시 상세</CardDescription>
+              {/* 카테고리 탭 */}
+              <div className="mt-2 flex gap-1 border-b border-line overflow-x-auto">
+                {tabsList.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => { setActiveCategory(t); notify(`${t} KPI 카테고리`, "info"); }}
+                    className={cn(
+                      "px-3 py-2 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap",
+                      activeCategory === t ? "border-primary text-primary" : "border-transparent text-content-secondary hover:text-content"
+                    )}
+                  >
+                    {t}
+                    <span className="ml-1.5 text-[10px] text-content-tertiary">({tabCounts[t]})</span>
+                  </button>
+                ))}
+              </div>
+            </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {kpiCards.map((kpi) => {
-                  const pct = Number(kpi.value.replace("%", ""));
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {filtered.map((kpi) => {
+                  const achieved = kpi.value >= kpi.target * 0.9;
+                  const warning = kpi.value < kpi.target * 0.7;
                   return (
-                    <div key={kpi.label} className="rounded-xl border bg-white p-3">
-                      <div className="text-xs text-content-tertiary">{kpi.label}</div>
-                      <div className="mt-1 text-2xl font-bold">{kpi.value}</div>
-                      <div className="mt-2 h-2 overflow-hidden rounded bg-surface-tertiary"><div className={cn("h-full", kpi.color)} style={{ width: `${pct}%` }} /></div>
-                      <div className="mt-1 text-[10px] text-content-tertiary">목표 {kpi.target}%</div>
-                    </div>
+                    <button
+                      key={kpi.label}
+                      onClick={() => { setSelectedKpi(kpi.label); notify(`${kpi.label} 상세 보기`, "info"); }}
+                      className="rounded-xl border bg-white p-3 text-left transition-all hover:border-primary hover:shadow-md"
+                    >
+                      <div className="flex items-start justify-between gap-1">
+                        <div className="text-[11px] text-content-tertiary line-clamp-1">{kpi.label}</div>
+                        {achieved && <Badge variant="success" className="text-[9px] px-1">달성</Badge>}
+                        {warning && <Badge variant="warning" className="text-[9px] px-1">주의</Badge>}
+                      </div>
+                      <div className="mt-1 text-2xl font-bold tabular-nums">{kpi.value}%</div>
+                      <div className="mt-2 h-2 overflow-hidden rounded bg-surface-tertiary">
+                        <div className={cn("h-full", kpi.color)} style={{ width: `${Math.min(kpi.value, 100)}%` }} />
+                      </div>
+                      <div className="mt-1 flex justify-between text-[10px] text-content-tertiary">
+                        <span>목표 {kpi.target}%</span>
+                        <span>{kpi.hint}</span>
+                      </div>
+                    </button>
                   );
                 })}
               </div>
+              {filtered.length === 0 && (
+                <div className="py-12 text-center text-sm text-content-tertiary">선택한 카테고리에 KPI가 없습니다.</div>
+              )}
             </CardContent>
           </Card>
+
+          {/* 지점별 비교 (HQ_ADMIN 본사 전용 강조) */}
           <Card className="shadow-none">
-            <CardHeader><CardTitle>지점별 비교 차트 (SVG)</CardTitle><CardDescription>매출 · 회원 · 출석 달성률</CardDescription></CardHeader>
+            <CardHeader>
+              <CardTitle>지점별 비교 차트</CardTitle>
+              <CardDescription>{isHqAdmin ? "전 지점 합산 비교 (본사 권한)" : "현재 지점 기준"} · 매출 · 회원 · 출석 · 수업 달성률</CardDescription>
+            </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {branchBars.map((b) => (
                   <div key={b.지점} className="rounded-lg border bg-white p-3">
-                    <div className="mb-2 font-semibold text-sm">{b.지점}</div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="font-semibold text-sm">{b.지점}</span>
+                      <Button size="sm" variant="ghost" onClick={() => notify(`${b.지점} 상세 보기 mock`, "info")}>상세 →</Button>
+                    </div>
                     <div className="space-y-1.5 text-xs">
-                      <div className="flex items-center gap-2"><span className="w-12 text-content-tertiary">매출</span><div className="h-3 flex-1 overflow-hidden rounded bg-surface-tertiary"><div className="h-full bg-blue-500" style={{ width: `${b.매출}%` }} /></div><span className="w-10 text-right font-semibold">{b.매출}%</span></div>
-                      <div className="flex items-center gap-2"><span className="w-12 text-content-tertiary">회원</span><div className="h-3 flex-1 overflow-hidden rounded bg-surface-tertiary"><div className="h-full bg-emerald-500" style={{ width: `${b.회원}%` }} /></div><span className="w-10 text-right font-semibold">{b.회원}%</span></div>
-                      <div className="flex items-center gap-2"><span className="w-12 text-content-tertiary">출석</span><div className="h-3 flex-1 overflow-hidden rounded bg-surface-tertiary"><div className="h-full bg-violet-500" style={{ width: `${b.출석}%` }} /></div><span className="w-10 text-right font-semibold">{b.출석}%</span></div>
+                      {[
+                        { key: "매출", value: b.매출, color: "bg-blue-500" },
+                        { key: "회원", value: b.회원, color: "bg-emerald-500" },
+                        { key: "출석", value: b.출석, color: "bg-violet-500" },
+                        { key: "수업", value: b.수업, color: "bg-cyan-500" }
+                      ].map((m) => (
+                        <div key={m.key} className="flex items-center gap-2">
+                          <span className="w-12 text-content-tertiary">{m.key}</span>
+                          <div className="h-3 flex-1 overflow-hidden rounded bg-surface-tertiary"><div className={cn("h-full", m.color)} style={{ width: `${m.value}%` }} /></div>
+                          <span className="w-10 text-right font-semibold tabular-nums">{m.value}%</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
@@ -4777,23 +6551,83 @@ function KpiDashboardScreen({ screen, role, branch, openDialog, notify }: Specia
             </CardContent>
           </Card>
         </div>
+
         <aside className="space-y-4">
           <Card className="shadow-none">
-            <CardHeader><CardTitle>KPI 액션</CardTitle></CardHeader>
-            <CardContent className="space-y-2"><PrimaryActionRow screen={screen} role={role} openDialog={openDialog} notify={notify} /></CardContent>
+            <CardHeader><CardTitle>KPI 액션</CardTitle><CardDescription>운영 빈도 높음</CardDescription></CardHeader>
+            <CardContent className="space-y-2">
+              <Button className="w-full" disabled={!isHqAdmin} onClick={() => isHqAdmin ? openDialog("DLG-H001") : notify("HQ_ADMIN 이상만 가능합니다.", "warning")}>
+                목표 설정
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("자동 리포트 발송 예약 mock", "info")}>자동 리포트 발송 예약</Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("벤치마크 비교 화면 이동 mock", "info")}>벤치마크 비교</Button>
+            </CardContent>
           </Card>
           <Card className="shadow-none">
             <CardHeader><CardTitle>탭 (5종)</CardTitle></CardHeader>
-            <CardContent className="space-y-2 text-xs">
+            <CardContent className="space-y-1.5 text-xs">
               {screen.tabs.map((t) => (
-                <div key={t} className="flex items-center justify-between rounded-lg border bg-white px-2 py-1.5"><b>{t}</b><Badge variant="secondary">{["8", "6", "4", "4", "2"][screen.tabs.indexOf(t)] ?? "—"}개</Badge></div>
+                <div key={t} className="flex items-center justify-between rounded-lg border bg-white px-2 py-1.5">
+                  <b>{t}</b>
+                  <Badge variant="secondary">{["8", "6", "4", "4", "2"][screen.tabs.indexOf(t)] ?? "—"}개</Badge>
+                </div>
               ))}
             </CardContent>
           </Card>
+          {!isHqAdmin && (
+            <Card className="shadow-none border-amber-200 bg-amber-50">
+              <CardContent className="p-3 text-xs">
+                <AlertTriangle size={14} className="inline text-amber-600 mr-1.5" />
+                <b>권한 안내:</b> 본사 KPI 24종은 HQ_ADMIN 이상만 목표 설정·수정 가능합니다.
+              </CardContent>
+            </Card>
+          )}
           <DialogDock screen={screen} openDialog={openDialog} />
           <HandoffContractCard screen={screen} />
         </aside>
       </div>
+
+      {/* KPI 상세 모달 */}
+      {selectedKpi && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4" onClick={() => setSelectedKpi(null)}>
+          <div className="bg-white rounded-xl shadow-lg border w-full max-w-[480px]" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <h3 className="text-base font-bold">{selectedKpi} 상세</h3>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedKpi(null)}><X size={16} /></Button>
+            </div>
+            <div className="p-6 space-y-3">
+              {(() => {
+                const kpi = kpiAll.find((k) => k.label === selectedKpi);
+                if (!kpi) return null;
+                return (
+                  <>
+                    <div className="rounded-lg border p-3">
+                      <div className="text-xs text-content-tertiary">현재 달성률</div>
+                      <div className="mt-1 text-3xl font-bold tabular-nums">{kpi.value}%</div>
+                      <div className="mt-2 h-3 overflow-hidden rounded bg-surface-tertiary">
+                        <div className={cn("h-full", kpi.color)} style={{ width: `${Math.min(kpi.value, 100)}%` }} />
+                      </div>
+                      <div className="mt-1 text-xs text-content-tertiary">목표 {kpi.target}% · {kpi.hint}</div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div className="rounded-lg border p-2 text-center"><div className="text-content-tertiary">전일</div><div className="font-bold mt-1">{Math.max(kpi.value - 4, 0)}%</div></div>
+                      <div className="rounded-lg border p-2 text-center"><div className="text-content-tertiary">전주</div><div className="font-bold mt-1">{Math.max(kpi.value - 8, 0)}%</div></div>
+                      <div className="rounded-lg border p-2 text-center"><div className="text-content-tertiary">전월</div><div className="font-bold mt-1">{Math.max(kpi.value - 12, 0)}%</div></div>
+                    </div>
+                    <div className="rounded-lg bg-surface-secondary p-3 text-xs text-content-secondary">
+                      <b>운영 가이드:</b> {kpi.value < kpi.target * 0.7 ? "목표 미달성 — 운영팀 점검 권장" : kpi.value >= kpi.target ? "목표 달성 — 우수 운영 사례" : "정상 범위 — 추세 모니터링 권장"}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+            <div className="px-6 py-4 border-t flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setSelectedKpi(null)}>닫기</Button>
+              <Button onClick={() => { notify(`${selectedKpi} 상세 리포트 보기 mock`, "info"); setSelectedKpi(null); }}>상세 리포트</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -4862,45 +6696,273 @@ function NpsSurveyScreen({ screen, role, branch, openDialog, notify }: Specializ
 // ---- D11 통합운영 ----
 
 function UnifiedAttendanceScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
+  // admin-pando /attendance/page.tsx 패턴 + 운영자 UX
+  // 채널별 실시간 + 출석 이력 + 수동 출석 + 검수 보드 + 권한 차등
+  type Channel = "all" | "app" | "kiosk" | "face" | "manual";
+  type AttendanceRow = {
+    id: number; time: string; memberName: string; memberId: string;
+    channel: Channel; status: "정상" | "수동" | "예외"; product: string; locker: string;
+  };
+
+  const [activeChannel, setActiveChannel] = useState<Channel>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState<"오늘" | "어제" | "이번 주">("오늘");
+  const [showManualDialog, setShowManualDialog] = useState(false);
+  const [manualForm, setManualForm] = useState({ memberName: "", reason: "" });
+
+  const initialAttendance: AttendanceRow[] = [
+    { id: 1, time: "09:08", memberName: "김민준", memberId: "M0142", channel: "app", status: "정상", product: "PT 20회", locker: "L-015" },
+    { id: 2, time: "09:12", memberName: "박서연", memberId: "M0287", channel: "kiosk", status: "정상", product: "회원권 3개월", locker: "L-022" },
+    { id: 3, time: "09:24", memberName: "정하준", memberId: "M0341", channel: "face", status: "정상", product: "GX 요가", locker: "L-018" },
+    { id: 4, time: "10:02", memberName: "오지우", memberId: "M0498", channel: "kiosk", status: "정상", product: "PT 잔여", locker: "-" },
+    { id: 5, time: "10:18", memberName: "한서윤", memberId: "M0512", channel: "app", status: "정상", product: "회원권 12개월", locker: "L-031" },
+    { id: 6, time: "10:34", memberName: "최가온", memberId: "M0623", channel: "manual", status: "수동", product: "PT 10회", locker: "-" },
+    { id: 7, time: "10:52", memberName: "임도윤", memberId: "M0701", channel: "kiosk", status: "예외", product: "만료 임박 D-2", locker: "-" },
+    { id: 8, time: "11:08", memberName: "신유진", memberId: "M0788", channel: "face", status: "정상", product: "GX 필라테스", locker: "L-009" }
+  ];
+
+  const [attendance, setAttendance] = useState<AttendanceRow[]>(initialAttendance);
+
+  const filtered = attendance.filter((a) => {
+    const matchChannel = activeChannel === "all" || a.channel === activeChannel;
+    const matchSearch = !searchQuery || a.memberName.includes(searchQuery) || a.memberId.includes(searchQuery);
+    return matchChannel && matchSearch;
+  });
+
+  const channelMeta: Record<Channel, { label: string; icon: typeof Bell; tone: string }> = {
+    all: { label: "전체", icon: ClipboardCheck, tone: "bg-slate-50 border-slate-200 text-slate-700" },
+    app: { label: "앱 QR", icon: MessageSquare, tone: "bg-blue-50 border-blue-200 text-blue-700" },
+    kiosk: { label: "키오스크 QR", icon: Building2, tone: "bg-emerald-50 border-emerald-200 text-emerald-700" },
+    face: { label: "얼굴 인식", icon: UserRound, tone: "bg-violet-50 border-violet-200 text-violet-700" },
+    manual: { label: "수동", icon: Pin, tone: "bg-amber-50 border-amber-200 text-amber-700" }
+  };
+
+  const channelCounts: Record<Channel, number> = {
+    all: attendance.length,
+    app: attendance.filter((a) => a.channel === "app").length,
+    kiosk: attendance.filter((a) => a.channel === "kiosk").length,
+    face: attendance.filter((a) => a.channel === "face").length,
+    manual: attendance.filter((a) => a.channel === "manual").length
+  };
+
+  const statusVariant: Record<AttendanceRow["status"], "success" | "warning" | "destructive"> = {
+    정상: "success", 수동: "warning", 예외: "destructive"
+  };
+
+  const canManualAttendance = hasPermission(role, "memberWrite");
+
   return (
     <div className="space-y-5">
-      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="회원·직원 출석 통합 콘솔" />
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="키오스크 QR · 얼굴 인식 · 앱 QR · 수동 통합" />
       <MetricGrid metrics={screen.metrics} />
+
+      {/* 채널별 실시간 카드 (운영자 한눈에 파악) */}
+      <Card className="shadow-none">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm">채널 별 실시간 ({dateFilter})</CardTitle>
+            <div className="flex gap-1">
+              {(["오늘", "어제", "이번 주"] as const).map((d) => (
+                <Button key={d} size="sm" variant={dateFilter === d ? "default" : "outline"} onClick={() => { setDateFilter(d); notify(`${d} 출석 기록`, "info"); }}>
+                  {d}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-5 gap-2">
+            {(Object.keys(channelMeta) as Channel[]).map((c) => {
+              const meta = channelMeta[c];
+              const Icon = meta.icon;
+              return (
+                <button
+                  key={c}
+                  onClick={() => { setActiveChannel(c); notify(`${meta.label} 채널 필터`, "info"); }}
+                  className={cn(
+                    "rounded-xl border p-3 text-center transition-all",
+                    meta.tone,
+                    activeChannel === c && "ring-2 ring-primary scale-[1.02]"
+                  )}
+                >
+                  <Icon size={16} className="mx-auto mb-1" />
+                  <div className="text-2xl font-bold tabular-nums">{channelCounts[c]}</div>
+                  <div className="text-[10px] mt-0.5">{meta.label}</div>
+                </button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5">
         <div className="space-y-4">
           <Card className="shadow-none">
-            <CardHeader><CardTitle>출석 테이블</CardTitle><CardDescription>키오스크 QR · 얼굴 인식 · 앱 QR · 수동 통합</CardDescription></CardHeader>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>출석 이력</CardTitle>
+                <Button size="sm" disabled={!canManualAttendance} onClick={() => canManualAttendance ? setShowManualDialog(true) : notify("memberWrite 권한 필요 — 매니저 이상", "warning")}>
+                  <Pin size={14} className="mr-1.5" /> 수동 출석
+                </Button>
+              </div>
+              <CardDescription>{filtered.length}건 · {activeChannel === "all" ? "전 채널" : channelMeta[activeChannel].label} · {dateFilter}</CardDescription>
+            </CardHeader>
             <CardContent className="space-y-3">
-              <Tabs defaultValue={screen.tabs[0]}>
-                <TabsList>{screen.tabs.map((t) => <TabsTrigger key={t} value={t}>{t}</TabsTrigger>)}</TabsList>
-              </Tabs>
-              <FilterChips filters={screen.filters} notify={notify} />
+              {/* 검색 */}
+              <div className="grid grid-cols-[2fr_auto] gap-2 items-end">
+                <div>
+                  <Label className="text-[10px] text-content-tertiary mb-1 block">통합 검색</Label>
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-content-tertiary" />
+                    <Input placeholder="회원명·운동 ID 검색" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-9" />
+                  </div>
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => { setSearchQuery(""); setActiveChannel("all"); }}>초기화</Button>
+              </div>
               <Table>
-                <TableHeader><TableRow>{screen.tableColumns.map((c) => <TableHead key={c}>{c}</TableHead>)}</TableRow></TableHeader>
-                <TableBody>{screen.rows.length ? screen.rows.map((row, idx) => (
-                  <TableRow key={idx}>{screen.tableColumns.map((c) => <TableCell key={c}>{statusAwareValue(String(row[c] ?? "-"))}</TableCell>)}</TableRow>
-                )) : <TableRow><TableCell colSpan={screen.tableColumns.length} className="text-center text-xs text-content-tertiary">출석 이벤트가 없습니다 (mock empty state)</TableCell></TableRow>}</TableBody>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-20">시간</TableHead>
+                    <TableHead>회원</TableHead>
+                    <TableHead className="w-24">운동 ID</TableHead>
+                    <TableHead className="w-32">채널</TableHead>
+                    <TableHead className="w-24 text-center">상태</TableHead>
+                    <TableHead>이용권</TableHead>
+                    <TableHead className="w-20">락커</TableHead>
+                    <TableHead className="w-20 text-center">관리</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((a) => {
+                    const meta = channelMeta[a.channel];
+                    return (
+                      <TableRow key={a.id}>
+                        <TableCell className="font-mono text-xs tabular-nums">{a.time}</TableCell>
+                        <TableCell className="font-semibold">{a.memberName}</TableCell>
+                        <TableCell className="text-xs tabular-nums text-content-tertiary">{a.memberId}</TableCell>
+                        <TableCell><span className={cn("inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border", meta.tone)}>{meta.label}</span></TableCell>
+                        <TableCell className="text-center"><Badge variant={statusVariant[a.status]} className="text-[10px]">{a.status}</Badge></TableCell>
+                        <TableCell className="text-xs">{a.product}</TableCell>
+                        <TableCell className="text-xs">{a.locker}</TableCell>
+                        <TableCell className="text-center">
+                          <Button size="sm" variant="ghost" onClick={() => notify(`${a.memberName} 회원 상세 이동 mock`, "info")}>상세</Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
               </Table>
+              {filtered.length === 0 && (
+                <div className="py-12 text-center text-sm text-content-tertiary">
+                  {searchQuery || activeChannel !== "all" ? "조건에 맞는 출석 기록이 없습니다." : "출석 이벤트가 없습니다."}
+                </div>
+              )}
             </CardContent>
           </Card>
+
+          {/* 검수 보드 (예외 채널/수동 출석) */}
           <Card className="shadow-none">
-            <CardHeader><CardTitle>채널 별 실시간 카드</CardTitle></CardHeader>
+            <CardHeader><CardTitle>검수 보드</CardTitle><CardDescription>수동 출석 + 예외 (만료 임박/홀딩) 점검 큐</CardDescription></CardHeader>
             <CardContent>
-              <div className="grid grid-cols-4 gap-2">
-                {[{ name: "앱 QR", count: 42, tone: "bg-blue-50 border-blue-200 text-blue-700" }, { name: "키오스크 QR", count: 28, tone: "bg-emerald-50 border-emerald-200 text-emerald-700" }, { name: "얼굴 인식", count: 18, tone: "bg-violet-50 border-violet-200 text-violet-700" }, { name: "수동", count: 3, tone: "bg-amber-50 border-amber-200 text-amber-700" }].map((item) => (
-                  <div key={item.name} className={cn("rounded-xl border p-3 text-center", item.tone)}><div className="text-2xl font-bold">{item.count}</div><div className="text-xs">{item.name}</div></div>
+              <div className="space-y-2">
+                {attendance.filter((a) => a.status !== "정상").map((a) => (
+                  <div key={a.id} className="rounded-lg border p-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={statusVariant[a.status]} className="text-[10px]">{a.status}</Badge>
+                      <div>
+                        <div className="text-sm font-semibold">{a.memberName} <span className="text-xs text-content-tertiary">({a.memberId})</span></div>
+                        <div className="text-[10px] text-content-tertiary">{a.time} · {a.product}</div>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="outline" onClick={() => notify(`${a.memberName} 정상 처리`, "info")}>정상 처리</Button>
+                      <Button size="sm" variant="outline" onClick={() => notify(`${a.memberName} 회원 상세 이동`, "info")}>상세</Button>
+                    </div>
+                  </div>
                 ))}
+                {attendance.filter((a) => a.status !== "정상").length === 0 && (
+                  <div className="py-8 text-center text-xs text-content-tertiary">검수 필요 항목 없음 (정상 운영)</div>
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
+
         <aside className="space-y-4">
-          <Card className="shadow-none"><CardHeader><CardTitle>출석 액션</CardTitle></CardHeader><CardContent><PrimaryActionRow screen={screen} role={role} openDialog={openDialog} notify={notify} /></CardContent></Card>
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>출석 액션</CardTitle><CardDescription>운영 빈도 높음</CardDescription></CardHeader>
+            <CardContent className="space-y-2">
+              <Button className="w-full" disabled={!canManualAttendance} onClick={() => canManualAttendance ? setShowManualDialog(true) : notify("memberWrite 권한 필요", "warning")}>
+                <Pin size={14} className="mr-1.5" /> 수동 출석 등록
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("출석 CSV 내보내기 mock", "info")}>CSV 내보내기</Button>
+              <Button variant="outline" className="w-full" onClick={() => openDialog("DLG-I001")}>락커 매칭</Button>
+            </CardContent>
+          </Card>
+          {!canManualAttendance && (
+            <Card className="shadow-none border-amber-200 bg-amber-50">
+              <CardContent className="p-3 text-xs">
+                <AlertTriangle size={14} className="inline text-amber-600 mr-1.5" />
+                <b>권한 안내:</b> 수동 출석은 매니저 이상 권한 필요 ({roleById.get(role)?.label} → 매니저+)
+              </CardContent>
+            </Card>
+          )}
           <DialogDock screen={screen} openDialog={openDialog} />
           <HandoffContractCard screen={screen} />
           <FrontStateNote screen={screen} />
         </aside>
       </div>
+
+      {/* 수동 출석 등록 모달 */}
+      {showManualDialog && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4" onClick={() => setShowManualDialog(false)}>
+          <div className="bg-white rounded-xl shadow-lg border w-full max-w-[480px]" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <h3 className="text-base font-bold flex items-center gap-2"><Pin size={16} className="text-primary" /> 수동 출석 등록</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowManualDialog(false)}><X size={16} /></Button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs">
+                <AlertTriangle size={14} className="inline text-amber-600 mr-1.5" />
+                키오스크/앱/얼굴 인식 실패 등 <b>예외 상황만</b> 사용합니다. 감사 로그에 기록됩니다.
+              </div>
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block">회원 검색 *</Label>
+                <Input placeholder="회원명 또는 연락처" value={manualForm.memberName} onChange={(e) => setManualForm({ ...manualForm, memberName: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block">사유 * (감사 로그 필수)</Label>
+                <Textarea rows={3} placeholder="예: 키오스크 QR 인식 불가, 앱 미설치" value={manualForm.reason} onChange={(e) => setManualForm({ ...manualForm, reason: e.target.value })} />
+                {manualForm.reason && manualForm.reason.length < 5 && (
+                  <p className="text-[10px] text-rose-600 mt-1">사유는 5자 이상 입력해주세요.</p>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="rounded-lg border p-2"><span className="text-content-tertiary">출석 시각</span><div className="font-bold">{new Date().toTimeString().slice(0, 5)}</div></div>
+                <div className="rounded-lg border p-2"><span className="text-content-tertiary">담당자</span><div className="font-bold">{roleById.get(role)?.label}</div></div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowManualDialog(false)}>취소</Button>
+              <Button className="flex-1" onClick={() => {
+                if (!manualForm.memberName.trim()) { notify("회원을 검색해주세요.", "warning"); return; }
+                if (manualForm.reason.length < 5) { notify("사유는 5자 이상 입력해주세요.", "warning"); return; }
+                const newRow: AttendanceRow = {
+                  id: Math.max(...attendance.map((a) => a.id)) + 1,
+                  time: new Date().toTimeString().slice(0, 5),
+                  memberName: manualForm.memberName,
+                  memberId: `M${String(Math.floor(Math.random() * 900) + 100).padStart(4, "0")}`,
+                  channel: "manual", status: "수동", product: "-", locker: "-"
+                };
+                setAttendance([newRow, ...attendance]);
+                setShowManualDialog(false);
+                setManualForm({ memberName: "", reason: "" });
+                notify(`${newRow.memberName} 수동 출석 완료 (감사 로그 기록)`);
+              }}>등록</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
