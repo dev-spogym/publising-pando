@@ -35,8 +35,9 @@ async function main() {
       const file = path.join(OUT, `rework-${id}.png`);
       await page.screenshot({ path: file, fullPage: false });
       console.log("OK");
-    } catch (e: any) {
-      console.log("FAIL", e?.message ?? e);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      console.log("FAIL", message);
     }
   }
   await browser.close();

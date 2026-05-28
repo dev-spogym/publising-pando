@@ -3170,9 +3170,13 @@ function getDialogActionLabel(dialog: DialogDefinition, kind: DialogKind): strin
     "DLG-000": "재로그인",
     "DLG-M001": "상태 변경",
     "DLG-M002": "회원 삭제",
+    "DLG-M003": "홀딩 등록",
+    "DLG-M004": "홀딩 해제",
     "DLG-M005": "탈퇴 처리",
     "DLG-M006": "강제 등록",
+    "DLG-M011": "상담 등록",
     "DLG-M013": "환불 처리",
+    "DLG-M015": "측정 등록",
     "DLG-M022": "출석 등록",
     "DLG-M023": "이관 확인",
     "DLG-M027": "주소 선택",
@@ -3181,6 +3185,8 @@ function getDialogActionLabel(dialog: DialogDefinition, kind: DialogKind): strin
     "DLG-S002": "구매자 선택",
     "DLG-S003": "결제 확정",
     "DLG-S004": "계속 진행",
+    "DLG-S008": "납입 확정",
+    "DLG-S012": "목표 저장",
     "DLG-S013": "환불 확정",
     "DLG-S015": "환불 요청 접수",
     "DLG-092-001": "지점 등록",
@@ -3284,13 +3290,17 @@ function PermissionBlockedMessage({ dialog }: { dialog: DialogDefinition }) {
 function DialogWorkflowBody(props: DialogBodyProps) {
   const { dialog, kind } = props;
 
-  // ID 기반 정확한 분기 (핵심 DLG 30+)
+  // ID 기반 정확한 분기 (핵심 DLG 24)
   if (dialog.id === "DLG-000") return <SessionDialogBody {...props} />;
   if (dialog.id === "DLG-M001") return <MemberStatusChangeDialog {...props} />;
   if (dialog.id === "DLG-M002") return <MemberDeleteDialog {...props} />;
+  if (dialog.id === "DLG-M003") return <HoldingRegisterDialog {...props} />;
+  if (dialog.id === "DLG-M004") return <HoldingReleaseDialog {...props} />;
   if (dialog.id === "DLG-M005") return <MemberWithdrawDialog {...props} />;
   if (dialog.id === "DLG-M006") return <PhoneDuplicateDialog {...props} />;
+  if (dialog.id === "DLG-M011") return <ConsultationRegisterDialog {...props} />;
   if (dialog.id === "DLG-M013") return <MemberRefundDialog {...props} />;
+  if (dialog.id === "DLG-M015") return <BodyCompositionRegisterDialog {...props} />;
   if (dialog.id === "DLG-M022") return <ManualAttendanceDialog {...props} />;
   if (dialog.id === "DLG-M023") return <MemberTransferDialog {...props} />;
   if (dialog.id === "DLG-M027") return <AddressSearchDialog {...props} />;
@@ -3299,6 +3309,8 @@ function DialogWorkflowBody(props: DialogBodyProps) {
   if (dialog.id === "DLG-S002") return <BuyerSearchDialog {...props} />;
   if (dialog.id === "DLG-S003") return <PaymentConfirmDialog />;
   if (dialog.id === "DLG-S004") return <DuplicatePaymentDialog />;
+  if (dialog.id === "DLG-S008") return <PaymentReceiveDialog {...props} />;
+  if (dialog.id === "DLG-S012") return <SalesTargetDialog {...props} />;
   if (dialog.id === "DLG-S013") return <SalesRefundDialog {...props} />;
   if (dialog.id === "DLG-S015") return <RefundRequestDialog {...props} />;
   if (dialog.id === "DLG-092-001") return <BranchCreateDialog {...props} />;
@@ -3833,6 +3845,269 @@ function RefundRequestDialog({ setDirty }: DialogBodyProps) {
       </div>
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
         접수 후 Owner 승인이 필요합니다. 접수만으로는 환불 처리되지 않습니다.
+      </div>
+    </div>
+  );
+}
+
+// DLG-M003 홀딩 등록
+function HoldingRegisterDialog({ setDirty }: DialogBodyProps) {
+  const [startDate, setStartDate] = useState("2026-05-29");
+  const [endDate, setEndDate] = useState("2026-06-29");
+  const [reason, setReason] = useState("");
+  const days = (() => {
+    if (!startDate || !endDate) return 0;
+    const diff = new Date(endDate).getTime() - new Date(startDate).getTime();
+    return Math.max(0, Math.round(diff / (1000 * 60 * 60 * 24)));
+  })();
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border bg-surface-secondary p-3">
+        <div className="text-xs text-content-tertiary mb-1">대상 회원</div>
+        <b>김민준 · M0142</b><span className="text-xs text-content-tertiary ml-2">PT 20회 · 잔여 D-42</span>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">홀딩 시작일 *</Label>
+          <Input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setDirty(true); }} />
+        </div>
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">홀딩 종료일 *</Label>
+          <Input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setDirty(true); }} />
+        </div>
+      </div>
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
+        <b>홀딩 기간:</b> {days}일 (이용권 종료일 자동 연장 — 만료일 D+{days})
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">사유 *</Label>
+        <Textarea rows={2} value={reason} onChange={(e) => { setReason(e.target.value); setDirty(true); }} placeholder="부상, 출장, 여행, 건강 사유 등" />
+      </div>
+    </div>
+  );
+}
+
+// DLG-M004 홀딩 해제
+function HoldingReleaseDialog({ setDirty }: DialogBodyProps) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border bg-surface-secondary p-3">
+        <div className="text-xs text-content-tertiary mb-1">홀딩 중인 회원</div>
+        <b>정하준 · M0341</b>
+        <div className="text-[10px] text-content-tertiary mt-1">홀딩 기간: 2026.05.01 ~ 07.10 (남은 일수 42일)</div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">해제 일자 *</Label>
+        <Input type="date" defaultValue="2026-05-29" onChange={() => setDirty(true)} />
+      </div>
+      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+        <CheckCircle2 size={13} className="inline mr-1.5" />
+        <b>잔여 기간 재계산:</b> 해제 후 이용권 만료일이 -42일 단축됩니다 (사용 가능 기간 정상화).
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">해제 사유 (선택)</Label>
+        <Textarea rows={2} onChange={() => setDirty(true)} placeholder="회원 요청으로 조기 복귀" />
+      </div>
+    </div>
+  );
+}
+
+// DLG-M011 상담 등록/수정
+function ConsultationRegisterDialog({ setDirty }: DialogBodyProps) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border bg-surface-secondary p-3">
+        <div className="text-xs text-content-tertiary mb-1">대상 회원</div>
+        <b>박서연 · M0287</b>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">상담일 *</Label>
+          <Input type="datetime-local" defaultValue="2026-05-29T14:00" onChange={() => setDirty(true)} />
+        </div>
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">담당자 *</Label>
+          <Select defaultValue="최FC" onValueChange={() => setDirty(true)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="최FC">최FC</SelectItem>
+              <SelectItem value="정FC">정FC</SelectItem>
+              <SelectItem value="한트레이너">한트레이너</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">상담 유형</Label>
+        <Select defaultValue="renewal" onValueChange={() => setDirty(true)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="initial">신규 상담</SelectItem>
+            <SelectItem value="renewal">재등록 상담</SelectItem>
+            <SelectItem value="complaint">불만 처리</SelectItem>
+            <SelectItem value="program">프로그램 변경</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">상담 내용 *</Label>
+        <Textarea rows={4} onChange={() => setDirty(true)} placeholder="회원 의견·합의 사항·후속 액션을 자세히 기록" />
+      </div>
+    </div>
+  );
+}
+
+// DLG-M015 체성분 등록
+function BodyCompositionRegisterDialog({ setDirty }: DialogBodyProps) {
+  const [weight, setWeight] = useState("68.4");
+  const [muscle, setMuscle] = useState("29.8");
+  const [fat, setFat] = useState("21.4");
+  const [height, setHeight] = useState("172");
+  const bmi = (() => {
+    const w = Number(weight);
+    const h = Number(height) / 100;
+    if (!w || !h) return "-";
+    return (w / (h * h)).toFixed(1);
+  })();
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border bg-surface-secondary p-3">
+        <div className="text-xs text-content-tertiary mb-1">대상 회원</div>
+        <b>김민준 · M0142</b><span className="text-xs text-content-tertiary ml-2">트레이너 한트레이너</span>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">측정일 *</Label>
+        <Input type="date" defaultValue="2026-05-29" onChange={() => setDirty(true)} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">체중 (kg) *</Label>
+          <Input type="number" step="0.1" value={weight} onChange={(e) => { setWeight(e.target.value); setDirty(true); }} />
+        </div>
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">키 (cm)</Label>
+          <Input type="number" value={height} onChange={(e) => { setHeight(e.target.value); setDirty(true); }} />
+          <p className="text-[10px] text-content-tertiary mt-1">키 미등록 시 BMI 미계산</p>
+        </div>
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">골격근량 (kg) *</Label>
+          <Input type="number" step="0.1" value={muscle} onChange={(e) => { setMuscle(e.target.value); setDirty(true); }} />
+        </div>
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">체지방률 (%) *</Label>
+          <Input type="number" step="0.1" value={fat} onChange={(e) => { setFat(e.target.value); setDirty(true); }} />
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-xs">
+        <div className="rounded-lg border-2 border-primary/30 bg-primary-light p-2 text-center">
+          <div className="text-primary">BMI 자동</div>
+          <div className="font-bold mt-1 text-primary tabular-nums">{bmi}</div>
+        </div>
+        <div className="rounded-lg border p-2 text-center">
+          <div className="text-content-tertiary">기초대사량</div>
+          <div className="font-bold mt-1 tabular-nums">1,520 kcal</div>
+        </div>
+        <div className="rounded-lg border p-2 text-center">
+          <div className="text-content-tertiary">체수분</div>
+          <div className="font-bold mt-1 tabular-nums">42.6 L</div>
+        </div>
+      </div>
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+        <AlertTriangle size={13} className="inline mr-1.5" />
+        InBody 자동 수집은 별도. 동일 일자 기록 있으면 덮어쓰기 확인 (DLG-M016).
+      </div>
+    </div>
+  );
+}
+
+// DLG-S008 납입 처리 (미수금·할부)
+function PaymentReceiveDialog({ setDirty }: DialogBodyProps) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border bg-surface-secondary p-3">
+        <div className="text-xs text-content-tertiary mb-1">납입 대상</div>
+        <b>박서연 · 회원권 3개월</b>
+        <div className="text-[10px] text-content-tertiary mt-1">미수금 120,000원 · 12일 경과</div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">실수령 금액 (원) *</Label>
+        <Input type="number" placeholder="120000" onChange={() => setDirty(true)} />
+        <p className="text-[10px] text-content-tertiary mt-1">미수금 전액 또는 부분 납입 가능</p>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">결제 수단 *</Label>
+        <Select onValueChange={() => setDirty(true)}>
+          <SelectTrigger><SelectValue placeholder="선택해주세요" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="cash">현금</SelectItem>
+            <SelectItem value="card">카드</SelectItem>
+            <SelectItem value="transfer">계좌이체</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">납입 일시 *</Label>
+        <Input type="datetime-local" defaultValue="2026-05-29T10:00" onChange={() => setDirty(true)} />
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">메모 (감사 로그)</Label>
+        <Textarea rows={2} onChange={() => setDirty(true)} placeholder="회원 직접 방문 납입" />
+      </div>
+    </div>
+  );
+}
+
+// DLG-S012 목표 매출 설정
+function SalesTargetDialog({ setDirty }: DialogBodyProps) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
+        <b>목표 매출:</b> 지점별 월/분기 매출 목표를 설정하고 KPI 대시보드에서 달성률을 추적합니다.
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">기간 *</Label>
+          <Select defaultValue="month" onValueChange={() => setDirty(true)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="month">월별</SelectItem>
+              <SelectItem value="quarter">분기별</SelectItem>
+              <SelectItem value="year">연간</SelectItem>
+              <SelectItem value="custom">사용자 지정</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">기준 유형 *</Label>
+          <Select defaultValue="branch" onValueChange={() => setDirty(true)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="branch">지점별 일괄</SelectItem>
+              <SelectItem value="staff">담당자별</SelectItem>
+              <SelectItem value="product">상품별</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">대상 지점 *</Label>
+        <Select defaultValue="강남점" onValueChange={() => setDirty(true)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전 지점 일괄</SelectItem>
+            <SelectItem value="강남점">강남점</SelectItem>
+            <SelectItem value="서초점">서초점</SelectItem>
+            <SelectItem value="잠실점">잠실점</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">목표 금액 (원) *</Label>
+        <Input type="number" placeholder="22000000" onChange={() => setDirty(true)} />
+        <p className="text-[10px] text-content-tertiary mt-1">전월 실적: 18,420,000원 · 전년 동기: 16,380,000원</p>
+      </div>
+      <div className="rounded-lg border bg-surface-secondary p-3 text-xs text-content-secondary">
+        <b>적용 후:</b> KPI 대시보드 매출 달성률 자동 계산 + 본사 자동 리포트에 반영
       </div>
     </div>
   );
