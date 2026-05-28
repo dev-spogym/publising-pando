@@ -23,6 +23,7 @@ const defaultRole: RoleId = "OWNER";
 
 type ToastTone = "success" | "warning" | "info";
 type ToastState = { message: string; tone: ToastTone } | null;
+type Notify = (message: string, tone?: ToastTone) => void;
 
 const preferencesEvent = "pando-preferences-change";
 
@@ -188,6 +189,15 @@ function AdminScreen({ screen, role, branch, openDialog, notify }: { screen: Scr
   const screenDialogs = screen.dialogs.map((id) => dialogById.get(id)).filter(Boolean) as DialogDefinition[];
   const contract = getScreenContract(screen);
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
+
+  if (screen.id === "SCR-104") return <NotificationCenterScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
+  if (screen.id === "SCR-M001") return <MemberListScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
+  if (screen.id === "SCR-M002") return <MemberRegistrationScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
+  if (screen.id === "SCR-M004") return <MemberDetailScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
+  if (screen.id === "SCR-S001") return <SalesOverviewScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
+  if (screen.id === "SCR-S002") return <PosSalesScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
+  if (screen.id === "SCR-S003") return <PaymentProcessingScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
+
   return (
     <div className="space-y-5">
       <section className="rounded-2xl border bg-white p-5 shadow-sm">
@@ -290,6 +300,177 @@ function AdminScreen({ screen, role, branch, openDialog, notify }: { screen: Scr
       </section>
     </div>
   );
+}
+
+
+type SpecializedScreenProps = { screen: ScreenDefinition; role: RoleId; branch: string; openDialog: (id: string) => void; notify: Notify };
+
+const memberDirectoryRows = [
+  { no: "10291", status: "활성", name: "김민준", gender: "남", birth: "1991-04-18", age: "35", phone: "010-1234-5678", pass: "PT 20회 · 8회 잔여", branch: "강남점", visit: "오늘 09:20", registered: "2026-01-12", owner: "이FC", source: "회원소개", purpose: "체중 감량" },
+  { no: "10254", status: "임박", name: "박서연", gender: "여", birth: "1994-10-03", age: "32", phone: "010-2222-8899", pass: "회원권 3개월 · D-3", branch: "강남점", visit: "2026-05-12", registered: "2025-11-02", owner: "최매니저", source: "인스타", purpose: "재등록 상담" },
+  { no: "10187", status: "홀딩", name: "정하준", gender: "남", birth: "1988-02-09", age: "38", phone: "010-7755-4300", pass: "수강권 홀딩 · 12일", branch: "서초점", visit: "2026-04-19", registered: "2025-09-21", owner: "박트레이너", source: "블로그", purpose: "재활" },
+  { no: "10044", status: "만료", name: "오지우", gender: "여", birth: "1998-07-22", age: "28", phone: "010-9080-1122", pass: "회원권 만료 · 미수 80,000", branch: "잠실점", visit: "2026-03-30", registered: "2025-05-10", owner: "이FC", source: "당근", purpose: "이탈 위험" }
+];
+
+const salesLedgerRows = [
+  { id: "S-260528-001", buyer: "김민준", product: "PT 20회", gross: "1,200,000", discount: "50,000", paid: "1,150,000", status: "결제완료", method: "카드", owner: "이FC", route: "POS", date: "오늘 09:42" },
+  { id: "S-260528-002", buyer: "박서연", product: "회원권 3개월", gross: "450,000", discount: "0", paid: "330,000", status: "미수", method: "현금", owner: "최매니저", route: "수기", date: "오늘 11:20" },
+  { id: "S-260527-003", buyer: "정하준", product: "락커 1개월", gross: "30,000", discount: "0", paid: "30,000", status: "환불요청", method: "계좌", owner: "박트레이너", route: "링크", date: "어제 17:03" },
+  { id: "S-260526-004", buyer: "오지우", product: "할부 회원권", gross: "900,000", discount: "90,000", paid: "300,000", status: "할부", method: "복합", owner: "이FC", route: "POS", date: "05-26 14:10" }
+];
+
+const posProducts = [
+  { name: "PT 20회", category: "수강권", price: 1200000, stock: "판매중", color: "bg-blue-50 text-blue-700" },
+  { name: "회원권 3개월", category: "회원권", price: 450000, stock: "판매중", color: "bg-emerald-50 text-emerald-700" },
+  { name: "락커 1개월", category: "락커", price: 30000, stock: "재고 부족 3개", color: "bg-amber-50 text-amber-700" },
+  { name: "운동복", category: "운동복", price: 15000, stock: "품절", color: "bg-rose-50 text-rose-700" }
+];
+
+function HandoffContractCard({ screen }: { screen: ScreenDefinition }) {
+  const contract = getScreenContract(screen);
+  return (
+    <Card className="shadow-none">
+      <CardHeader><CardTitle>개발 핸드오프 계약</CardTitle><CardDescription>이 화면을 실제 개발로 연결할 기준입니다.</CardDescription></CardHeader>
+      <CardContent className="space-y-2 text-xs text-slate-600">
+        <div><b className="text-slate-950">API</b>: <code>{contract.apiContracts[0]?.method} {contract.apiContracts[0]?.endpoint}</code></div>
+        <div><b className="text-slate-950">상태</b>: {contract.stateMatrix.slice(0, 5).join(" · ")}</div>
+        <div><b className="text-slate-950">액션</b>: {contract.actionContracts.slice(0, 4).map((action) => action.actionId).join(" / ") || "조회 전용"}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DialogDock({ screen, openDialog }: { screen: ScreenDefinition; openDialog: (id: string) => void }) {
+  const linkedDialogs = screen.dialogs.map((id) => dialogById.get(id)).filter(Boolean) as DialogDefinition[];
+  if (!linkedDialogs.length) return null;
+  return (
+    <Card className="shadow-none">
+      <CardHeader><CardTitle>문서 연결 DLG</CardTitle><CardDescription>이 화면에서 열리는 모든 다이얼로그입니다.</CardDescription></CardHeader>
+      <CardContent className="grid gap-2">
+        {linkedDialogs.map((dialog) => (
+          <Button key={dialog.id} data-dialog-id={dialog.id} variant="outline" className="justify-between" onClick={() => openDialog(dialog.id)}><span>{dialog.id}</span><span className="truncate">{dialog.title}</span></Button>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function DeliveryHeader({ screen, role, branch, titleSuffix }: { screen: ScreenDefinition; role: RoleId; branch: string; titleSuffix?: string }) {
+  const roleInfo = roleById.get(role)!;
+  const status = getScreenContract(screen).handoffStatus;
+  return (
+    <section className="rounded-2xl border bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex flex-wrap items-center gap-2"><Badge variant="info">{screen.id}</Badge><Badge variant="outline">{screen.feature}</Badge><Badge variant={status === "production-ready" ? "success" : status === "template-ready" ? "info" : "warning"}>{status}</Badge><Badge variant="secondary">{screen.source}</Badge></div>
+          <h1 className="mt-3 text-2xl font-bold tracking-tight">{screen.title}{titleSuffix ? ` · ${titleSuffix}` : ""}</h1>
+          <p className="mt-2 max-w-5xl text-sm leading-6 text-slate-600">{screen.purpose}</p>
+        </div>
+        <div className="min-w-72 rounded-xl border bg-slate-50 p-3 text-sm">
+          <div className="flex items-center gap-2 font-semibold"><UserRound className="size-4" /> {roleInfo.label}</div>
+          <div className="mt-1 text-slate-600"><Building2 className="mr-1 inline size-4" /> {branch} · {roleInfo.branchScope}</div>
+          <p className="mt-2 text-xs leading-5 text-slate-500">{screen.roleNotes[role] ?? roleInfo.description}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function NotificationCenterScreen({ screen, role, branch, notify }: SpecializedScreenProps) {
+  const [readAll, setReadAll] = useState(false);
+  const canDeleteAll = ["HQ_ADMIN", "OWNER", "MANAGER"].includes(role);
+  const notifications = [
+    { type: "만료 step", text: "박서연 회원권 D-3 · 재등록 상담 필요", time: "방금", target: "/members" },
+    { type: "결제", text: "김민준 PT 20회 결제 완료", time: "12분 전", target: "/sales" },
+    { type: "수업", text: "정하준 홀딩 기간 중 예약 충돌", time: "38분 전", target: "/class-reservations" },
+    { type: "보안", text: "강남점 Staff 계정 2FA 재인증", time: "오늘 09:10", target: "/settings/permissions" }
+  ];
+  return (
+    <div className="space-y-5">
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="운영 알림 패널" />
+      <div className="grid grid-cols-[1fr_320px] gap-5">
+        <Card className="shadow-none">
+          <CardHeader><CardTitle>상단 알림 아이콘 클릭 후 열리는 알림 센터</CardTitle><CardDescription>문서 기준: 문맥 바로가기, 읽음 처리, 권한별 삭제 액션을 포함합니다.</CardDescription></CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-4 gap-2">
+              {["회원 목록", "메시지 발송", "전자계약", "출석 관리"].map((item) => <Button key={item} variant="outline" onClick={() => notify(`${item} 바로가기 mock 이동`, "info")}>{item}</Button>)}
+            </div>
+            <div className="divide-y rounded-xl border">
+              {notifications.map((item) => <button key={item.text} type="button" className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-slate-50" onClick={() => notify(`${item.type} 알림 읽음 처리 + ${item.target} 이동 mock`, "info")}><span><Badge variant={readAll ? "secondary" : "warning"}>{readAll ? "읽음" : "미읽음"}</Badge><span className="ml-3 font-medium">{item.text}</span></span><span className="text-xs text-slate-500">{item.time}</span></button>)}
+            </div>
+          </CardContent>
+        </Card>
+        <aside className="space-y-5">
+          <Card className="shadow-none"><CardHeader><CardTitle>관리 액션</CardTitle></CardHeader><CardContent className="space-y-2"><Button className="w-full" onClick={() => { setReadAll(true); notify("전체 읽음 처리되었습니다."); }}>전체 읽음</Button><Button className="w-full" variant={canDeleteAll ? "destructive" : "outline"} onClick={() => notify(canDeleteAll ? "전체 삭제 mock 완료" : "현재 역할은 전체 삭제 권한이 없습니다.", canDeleteAll ? "success" : "warning")}>전체 삭제</Button><Button className="w-full" variant="outline" onClick={() => notify("알림 설정 화면 이동 mock", "info")}>알림 설정</Button></CardContent></Card>
+          <HandoffContractCard screen={screen} />
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function MemberListScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
+  const [focus, setFocus] = useState("전체");
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [detail, setDetail] = useState(memberDirectoryRows[0]);
+  const rows = memberDirectoryRows.filter((row) => `${row.name} ${row.phone} ${row.pass} ${row.status}`.includes(query));
+  const toggleSelected = (no: string) => setSelected((current) => current.includes(no) ? current.filter((item) => item !== no) : [...current, no]);
+  return (
+    <div className="space-y-5">
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="회원 원장 운영" />
+      <div className="grid grid-cols-4 gap-3">
+        {screen.metrics.map((metric) => <button key={metric.label} type="button" className="text-left" onClick={() => { setFocus(metric.label); notify(`${metric.label} 지표 필터 mock 적용`, "info"); }}><Card className={cn("h-full shadow-none", focus === metric.label && "ring-2 ring-blue-400")}><CardHeader><CardDescription>{metric.label}</CardDescription><CardTitle className="text-2xl">{metric.value}</CardTitle></CardHeader><CardContent><p className="text-xs text-slate-500">{metric.hint}</p></CardContent></Card></button>)}
+      </div>
+      <div className="grid grid-cols-[1fr_360px] gap-5">
+        <div className="space-y-5">
+          <Card className="shadow-none"><CardHeader><CardTitle>운영 포커스 바</CardTitle><CardDescription>지금 바로 봐야 할 회원군을 문서 기준으로 분리했습니다.</CardDescription></CardHeader><CardContent className="grid grid-cols-3 gap-3">{["재등록 집중 보기", "30일 미방문", "관심회원 보기"].map((item) => <button key={item} className={cn("rounded-xl border p-4 text-left hover:bg-slate-50", focus === item && "border-blue-400 bg-blue-50")} onClick={() => { setFocus(item); notify(`${item} 저장뷰 적용`, "info"); }}><div className="font-semibold">{item}</div><div className="mt-1 text-xs text-slate-500">HQ-09/세그먼트 기준 mock</div></button>)}</CardContent></Card>
+          <Card className="shadow-none"><CardHeader><CardTitle>회원 목록 / 저장 뷰 / 상태 필터</CardTitle><CardDescription>선택 시 하단 일괄 작업 바와 우측 상세 패널이 함께 반응합니다.</CardDescription></CardHeader><CardContent className="space-y-4"><Tabs defaultValue="회원 목록" onValueChange={(value) => notify(`${value} 운영 보기 전환`, "info")}><TabsList>{["회원 목록", "회원권 목록", "수강권 목록", "락커 목록", "운동복 목록"].map((tab) => <TabsTrigger key={tab} value={tab}>{tab}</TabsTrigger>)}</TabsList><TabsContent value="회원 목록"><div className="flex flex-wrap gap-2 py-3">{["상담내역", "상담예약", "재등록대상", "고객관리"].map((tab) => <Button key={tab} variant="outline" size="sm" onClick={() => notify(`${tab} 저장뷰 적용`, "info")}>{tab}</Button>)}</div><div className="flex flex-wrap gap-2">{["전체", "활성", "만료", "예정", "임박", "홀딩", "미등록", "탈퇴"].map((status) => <Button key={status} aria-label={status} variant={focus === status ? "default" : "outline"} size="sm" onClick={() => { setFocus(status); notify(`${status} 필터 chip mock 적용`, "info"); }}>{status}<Badge variant="secondary">{status === "전체" ? rows.length : memberDirectoryRows.filter((row) => row.status === status).length}</Badge></Button>)}</div><div className="mt-3 flex flex-wrap items-center gap-2"><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="이름·연락처·상품명 통합 검색" className="max-w-sm" /><Button variant="outline" onClick={() => { setQuery(""); setSelected([]); notify("필터와 선택 행을 초기화했습니다.", "info"); }}>전체 해제</Button><Button variant="outline" onClick={() => notify(`${selected.length}개 행으로 일괄 작업 bar mock 표시`, "info")}>선택 작업</Button><Button asChild><Link href="/members/new">회원 추가</Link></Button></div><div className="mt-3 overflow-hidden rounded-xl border"><Table><TableHeader><TableRow>{["선택", "No", "상태", "회원명", "성별", "생년월일", "나이", "연락처", "보유 이용권", "소속 지점", "마지막 방문일", "등록일", "OPEN"].map((column) => <TableHead key={column}>{column}</TableHead>)}</TableRow></TableHeader><TableBody>{rows.map((row) => <TableRow key={row.no}><TableCell><Button size="sm" variant={selected.includes(row.no) ? "default" : "outline"} onClick={() => toggleSelected(row.no)}>{selected.includes(row.no) ? "선택됨" : "선택"}</Button></TableCell><TableCell>{row.no}</TableCell><TableCell>{statusAwareValue(row.status)}</TableCell><TableCell className="font-semibold">{row.name}</TableCell><TableCell>{row.gender}</TableCell><TableCell>{row.birth}</TableCell><TableCell>{row.age}</TableCell><TableCell>{row.phone}</TableCell><TableCell>{row.pass}</TableCell><TableCell>{row.branch}</TableCell><TableCell>{row.visit}</TableCell><TableCell>{row.registered}</TableCell><TableCell><Button size="sm" variant="ghost" onClick={() => { setDetail(row); notify(`${row.name} 우측 상세 패널 열림`, "info"); }}>상세</Button></TableCell></TableRow>)}</TableBody></Table></div><div className="mt-3 flex items-center justify-between rounded-xl border bg-slate-50 px-4 py-3 text-sm"><span>1-{rows.length} of {rows.length} · 선택 {selected.length}</span><div className="flex gap-2"><Button variant="outline" size="sm" disabled>이전</Button><Button variant="outline" size="sm">1</Button><Button variant="outline" size="sm" disabled>다음</Button></div></div></TabsContent></Tabs></CardContent></Card>
+          {selected.length > 0 && <Card className="sticky bottom-4 z-10 border-blue-200 bg-blue-50 shadow-lg"><CardContent className="flex items-center justify-between pt-5"><b>{selected.length}명 선택됨</b><div className="flex flex-wrap gap-2"><Button data-dialog-id="DLG-M001" onClick={() => openDialog("DLG-M001")}>상태 변경</Button><Button onClick={() => notify("메시지 발송 화면 연결 mock", "info")}>메시지 전송</Button><Button data-dialog-id="DLG-M022" onClick={() => openDialog("DLG-M022")}>출석 처리</Button><Button variant="outline" onClick={() => notify("관심회원 등록 mock 완료")}>관심회원 등록</Button><Button data-dialog-id="DLG-M005" variant={hasPermission(role, "dangerMember") ? "destructive" : "outline"} onClick={() => hasPermission(role, "dangerMember") ? openDialog("DLG-M005") : notify("일괄 탈퇴는 Owner 이상 권한이 필요합니다.", "warning")}>일괄 탈퇴</Button><Button data-dialog-id="DLG-M023" variant="outline" onClick={() => selected.length === 1 ? openDialog("DLG-M023") : notify("지점이관은 회원 1명 선택 시에만 진행합니다.", "warning")}>지점이관</Button></div></CardContent></Card>}
+        </div>
+        <aside className="space-y-5"><Card className="shadow-none"><CardHeader><CardTitle>액션 큐</CardTitle><CardDescription>{selected.length ? `${selected.length}명 선택됨` : "회원을 선택하면 큐가 활성화됩니다."}</CardDescription></CardHeader><CardContent className="space-y-2"><Button data-dialog-id="DLG-M001" className="w-full" onClick={() => openDialog("DLG-M001")}>상태 변경</Button><Button className="w-full" variant="outline" onClick={() => notify("선택 회원 메시지 발송 mock", "info")}>메시지 발송</Button><Button data-dialog-id="DLG-M022" className="w-full" variant="outline" onClick={() => openDialog("DLG-M022")}>수동 출석</Button><Button data-dialog-id="DLG-M005" className="w-full" variant="outline" onClick={() => openDialog("DLG-M005")}>탈퇴/복구 확인</Button><Button data-dialog-id="DLG-M023" className="w-full" variant="outline" onClick={() => openDialog("DLG-M023")}>이관 확인</Button></CardContent></Card><Card className="shadow-none"><CardHeader><CardTitle>우측 상세 팝업 패널</CardTitle><CardDescription>출석시 상세 팝업 ON 상태 mock</CardDescription></CardHeader><CardContent className="space-y-3 text-sm"><div className="flex items-center gap-3"><div className="grid size-12 place-items-center rounded-full bg-blue-100 font-bold text-blue-700">{detail.name[0]}</div><div><div className="font-bold">{detail.name}</div><div className="text-xs text-slate-500">{detail.phone} · {detail.branch}</div></div></div><Separator /><div className="grid grid-cols-2 gap-2 text-xs"><InfoCell label="상담 담당" value={detail.owner} /><InfoCell label="문의 유형" value="방문(WI)" /><InfoCell label="가입경로" value={detail.source} /><InfoCell label="운동목적" value={detail.purpose} /></div><div className="grid grid-cols-2 gap-2"><Button size="sm" onClick={() => notify(`${detail.name} 출석 체크 mock 완료`)}>출석 체크</Button><Button size="sm" variant="outline" onClick={() => notify(`${detail.name} 상품 구매 연결 mock`, "info")}>상품 구매</Button><Button size="sm" variant="outline" onClick={() => notify(`${detail.name} 메시지 작성 mock`, "info")}>메시지</Button><Button size="sm" variant="outline" asChild><Link href="/members/detail">더보기</Link></Button></div></CardContent></Card><DialogDock screen={screen} openDialog={openDialog} /><HandoffContractCard screen={screen} /></aside>
+      </div>
+    </div>
+  );
+}
+
+function InfoCell({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-lg border bg-white p-2"><div className="text-slate-500">{label}</div><div className="mt-1 font-semibold text-slate-950">{value}</div></div>;
+}
+
+function MemberRegistrationScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
+  const [step, setStep] = useState(1);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [memberType, setMemberType] = useState("일반");
+  const canNext = name.trim().length > 1 && phone.trim().length >= 8;
+  return (
+    <div className="space-y-5"><DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="2단계 회원 등록" /><div className="grid grid-cols-[1fr_320px] gap-5"><Card className="shadow-none"><CardHeader><CardTitle>Step {step} / 2</CardTitle><CardDescription>결제 완료 후 회원 등록이 확정됩니다.</CardDescription></CardHeader><CardContent className="space-y-5"><div className="grid grid-cols-2 gap-2 text-sm"><div className={cn("rounded-lg border p-3", step === 1 && "border-blue-400 bg-blue-50")}>1. 기본 인적 사항</div><div className={cn("rounded-lg border p-3", step === 2 && "border-blue-400 bg-blue-50")}>2. 추가 정보 및 결제 진입</div></div>{step === 1 ? <div className="grid grid-cols-2 gap-4"><div className="space-y-1"><Label>이름 *</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="홍길동" />{name && name.length < 2 && <p className="text-xs text-rose-600">이름은 2자 이상 입력합니다.</p>}</div><div className="space-y-1"><Label>성별 *</Label><div className="grid grid-cols-2 gap-2"><Button variant="outline" onClick={() => notify("남성 선택", "info")}>남성</Button><Button variant="outline" onClick={() => notify("여성 선택", "info")}>여성</Button></div></div><div className="space-y-1"><Label>연락처 *</Label><div className="flex gap-2"><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="010-0000-0000" /><Button data-dialog-id="DLG-M006" variant="outline" onClick={() => openDialog("DLG-M006")}>중복 확인</Button></div></div><div className="space-y-1"><Label>회원구분 *</Label><Select value={memberType} onValueChange={setMemberType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["일반", "기명법인", "무기명법인"].map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select></div>{memberType !== "일반" && <div className="col-span-2 space-y-1"><Label>법인 회사명</Label><Input placeholder="법인 회사명" /></div>}<div className="col-span-2 grid grid-cols-3 gap-3"><Input placeholder="소속지점" defaultValue={branch} /><Input placeholder="담당 FC" defaultValue="이FC" /><Input placeholder="운동 목적" defaultValue="체중 감량" /></div></div> : <div className="space-y-4"><div className="grid grid-cols-2 gap-4"><Input placeholder="별칭/닉네임" /><Input placeholder="이메일" /><div className="flex gap-2"><Input placeholder="주소" /><Button data-dialog-id="DLG-M027" variant="outline" onClick={() => openDialog("DLG-M027")}>주소 검색</Button></div><Input placeholder="상세 주소" /></div><Textarea placeholder="메모 최대 500자" /><div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">결제 완료 후 회원 등록이 확정됩니다. 결제 취소 시 작성 내용은 임시 저장 상태로 돌아갑니다.</div></div>}<div className="flex justify-between border-t pt-4"><div className="flex gap-2"><Button data-dialog-id="DLG-M007" variant="outline" onClick={() => openDialog("DLG-M007")}>취소</Button><Button data-dialog-id="DLG-M008" variant="outline" onClick={() => openDialog("DLG-M008")}>초기화</Button></div>{step === 1 ? <Button disabled={!canNext} onClick={() => canNext ? setStep(2) : notify("필수 항목과 중복 확인이 필요합니다.", "warning")}>다음</Button> : <div className="flex gap-2"><Button variant="outline" onClick={() => setStep(1)}>이전</Button><Button asChild><Link href="/sales/payment">결제 진행</Link></Button></div>}</div></CardContent></Card><aside className="space-y-5"><Card className="shadow-none"><CardHeader><CardTitle>귀속 정책 안내</CardTitle></CardHeader><CardContent className="text-sm leading-6 text-slate-600">회원 등록값은 기본값입니다. 실제 결제 시 결제지점, 이용지점, 매출 귀속 지점, 정산 지점, 인센티브 귀속자를 다시 확인합니다.</CardContent></Card><DialogDock screen={screen} openDialog={openDialog} /><HandoffContractCard screen={screen} /></aside></div></div>
+  );
+}
+
+function MemberDetailScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
+  const member = memberDirectoryRows[0];
+  return <div className="space-y-5"><DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="360도 회원 상세" /><div className="grid grid-cols-[360px_1fr] gap-5"><Card className="shadow-none"><CardHeader><CardTitle>{member.name}</CardTitle><CardDescription>{member.phone} · {member.branch}</CardDescription></CardHeader><CardContent className="space-y-3"><div className="grid size-24 place-items-center rounded-full bg-blue-100 text-3xl font-bold text-blue-700">김</div><InfoCell label="상태" value={member.status} /><InfoCell label="보유 이용권" value={member.pass} /><InfoCell label="최근 방문" value={member.visit} /><div className="grid grid-cols-2 gap-2"><Button onClick={() => notify("출석 체크 mock 완료")}>출석 체크</Button><Button data-dialog-id="DLG-M009" variant="outline" onClick={() => openDialog("DLG-M009")}>메모 추가</Button><Button data-dialog-id="DLG-M011" variant="outline" onClick={() => openDialog("DLG-M011")}>상담 등록</Button><Button data-dialog-id="DLG-M013" variant="outline" onClick={() => openDialog("DLG-M013")}>환불 처리</Button></div></CardContent></Card><div className="space-y-5"><Card className="shadow-none"><CardHeader><CardTitle>회원 타임라인</CardTitle><CardDescription>상담·결제·출석·체성분 이력을 한 화면에서 확인합니다.</CardDescription></CardHeader><CardContent className="grid grid-cols-4 gap-3">{["상담 12건", "결제 6건", "출석 41회", "체성분 8회"].map((item) => <div key={item} className="rounded-xl border bg-slate-50 p-4 font-semibold">{item}</div>)}</CardContent></Card><Card className="shadow-none"><CardHeader><CardTitle>연결 업무</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-2">{["DLG-M015", "DLG-M017", "DLG-M018", "DLG-M019", "DLG-M020", "DLG-M024", "DLG-M026"].map((id) => <Button key={id} data-dialog-id={id} variant="outline" onClick={() => openDialog(id)}>{dialogById.get(id)?.title ?? id}</Button>)}</CardContent></Card><DialogDock screen={screen} openDialog={openDialog} /><HandoffContractCard screen={screen} /></div></div></div>;
+}
+
+function SalesOverviewScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
+  const [preset, setPreset] = useState("이번 달");
+  const [query, setQuery] = useState("");
+  const rows = salesLedgerRows.filter((row) => `${row.buyer} ${row.product} ${row.status}`.includes(query));
+  return <div className="space-y-5"><DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="매출 운영 코크핏" /><div className="grid grid-cols-4 gap-3">{[{ label: "순 매출", value: "18,420,000원" }, { label: "카드 결제", value: "12,800,000원" }, { label: "현금 결제", value: "4,500,000원" }, { label: "미수금", value: "1,120,000원" }].map((metric) => <Card key={metric.label} className="shadow-none"><CardHeader><CardDescription>{metric.label}</CardDescription><CardTitle className="text-2xl">{metric.value}</CardTitle></CardHeader></Card>)}</div><div className="grid grid-cols-[1fr_340px] gap-5"><div className="space-y-5"><Card className="shadow-none"><CardHeader><CardTitle>운영 코크핏</CardTitle><CardDescription>미수·환불·재등록·고할인 거래를 first fold에 배치합니다.</CardDescription></CardHeader><CardContent className="grid grid-cols-4 gap-3">{["미수 추적", "환불 검토", "재등록 성과", "고할인 거래"].map((item) => <button key={item} className="rounded-xl border p-4 text-left hover:bg-slate-50" onClick={() => notify(`${item} 필터 적용`, "info")}><div className="font-semibold">{item}</div><div className="mt-1 text-xs text-slate-500">처리 우선순위 mock</div></button>)}</CardContent></Card><Card className="shadow-none"><CardHeader><CardTitle>매출 현황 테이블</CardTitle><CardDescription>기간 프리셋, 통합 검색, 하단 요약 바 7종을 포함합니다.</CardDescription></CardHeader><CardContent className="space-y-3"><div className="flex flex-wrap gap-2">{["오늘", "이번 주", "이번 달"].map((item) => <Button key={item} variant={preset === item ? "default" : "outline"} onClick={() => { setPreset(item); notify(`${item} 기간 설정`, "info"); }}>{item}</Button>)}<Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="구매자 이름 또는 상품명" className="max-w-xs" /><Button asChild><Link href="/sales/pos">신규 결제(POS)</Link></Button><Button variant="outline" onClick={() => notify("엑셀 다운로드 mock", "info")}>엑셀</Button></div><div className="overflow-hidden rounded-xl border"><Table><TableHeader><TableRow>{["매출번호", "회원", "상품", "총액", "할인", "수납", "상태", "수단", "담당", "경로", "일시"].map((col) => <TableHead key={col}>{col}</TableHead>)}</TableRow></TableHeader><TableBody>{rows.map((row) => <TableRow key={row.id} onClick={() => openDialog("DLG-S001")} className="cursor-pointer"><TableCell>{row.id}</TableCell><TableCell className="font-semibold">{row.buyer}</TableCell><TableCell>{row.product}</TableCell><TableCell>{row.gross}</TableCell><TableCell>{row.discount}</TableCell><TableCell>{row.paid}</TableCell><TableCell>{statusAwareValue(row.status)}</TableCell><TableCell>{row.method}</TableCell><TableCell>{row.owner}</TableCell><TableCell>{row.route}</TableCell><TableCell>{row.date}</TableCell></TableRow>)}</TableBody></Table></div><div className="grid grid-cols-7 gap-2 rounded-xl border bg-slate-950 p-3 text-white">{["총매출 19.5M", "순매출 18.4M", "현금 4.5M", "카드 12.8M", "환불 620K", "미납 1.12M", "할인 530K"].map((item) => <div key={item} className="text-center text-xs font-semibold">{item}</div>)}</div></CardContent></Card></div><aside className="space-y-5"><Card className="shadow-none"><CardHeader><CardTitle>처리 큐</CardTitle></CardHeader><CardContent className="space-y-2">{salesLedgerRows.slice(0, 3).map((row) => <div key={row.id} className="rounded-lg border p-3 text-sm"><b>{row.buyer}</b> · {row.product}<div className="mt-2 flex gap-2"><Button size="sm" data-dialog-id="DLG-S001" onClick={() => openDialog("DLG-S001")}>거래 보기</Button><Button size="sm" variant="outline" asChild><Link href="/members/detail">회원 보기</Link></Button></div></div>)}<Button data-dialog-id="DLG-S005" variant="outline" className="w-full" onClick={() => openDialog("DLG-S005")}>메모 편집</Button><Button data-dialog-id="DLG-S012" variant="outline" className="w-full" onClick={() => openDialog("DLG-S012")}>목표 설정</Button></CardContent></Card><DialogDock screen={screen} openDialog={openDialog} /><DialogDock screen={screen} openDialog={openDialog} /><HandoffContractCard screen={screen} /></aside></div></div>;
+}
+
+function PosSalesScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
+  const [cart, setCart] = useState(posProducts.slice(0, 2));
+  const total = cart.reduce((sum, item) => sum + item.price, 0);
+  return <div className="space-y-5"><DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="현장 판매 POS" /><div className="grid grid-cols-[1fr_380px] gap-5"><Card className="shadow-none"><CardHeader><CardTitle>상품 선택</CardTitle><CardDescription>재고/품절/안전재고 상태를 클릭 차단까지 표현합니다.</CardDescription></CardHeader><CardContent className="grid grid-cols-2 gap-3">{posProducts.map((product) => <button key={product.name} disabled={product.stock === "품절"} className="rounded-xl border p-4 text-left disabled:opacity-45" onClick={() => { setCart((current) => [...current, product]); notify(`${product.name} 장바구니 추가`, "info"); }}><Badge className={product.color}>{product.category}</Badge><div className="mt-3 text-lg font-bold">{product.name}</div><div className="mt-1 text-sm text-slate-500">{product.price.toLocaleString()}원</div><div className="mt-3 text-xs">{product.stock}</div></button>)}</CardContent></Card><aside className="space-y-5"><Card className="shadow-none"><CardHeader><CardTitle>장바구니 / 결제</CardTitle><CardDescription>회원 검색 후 외부 POS 완료 건을 CRM에 기록합니다.</CardDescription></CardHeader><CardContent className="space-y-3"><Button data-dialog-id="DLG-S002" variant="outline" className="w-full" onClick={() => openDialog("DLG-S002")}>구매자 검색</Button><div className="space-y-2">{cart.map((item, index) => <div key={`${item.name}-${index}`} className="flex items-center justify-between rounded-lg border p-2 text-sm"><span>{item.name}</span><span>{item.price.toLocaleString()}원</span></div>)}</div><div className="rounded-xl bg-slate-950 p-4 text-white"><div className="text-sm text-slate-300">최종 결제금액</div><div className="text-2xl font-bold">{total.toLocaleString()}원</div></div><Button data-dialog-id="DLG-S003" className="w-full" onClick={() => openDialog("DLG-S003")}>결제 확인</Button><Button data-dialog-id="DLG-S004" variant="outline" className="w-full" onClick={() => openDialog("DLG-S004")}>중복 결제 경고 보기</Button></CardContent></Card><DialogDock screen={screen} openDialog={openDialog} /><DialogDock screen={screen} openDialog={openDialog} /><HandoffContractCard screen={screen} /></aside></div></div>;
+}
+
+function PaymentProcessingScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
+  const [receipt, setReceipt] = useState(false);
+  const [done, setDone] = useState(false);
+  return <div className="space-y-5"><DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="결제 등록 플로우" />{done ? <Card className="shadow-none"><CardContent className="grid place-items-center py-16 text-center"><CheckCircle2 className="size-16 text-emerald-600" /><h2 className="mt-4 text-2xl font-bold">결제 등록 완료</h2><p className="mt-2 text-sm text-slate-600">결제완료 상태와 회원권/수강권 구매 완료가 함께 반영되는 mock 완료 화면입니다.</p><div className="mt-6 flex gap-2"><Button onClick={() => notify("영수증 파일 보기 mock", "info")}>영수증 파일 보기</Button><Button variant="outline" onClick={() => notify("문자 발송 mock", "info")}>문자 발송</Button><Button variant="outline" onClick={() => setDone(false)}>계속 판매하기</Button><Button asChild><Link href="/sales">매출 현황</Link></Button></div></CardContent></Card> : <div className="grid grid-cols-[1fr_360px] gap-5"><Card className="shadow-none"><CardHeader><CardTitle>구매자 · 상품 · 수납 · 완료</CardTitle><CardDescription>현장 전액 등록, 잔액 등록, 계약금 등록을 분리합니다.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="grid grid-cols-3 gap-3">{["현장 전액 등록", "잔액 등록", "계약금 등록"].map((item) => <button key={item} className="rounded-xl border p-4 text-left hover:bg-slate-50" onClick={() => notify(`${item} 유형 선택`, "info")}><b>{item}</b><p className="mt-1 text-xs text-slate-500">외부 POS/현금 수납 완료 후 CRM 기록</p></button>)}</div><div className="grid grid-cols-2 gap-4"><Input placeholder="회원 검색" defaultValue="김민준" /><Input placeholder="상품" defaultValue="PT 20회" /><Input placeholder="수납 금액" defaultValue="1,150,000" /><Input placeholder="결제 수단" defaultValue="카드" /></div><div className="rounded-xl border p-4"><div className="flex items-center justify-between"><div><b>영수증 파일</b><p className="text-xs text-slate-500">이미지 또는 PDF만 첨부 가능</p></div><Button variant={receipt ? "default" : "outline"} onClick={() => { setReceipt(true); notify("영수증 첨부 mock 완료"); }}>{receipt ? "첨부 완료" : "파일 첨부"}</Button></div>{!receipt && <p className="mt-2 text-xs text-rose-600">영수증 파일을 첨부해주세요.</p>}</div><div className="flex justify-between"><Button variant="outline" onClick={() => notify("결제 상태 초기화", "info")}>초기화</Button><Button data-dialog-id="DLG-S003" disabled={!receipt} onClick={() => receipt ? setDone(true) : notify("영수증 파일을 첨부해주세요.", "warning")}>결제 등록</Button></div></CardContent></Card><aside className="space-y-5"><Card className="shadow-none"><CardHeader><CardTitle>예외/연결 DLG</CardTitle></CardHeader><CardContent className="space-y-2"><Button data-dialog-id="DLG-S002" className="w-full" variant="outline" onClick={() => openDialog("DLG-S002")}>구매자 검색</Button><Button data-dialog-id="DLG-S004" className="w-full" variant="outline" onClick={() => openDialog("DLG-S004")}>중복 결제 경고</Button><Button data-dialog-id="DLG-S009" className="w-full" variant="outline" onClick={() => openDialog("DLG-S009")}>할부 등록</Button></CardContent></Card><DialogDock screen={screen} openDialog={openDialog} /><HandoffContractCard screen={screen} /></aside></div>}</div>;
 }
 
 function DataPanel({ screen, notify }: { screen: ScreenDefinition; notify: (message: string, tone?: "success" | "warning" | "info") => void }) {
