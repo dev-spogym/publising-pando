@@ -11,11 +11,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { branches, dialogById, dialogs, getScreenSourceLabel, hasPermission, menuGroups, roleById, roles, screens, type DialogDefinition, type RoleId, type ScreenDefinition } from "@/app/data/registry";
+import { branches, dialogById, dialogs, getScreenSourceLabel, hasPermission, roleById, roles, screens, type DialogDefinition, type DomainId, type RoleId, type ScreenDefinition } from "@/app/data/registry";
 import { getDialogContract, getScreenContract } from "@/app/data/contracts";
 import { cn } from "@/app/lib/utils";
 import { PublishingReviewToggle } from "@/components/publishing/publishing-review-toggle";
@@ -776,25 +775,449 @@ function DialogGalleryScreen({ screen, role, branch, openDialog, notify }: Speci
 }
 
 function MemberListScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
-  const [focus, setFocus] = useState("전체");
-  const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
+  // admin-pando members/page.tsx 구조 1:1 이식
+  const [activeMainTab, setActiveMainTab] = useState<"members" | "product" | "pass">("members");
+  const [activeStatusTab, setActiveStatusTab] = useState("all");
+  const [activeSavedView, setActiveSavedView] = useState("consultation-history");
+  const [searchValue, setSearchValue] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [detail, setDetail] = useState(memberDirectoryRows[0]);
-  const rows = memberDirectoryRows.filter((row) => `${row.name} ${row.phone} ${row.pass} ${row.status}`.includes(query));
-  const toggleSelected = (no: string) => setSelected((current) => current.includes(no) ? current.filter((item) => item !== no) : [...current, no]);
+  const [hideExpired, setHideExpired] = useState(false);
+  const [onlyFavorite, setOnlyFavorite] = useState(false);
+  const [daysNoVisit, setDaysNoVisit] = useState("0");
+  const [memberType, setMemberType] = useState("all");
+  const [referralSource, setReferralSource] = useState("all");
+  const [detailPanelEnabled, setDetailPanelEnabled] = useState(true);
+
+  // docs4 V1 SCR-M001 명시 운영 보기 탭 5개 (회원목록/회원권/수강권/락커/운동복)
+  const MAIN_TABS = [
+    { key: "members" as const, label: "회원 목록" },
+    { key: "product" as const, label: "회원권 목록" },
+    { key: "pass" as const, label: "수강권 목록" },
+  ];
+
+  // docs4 V1 명시 저장 뷰 탭 4개 (상담내역/상담예약/재등록대상/고객관리)
+  const SAVED_VIEW_TABS = [
+    { key: "consultation-history", label: "상담내역", count: 12 },
+    { key: "consultation-scheduled", label: "상담예약", count: 5 },
+    { key: "renewal-target", label: "재등록대상", count: 184 },
+    { key: "legacy-customers", label: "고객관리", count: 96 },
+  ];
+
+  // docs4 V1 SCR-M001 명시 상태 필터 탭 8개 (전체/활성/만료/예정/임박/홀딩/미등록/탈퇴)
+  const STATUS_TABS = [
+    { key: "all", label: "전체", count: memberDirectoryRows.length },
+    { key: "ACTIVE", label: "활성", count: 2 },
+    { key: "EXPIRED", label: "만료", count: 1 },
+    { key: "SCHEDULED", label: "예정", count: 0 },
+    { key: "IMMINENT", label: "임박", count: 1 },
+    { key: "HOLDING", label: "홀딩", count: 1 },
+    { key: "INACTIVE", label: "미등록", count: 0 },
+    { key: "WITHDRAWN", label: "탈퇴", count: 0 },
+  ];
+
+  const rows = memberDirectoryRows.filter((row) => `${row.name} ${row.phone} ${row.pass} ${row.status}`.includes(searchValue));
+  const filtered = hideExpired ? rows.filter((r) => r.status !== "만료") : rows;
+  const toggleSelected = (no: string) => setSelected((current) => {
+    const next = new Set(current);
+    if (next.has(no)) next.delete(no); else next.add(no);
+    return next;
+  });
+
   return (
     <div className="space-y-5">
-      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="회원 원장 운영" />
-      <div className="grid grid-cols-4 gap-3">
-        {screen.metrics.map((metric) => <button key={metric.label} type="button" className="text-left" onClick={() => { setFocus(metric.label); notify(`${metric.label} 지표 필터 mock 적용`, "info"); }}><Card className={cn("h-full shadow-none", focus === metric.label && "ring-2 ring-blue-400")}><CardHeader><CardDescription>{metric.label}</CardDescription><CardTitle className="text-2xl">{metric.value}</CardTitle></CardHeader><CardContent><p className="text-xs text-content-tertiary">{metric.hint}</p></CardContent></Card></button>)}
-      </div>
-      <div className="grid grid-cols-[minmax(0,1fr)_360px] gap-5">
-        <div className="space-y-5">
-          <Card className="shadow-none"><CardHeader><CardTitle>운영 포커스 바</CardTitle><CardDescription>지금 바로 봐야 할 회원군을 문서 기준으로 분리했습니다.</CardDescription></CardHeader><CardContent className="grid grid-cols-3 gap-3">{["재등록 집중 보기", "30일 미방문", "관심회원 보기"].map((item) => <button key={item} className={cn("rounded-xl border p-4 text-left hover:bg-surface-secondary", focus === item && "border-blue-400 bg-blue-50")} onClick={() => { setFocus(item); notify(`${item} 저장뷰 적용`, "info"); }}><div className="font-semibold">{item}</div><div className="mt-1 text-xs text-content-tertiary">HQ-09/세그먼트 기준 mock</div></button>)}</CardContent></Card>
-          <Card className="shadow-none"><CardHeader><CardTitle>회원 목록 / 저장 뷰 / 상태 필터</CardTitle><CardDescription>선택 시 하단 일괄 작업 바와 우측 상세 패널이 함께 반응합니다.</CardDescription></CardHeader><CardContent className="space-y-4"><Tabs defaultValue="회원 목록" onValueChange={(value) => notify(`${value} 운영 보기 전환`, "info")}><TabsList>{["회원 목록", "회원권 목록", "수강권 목록", "락커 목록", "운동복 목록"].map((tab) => <TabsTrigger key={tab} value={tab}>{tab}</TabsTrigger>)}</TabsList><TabsContent value="회원 목록"><div className="flex flex-wrap gap-2 py-3">{["상담내역", "상담예약", "재등록대상", "고객관리"].map((tab) => <Button key={tab} variant="outline" size="sm" onClick={() => notify(`${tab} 저장뷰 적용`, "info")}>{tab}</Button>)}</div><div className="flex flex-wrap gap-2">{["전체", "활성", "만료", "예정", "임박", "홀딩", "미등록", "탈퇴"].map((status) => <Button key={status} aria-label={status} variant={focus === status ? "default" : "outline"} size="sm" onClick={() => { setFocus(status); notify(`${status} 필터 chip mock 적용`, "info"); }}>{status}<Badge variant="secondary">{status === "전체" ? rows.length : memberDirectoryRows.filter((row) => row.status === status).length}</Badge></Button>)}</div><div className="mt-3 flex flex-wrap items-center gap-2"><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="이름·연락처·상품명 통합 검색" className="max-w-sm" /><Button variant="outline" onClick={() => { setQuery(""); setSelected([]); notify("필터와 선택 행을 초기화했습니다.", "info"); }}>전체 해제</Button><Button variant="outline" onClick={() => notify(`${selected.length}개 행으로 일괄 작업 bar mock 표시`, "info")}>선택 작업</Button><Button asChild><Link href="/members/new">회원 추가</Link></Button></div><div className="mt-3 overflow-hidden rounded-xl border"><Table><TableHeader><TableRow>{["선택", "No", "상태", "회원명", "성별", "생년월일", "나이", "연락처", "보유 이용권", "소속 지점", "마지막 방문일", "등록일", "OPEN"].map((column) => <TableHead key={column}>{column}</TableHead>)}</TableRow></TableHeader><TableBody>{rows.map((row) => <TableRow key={row.no}><TableCell><Button size="sm" variant={selected.includes(row.no) ? "default" : "outline"} onClick={() => toggleSelected(row.no)}>{selected.includes(row.no) ? "선택됨" : "선택"}</Button></TableCell><TableCell>{row.no}</TableCell><TableCell>{statusAwareValue(row.status)}</TableCell><TableCell className="font-semibold">{row.name}</TableCell><TableCell>{row.gender}</TableCell><TableCell>{row.birth}</TableCell><TableCell>{row.age}</TableCell><TableCell>{row.phone}</TableCell><TableCell>{row.pass}</TableCell><TableCell>{row.branch}</TableCell><TableCell>{row.visit}</TableCell><TableCell>{row.registered}</TableCell><TableCell><Button size="sm" variant="ghost" onClick={() => { setDetail(row); notify(`${row.name} 우측 상세 패널 열림`, "info"); }}>상세</Button></TableCell></TableRow>)}</TableBody></Table></div><div className="mt-3 flex items-center justify-between rounded-xl border bg-surface-secondary px-4 py-3 text-sm"><span>1-{rows.length} of {rows.length} · 선택 {selected.length}</span><div className="flex gap-2"><Button variant="outline" size="sm" disabled>이전</Button><Button variant="outline" size="sm">1</Button><Button variant="outline" size="sm" disabled>다음</Button></div></div></TabsContent></Tabs></CardContent></Card>
-          {selected.length > 0 && <Card className="sticky bottom-4 z-10 border-blue-200 bg-blue-50 shadow-lg"><CardContent className="flex items-center justify-between pt-5"><b>{selected.length}명 선택됨</b><div className="flex flex-wrap gap-2"><Button data-dialog-id="DLG-M001" onClick={() => openDialog("DLG-M001")}>상태 변경</Button><Button onClick={() => notify("메시지 발송 화면 연결 mock", "info")}>메시지 전송</Button><Button data-dialog-id="DLG-M022" onClick={() => openDialog("DLG-M022")}>출석 처리</Button><Button variant="outline" onClick={() => notify("관심회원 등록 mock 완료")}>관심회원 등록</Button><Button data-dialog-id="DLG-M005" variant={hasPermission(role, "dangerMember") ? "destructive" : "outline"} onClick={() => hasPermission(role, "dangerMember") ? openDialog("DLG-M005") : notify("일괄 탈퇴는 Owner 이상 권한이 필요합니다.", "warning")}>일괄 탈퇴</Button><Button data-dialog-id="DLG-M023" variant="outline" onClick={() => selected.length === 1 ? openDialog("DLG-M023") : notify("지점이관은 회원 1명 선택 시에만 진행합니다.", "warning")}>지점이관</Button></div></CardContent></Card>}
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="회원 목록 (admin-pando 구조)" />
+
+      {/* PageHeader — admin-pando 1:1 */}
+      <div className="flex items-end justify-between border-b border-line/60 pb-4">
+        <div>
+          <h1 className="text-[24px] font-black tracking-tight text-content">회원 관리</h1>
+          <p className="mt-1 text-[13px] text-content-secondary">활성·만료·홀딩·이탈 회원을 통합 조회하고 일괄 처리합니다.</p>
         </div>
-        <aside className="min-w-0 space-y-5"><Card className="shadow-none"><CardHeader><CardTitle>액션 큐</CardTitle><CardDescription>{selected.length ? `${selected.length}명 선택됨` : "회원을 선택하면 큐가 활성화됩니다."}</CardDescription></CardHeader><CardContent className="space-y-2"><Button data-dialog-id="DLG-M001" className="w-full" onClick={() => openDialog("DLG-M001")}>상태 변경</Button><Button className="w-full" variant="outline" onClick={() => notify("선택 회원 메시지 발송 mock", "info")}>메시지 발송</Button><Button data-dialog-id="DLG-M022" className="w-full" variant="outline" onClick={() => openDialog("DLG-M022")}>수동 출석</Button><Button data-dialog-id="DLG-M005" className="w-full" variant="outline" onClick={() => openDialog("DLG-M005")}>탈퇴/복구 확인</Button><Button data-dialog-id="DLG-M023" className="w-full" variant="outline" onClick={() => openDialog("DLG-M023")}>이관 확인</Button></CardContent></Card><Card className="shadow-none"><CardHeader><CardTitle>우측 상세 팝업 패널</CardTitle><CardDescription>출석시 상세 팝업 ON 상태 mock</CardDescription></CardHeader><CardContent className="space-y-3 text-sm"><div className="flex items-center gap-3"><div className="grid size-12 place-items-center rounded-full bg-blue-100 font-bold text-blue-700">{detail.name[0]}</div><div><div className="font-bold">{detail.name}</div><div className="text-xs text-content-tertiary">{detail.phone} · {detail.branch}</div></div></div><Separator /><div className="grid grid-cols-2 gap-2 text-xs"><InfoCell label="상담 담당" value={detail.owner} /><InfoCell label="문의 유형" value="방문(WI)" /><InfoCell label="가입경로" value={detail.source} /><InfoCell label="운동목적" value={detail.purpose} /></div><div className="grid grid-cols-2 gap-2"><Button size="sm" onClick={() => notify(`${detail.name} 출석 체크 mock 완료`)}>출석 체크</Button><Button size="sm" variant="outline" onClick={() => notify(`${detail.name} 상품 구매 연결 mock`, "info")}>상품 구매</Button><Button size="sm" variant="outline" onClick={() => notify(`${detail.name} 메시지 작성 mock`, "info")}>메시지</Button><Button size="sm" variant="outline" asChild><Link href="/members/detail">더보기</Link></Button></div></CardContent></Card><DialogDock screen={screen} openDialog={openDialog} /><HandoffContractCard screen={screen} /></aside>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => notify("엑셀 다운로드 mock", "info")}>Excel 다운로드</Button>
+          <Button asChild size="sm"><Link href="/members/new">+ 회원 등록</Link></Button>
+        </div>
+      </div>
+
+      {/* Daily Focus + Action Queue — admin-pando 1:1 */}
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.95fr)]">
+        <section className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-content-tertiary">Daily Focus</p>
+            <h2 className="mt-1 text-[18px] font-bold text-content">오늘 회원 운영 집중</h2>
+            <p className="mt-1 text-[13px] leading-relaxed text-content-secondary">재등록·이탈위험·관심회원을 한 번에 점검합니다.</p>
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-3">
+            <button
+              className="rounded-xl border border-amber-300/50 bg-amber-50 p-3 text-left transition-colors hover:bg-amber-100"
+              onClick={() => { setActiveStatusTab("ACTIVE"); notify("재등록 집중 보기", "info"); }}
+            >
+              <p className="text-[12px] font-semibold text-amber-800">재등록 집중 보기</p>
+              <p className="mt-0.5 text-[22px] font-bold tabular-nums text-content">92명</p>
+              <p className="mt-0.5 text-[12px] text-content-secondary">30일 이내 만료 임박</p>
+            </button>
+            <button
+              className="rounded-xl border border-rose-300/50 bg-rose-50 p-3 text-left transition-colors hover:bg-rose-100"
+              onClick={() => { setActiveStatusTab("ACTIVE"); setDaysNoVisit("14"); }}
+            >
+              <p className="text-[12px] font-semibold text-rose-800">이탈 위험 보기</p>
+              <p className="mt-0.5 text-[22px] font-bold tabular-nums text-content">38명</p>
+              <p className="mt-0.5 text-[12px] text-content-secondary">14일 이상 미방문 회원</p>
+            </button>
+            <button
+              className="rounded-xl border border-sky-300/50 bg-sky-50 p-3 text-left transition-colors hover:bg-sky-100"
+              onClick={() => setOnlyFavorite(true)}
+            >
+              <p className="text-[12px] font-semibold text-sky-800">관심회원 보기</p>
+              <p className="mt-0.5 text-[22px] font-bold tabular-nums text-content">24명</p>
+              <p className="mt-0.5 text-[12px] text-content-secondary">후속 관리 우선 대상</p>
+            </button>
+          </div>
+        </section>
+
+        <div className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+          <p className="mb-2 text-[11px] font-black uppercase tracking-[0.14em] text-content-tertiary">Action Queue</p>
+          <div className="grid gap-2">
+            <Button variant="default" size="sm" className="justify-start" onClick={() => notify("선택 회원 메시지 발송 mock", "info")}>
+              <MessageSquare size={13} /> 선택 회원 메시지 발송
+            </Button>
+            <Button variant="outline" size="sm" className="justify-start" onClick={() => openDialog("DLG-M001")}>
+              <ChevronRight size={13} /> 선택 회원 상태 변경
+            </Button>
+            <Button variant="outline" size="sm" className="justify-start" onClick={() => openDialog("DLG-M022")}>
+              <CheckCircle2 size={13} /> 선택 회원 수동 출석
+            </Button>
+            <div className="rounded-xl bg-surface-secondary/70 px-3 py-2 text-[12px] text-content-secondary">
+              {selected.size > 0 ? `${selected.size}명 선택됨` : "회원을 선택하면 액션 큐에서 메시지·상태변경·출석을 실행할 수 있습니다."}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 메인 탭 — admin-pando TabNav 1:1 */}
+      <div className="flex gap-6 border-b border-line">
+        {MAIN_TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveMainTab(tab.key)}
+            className={cn(
+              "relative pb-2.5 text-[13px] font-medium transition-colors",
+              activeMainTab === tab.key ? "text-primary" : "text-content-secondary hover:text-content"
+            )}
+          >
+            {tab.label}
+            {activeMainTab === tab.key && <div className="absolute -bottom-px left-0 right-0 h-0.5 rounded-t-full bg-primary" />}
+          </button>
+        ))}
+      </div>
+
+      {activeMainTab === "members" && (
+        <div className="space-y-3">
+          {/* 저장뷰 칩 + 출석시 상세 팝업 토글 — admin-pando 1:1 */}
+          <div className="flex flex-col gap-2 rounded-2xl border border-line bg-surface px-5 py-3 shadow-card lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              {SAVED_VIEW_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors",
+                    activeSavedView === tab.key
+                      ? "bg-primary text-white"
+                      : "bg-surface-secondary text-content-secondary hover:text-content"
+                  )}
+                  onClick={() => setActiveSavedView(tab.key)}
+                >
+                  {tab.label}
+                  <span className={cn(
+                    "rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums",
+                    activeSavedView === tab.key ? "bg-white/20 text-white" : "bg-white text-content-secondary"
+                  )}>{tab.count}</span>
+                </button>
+              ))}
+            </div>
+            <label className="flex items-center gap-2 self-start rounded-full bg-surface-secondary px-3 py-1.5 text-[12px] font-medium text-content-secondary lg:self-auto">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded accent-primary"
+                checked={detailPanelEnabled}
+                onChange={(e) => setDetailPanelEnabled(e.target.checked)}
+              />
+              출석시 상세 팝업
+            </label>
+          </div>
+
+          <div className={cn("grid gap-4", detailPanelEnabled ? "xl:grid-cols-[minmax(0,1fr)_340px]" : "grid-cols-1")}>
+            <div className="overflow-hidden rounded-xl border border-line bg-surface">
+              {/* 상태 필터 탭 — admin-pando 1:1 */}
+              <div className="border-b border-line px-5 pt-3">
+                <div className="relative">
+                  <div className="flex gap-6 overflow-x-auto scrollbar-hide">
+                    {STATUS_TABS.map((tab) => (
+                      <button
+                        key={tab.key}
+                        className={cn(
+                          "relative flex items-center gap-1.5 whitespace-nowrap pb-2.5 text-[13px] font-medium transition-colors",
+                          activeStatusTab === tab.key ? "text-primary" : "text-content-secondary hover:text-content"
+                        )}
+                        onClick={() => setActiveStatusTab(tab.key)}
+                      >
+                        {tab.label}
+                        <span className={cn(
+                          "rounded-full px-1.5 py-px text-[10px] font-semibold tabular-nums",
+                          activeStatusTab === tab.key ? "bg-primary text-white" : "bg-surface-tertiary text-content-secondary"
+                        )}>{tab.count}</span>
+                        {activeStatusTab === tab.key && <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full bg-primary" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 검색/필터 — admin-pando 1:1 */}
+              <div className="border-b border-line p-5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative max-w-md flex-1">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-content-tertiary" size={14} />
+                    <Input
+                      value={searchValue}
+                      onChange={(e) => setSearchValue(e.target.value)}
+                      placeholder="회원명, 연락처 검색..."
+                      className="pl-8 h-9"
+                    />
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => { setSearchValue(""); setSelected(new Set()); notify("필터 초기화", "info"); }}>초기화</Button>
+                </div>
+
+                {/* 추가 필터 행 — admin-pando 1:1 */}
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <label className="flex cursor-pointer items-center gap-1.5 select-none">
+                    <input type="checkbox" className="h-4 w-4 rounded accent-primary" checked={onlyFavorite} onChange={(e) => setOnlyFavorite(e.target.checked)} />
+                    <span className="flex items-center gap-1 text-[13px] text-content-secondary"><span className="text-yellow-400">★</span> 관심회원만</span>
+                  </label>
+                  <div className="h-4 w-px bg-line" />
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[13px] text-content-secondary">미방문</span>
+                    <Select value={daysNoVisit} onValueChange={setDaysNoVisit}>
+                      <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">전체</SelectItem>
+                        <SelectItem value="7">7일 초과</SelectItem>
+                        <SelectItem value="14">14일 초과</SelectItem>
+                        <SelectItem value="30">30일 초과</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="h-4 w-px bg-line" />
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[13px] text-content-secondary">회원구분</span>
+                    <Select value={memberType} onValueChange={setMemberType}>
+                      <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">전체</SelectItem>
+                        <SelectItem value="general">일반</SelectItem>
+                        <SelectItem value="corp">기명법인</SelectItem>
+                        <SelectItem value="anon">무기명법인</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="h-4 w-px bg-line" />
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[13px] text-content-secondary">가입경로</span>
+                    {/* docs4 V1 SCR-M001 명시 9종: 간판/블로그/인스타/당근/지역카페/현수막/전단지/회원소개/기타 */}
+                    <Select value={referralSource} onValueChange={setReferralSource}>
+                      <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">전체</SelectItem>
+                        <SelectItem value="signboard">간판</SelectItem>
+                        <SelectItem value="blog">블로그</SelectItem>
+                        <SelectItem value="instagram">인스타</SelectItem>
+                        <SelectItem value="daangn">당근</SelectItem>
+                        <SelectItem value="cafe">지역카페</SelectItem>
+                        <SelectItem value="banner">현수막</SelectItem>
+                        <SelectItem value="flyer">전단지</SelectItem>
+                        <SelectItem value="referral">회원소개</SelectItem>
+                        <SelectItem value="etc">기타</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="h-4 w-px bg-line" />
+
+                  <label className="flex cursor-pointer items-center gap-1.5 select-none">
+                    <input type="checkbox" className="h-4 w-4 rounded accent-primary" checked={hideExpired} onChange={(e) => setHideExpired(e.target.checked)} />
+                    <span className="text-[13px] text-content-secondary">만료 숨기기</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Bulk 액션 바 — admin-pando 1:1 */}
+              {selected.size > 0 && (
+                <div className="flex items-center justify-between bg-primary px-5 py-2 text-white">
+                  <div className="flex items-center gap-4">
+                    <span className="text-[13px] font-semibold">{selected.size}명 선택됨</span>
+                    <div className="h-3 w-px bg-white/20" />
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" className="text-white/90 hover:bg-white/10 hover:text-white" onClick={() => openDialog("DLG-M001")}>상태 변경</Button>
+                      <Button variant="ghost" size="sm" className="text-white/90 hover:bg-white/10 hover:text-white" onClick={() => notify("메시지 전송 mock", "info")}>전송하기</Button>
+                      <Button variant="ghost" size="sm" className="text-white/90 hover:bg-white/10 hover:text-white" onClick={() => openDialog("DLG-M022")}>출석 처리</Button>
+                      <Button variant="ghost" size="sm" className="text-white/90 hover:bg-white/10 hover:text-white" onClick={() => notify("관심회원 등록 mock", "info")}>관심회원</Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-white/90 hover:bg-white/10 hover:text-white"
+                        onClick={() => selected.size === 1 ? openDialog("DLG-M023") : notify("지점이관은 1명 선택 시에만 가능합니다.", "warning")}
+                      >
+                        지점이관
+                      </Button>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm" className="text-white/70 hover:text-white" onClick={() => setSelected(new Set())}>선택 취소</Button>
+                </div>
+              )}
+
+              {/* 테이블 — admin-pando 1:1 */}
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded accent-primary"
+                          checked={selected.size === filtered.length && filtered.length > 0}
+                          onChange={(e) => setSelected(e.target.checked ? new Set(filtered.map((r) => r.no)) : new Set())}
+                        />
+                      </TableHead>
+                      <TableHead className="w-10">★</TableHead>
+                      <TableHead>상태</TableHead>
+                      <TableHead>세그먼트</TableHead>
+                      <TableHead>회원명</TableHead>
+                      <TableHead>소속 지점</TableHead>
+                      <TableHead>성별</TableHead>
+                      <TableHead>생년월일</TableHead>
+                      <TableHead>연락처</TableHead>
+                      <TableHead>이용권</TableHead>
+                      <TableHead>만료일</TableHead>
+                      <TableHead>등록일</TableHead>
+                      <TableHead>이관</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((row) => (
+                      <TableRow
+                        key={row.no}
+                        className={cn("cursor-pointer", selected.has(row.no) && "bg-primary-light/30")}
+                        onClick={() => { setDetail(row); if (!detailPanelEnabled) notify(`${row.name} 상세로 이동 mock`, "info"); }}
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded accent-primary"
+                            checked={selected.has(row.no)}
+                            onChange={() => toggleSelected(row.no)}
+                          />
+                        </TableCell>
+                        <TableCell><button className="text-content-tertiary hover:text-yellow-400 text-[16px]" onClick={(e) => { e.stopPropagation(); notify(`${row.name} 관심회원 토글`, "info"); }}>☆</button></TableCell>
+                        <TableCell>{statusAwareValue(row.status)}</TableCell>
+                        <TableCell><span className="inline-block rounded bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-700">활발한 회원</span></TableCell>
+                        <TableCell className="font-semibold">{row.name}</TableCell>
+                        <TableCell className="text-[12px] text-content-secondary">{row.branch}</TableCell>
+                        <TableCell className="text-center">{row.gender}</TableCell>
+                        <TableCell className="tabular-nums">{row.birth}</TableCell>
+                        <TableCell className="tabular-nums">{row.phone}</TableCell>
+                        <TableCell>{row.pass}</TableCell>
+                        <TableCell className="tabular-nums">{row.visit}</TableCell>
+                        <TableCell className="tabular-nums">{row.registered}</TableCell>
+                        <TableCell><Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); openDialog("DLG-M023"); }}>이관</Button></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* 페이지네이션 */}
+              <div className="flex items-center justify-between border-t border-line px-5 py-3">
+                <span className="text-[12px] text-content-secondary">1-{filtered.length} of {filtered.length}</span>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" disabled>이전</Button>
+                  <Button variant="outline" size="sm">1</Button>
+                  <Button variant="outline" size="sm" disabled>다음</Button>
+                </div>
+              </div>
+            </div>
+
+            {/* 우측 상세 패널 — admin-pando 1:1 */}
+            {detailPanelEnabled && (
+              <aside className="rounded-2xl border border-line bg-surface p-5 shadow-card sticky top-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-content-tertiary">Quick Member View</p>
+                    <h3 className="mt-0.5 text-[18px] font-bold text-content">{detail.name}</h3>
+                    <div className="mt-1 flex items-center gap-1.5">
+                      {statusAwareValue(detail.status)}
+                      <span className="inline-block rounded bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-700">활발한 회원</span>
+                    </div>
+                  </div>
+                  <button className="text-[12px] font-medium text-content-secondary hover:text-content" onClick={() => notify("패널 닫기", "info")}>닫기</button>
+                </div>
+
+                <div className="mt-3 space-y-2 rounded-2xl bg-surface-secondary p-3 text-[13px]">
+                  <div className="flex items-center justify-between gap-2"><span className="text-content-secondary">연락처</span><span className="font-semibold text-content tabular-nums">{detail.phone}</span></div>
+                  <div className="flex items-center justify-between gap-2"><span className="text-content-secondary">소속 지점</span><span className="font-semibold text-content">{detail.branch}</span></div>
+                  <div className="flex items-center justify-between gap-2"><span className="text-content-secondary">최근 방문</span><span className="font-semibold text-content">{detail.visit}</span></div>
+                  <div className="flex items-center justify-between gap-2"><span className="text-content-secondary">이용권</span><span className="font-semibold text-content">{detail.pass}</span></div>
+                  <div className="flex items-center justify-between gap-2"><span className="text-content-secondary">담당 FC</span><span className="font-semibold text-content">{detail.owner}</span></div>
+                  <div className="flex items-center justify-between gap-2"><span className="text-content-secondary">가입경로</span><span className="font-semibold text-content">{detail.source}</span></div>
+                </div>
+
+                <div className="mt-3 grid gap-2">
+                  <Button size="sm" asChild><Link href="/members/detail">상세 보기</Link></Button>
+                  <Button variant="outline" size="sm" asChild><Link href="/sales/payment">상품구매</Link></Button>
+                  <Button variant="outline" size="sm" onClick={() => notify(`${detail.name} 메시지 작성`, "info")}>메시지</Button>
+                  <Button variant="ghost" size="sm" onClick={() => openDialog("DLG-M023")}>지점이관</Button>
+                </div>
+              </aside>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeMainTab === "product" && (
+        <Card className="shadow-none">
+          <CardHeader><CardTitle>보유상품별 회원</CardTitle><CardDescription>회원권/PT/GX/락커 등 보유 상품 기준 분류</CardDescription></CardHeader>
+          <CardContent className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {[{ type: "회원권", count: 1024 }, { type: "수강권(PT)", count: 482 }, { type: "수강권(GX)", count: 386 }, { type: "락커", count: 218 }, { type: "운동복", count: 96 }].map((g) => (
+              <div key={g.type} className="rounded-xl border border-line bg-surface p-3">
+                <span className="text-[12px] font-semibold text-content-secondary">{g.type}</span>
+                <p className="mt-1 text-[22px] font-bold tabular-nums text-content">{g.count}<span className="ml-1 text-[13px] font-normal text-content-secondary">명</span></p>
+                <span className="text-[11px] text-content-tertiary">활성 {Math.floor(g.count * 0.78)}명</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeMainTab === "pass" && (
+        <Card className="shadow-none">
+          <CardHeader><CardTitle>이용권 목록</CardTitle><CardDescription>유효 이용권 기준 회원 목록 (docs4 V1)</CardDescription></CardHeader>
+          <CardContent>
+            <div className="overflow-hidden rounded-xl border">
+              <Table>
+                <TableHeader><TableRow><TableHead>회원명</TableHead><TableHead>소속 지점</TableHead><TableHead>이용권</TableHead><TableHead>시작일</TableHead><TableHead>만료일</TableHead><TableHead>D-Day</TableHead><TableHead>상태</TableHead></TableRow></TableHeader>
+                <TableBody>{memberDirectoryRows.map((row) => <TableRow key={row.no}><TableCell className="font-semibold">{row.name}</TableCell><TableCell>{row.branch}</TableCell><TableCell>{row.pass}</TableCell><TableCell className="tabular-nums">{row.registered}</TableCell><TableCell className="tabular-nums">{row.visit}</TableCell><TableCell><Badge variant="warning">D-3</Badge></TableCell><TableCell>{statusAwareValue(row.status)}</TableCell></TableRow>)}</TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 검수용 핸드오프 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <HandoffContractCard screen={screen} />
+        <DialogDock screen={screen} openDialog={openDialog} />
       </div>
     </div>
   );
@@ -1214,10 +1637,309 @@ function MemberSegmentsScreen({ screen, role, branch, openDialog, notify }: Spec
 }
 
 function SalesOverviewScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
+  // admin-pando sales/page.tsx 구조 1:1 이식
   const [preset, setPreset] = useState("이번 달");
-  const [query, setQuery] = useState("");
-  const rows = salesLedgerRows.filter((row) => `${row.buyer} ${row.product} ${row.status}`.includes(query));
-  return <div className="space-y-5"><DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="매출 운영 코크핏" /><div className="grid grid-cols-4 gap-3">{[{ label: "순 매출", value: "18,420,000원" }, { label: "카드 결제", value: "12,800,000원" }, { label: "현금 결제", value: "4,500,000원" }, { label: "미수금", value: "1,120,000원" }].map((metric) => <Card key={metric.label} className="shadow-none"><CardHeader><CardDescription>{metric.label}</CardDescription><CardTitle className="text-2xl">{metric.value}</CardTitle></CardHeader></Card>)}</div><div className="grid grid-cols-[minmax(0,1fr)_340px] gap-5"><div className="space-y-5"><Card className="shadow-none"><CardHeader><CardTitle>운영 코크핏</CardTitle><CardDescription>미수·환불·재등록·고할인 거래를 first fold에 배치합니다.</CardDescription></CardHeader><CardContent className="grid grid-cols-4 gap-3">{["미수 추적", "환불 검토", "재등록 성과", "고할인 거래"].map((item) => <button key={item} className="rounded-xl border p-4 text-left hover:bg-surface-secondary" onClick={() => notify(`${item} 필터 적용`, "info")}><div className="font-semibold">{item}</div><div className="mt-1 text-xs text-content-tertiary">처리 우선순위 mock</div></button>)}</CardContent></Card><Card className="shadow-none"><CardHeader><CardTitle>매출 현황 테이블</CardTitle><CardDescription>기간 프리셋, 통합 검색, 하단 요약 바 7종을 포함합니다.</CardDescription></CardHeader><CardContent className="space-y-3"><div className="flex flex-wrap gap-2">{["오늘", "이번 주", "이번 달"].map((item) => <Button key={item} variant={preset === item ? "default" : "outline"} onClick={() => { setPreset(item); notify(`${item} 기간 설정`, "info"); }}>{item}</Button>)}<Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="구매자 이름 또는 상품명" className="max-w-xs" /><Button asChild><Link href="/sales/pos">신규 결제(POS)</Link></Button><Button variant="outline" onClick={() => notify("엑셀 다운로드 mock", "info")}>엑셀</Button></div><div className="overflow-hidden rounded-xl border"><Table><TableHeader><TableRow>{["매출번호", "회원", "상품", "총액", "할인", "수납", "상태", "수단", "담당", "경로", "일시"].map((col) => <TableHead key={col}>{col}</TableHead>)}</TableRow></TableHeader><TableBody>{rows.map((row) => <TableRow key={row.id} onClick={() => openDialog("DLG-S001")} className="cursor-pointer"><TableCell>{row.id}</TableCell><TableCell className="font-semibold">{row.buyer}</TableCell><TableCell>{row.product}</TableCell><TableCell>{row.gross}</TableCell><TableCell>{row.discount}</TableCell><TableCell>{row.paid}</TableCell><TableCell>{statusAwareValue(row.status)}</TableCell><TableCell>{row.method}</TableCell><TableCell>{row.owner}</TableCell><TableCell>{row.route}</TableCell><TableCell>{row.date}</TableCell></TableRow>)}</TableBody></Table></div><div className="grid grid-cols-7 gap-2 rounded-xl border border-primary/20 bg-gradient-to-r from-primary via-primary to-[#ff907f] p-3 text-white shadow-[0_16px_32px_rgba(255,127,110,0.18)]">{["총매출 19.5M", "순매출 18.4M", "현금 4.5M", "카드 12.8M", "환불 620K", "미납 1.12M", "할인 530K"].map((item) => <div key={item} className="text-center text-xs font-semibold">{item}</div>)}</div></CardContent></Card></div><aside className="min-w-0 space-y-5"><Card className="shadow-none"><CardHeader><CardTitle>처리 큐</CardTitle></CardHeader><CardContent className="space-y-2">{salesLedgerRows.slice(0, 3).map((row) => <div key={row.id} className="rounded-lg border p-3 text-sm"><b>{row.buyer}</b> · {row.product}<div className="mt-2 flex gap-2"><Button size="sm" data-dialog-id="DLG-S001" onClick={() => openDialog("DLG-S001")}>거래 보기</Button><Button size="sm" variant="outline" asChild><Link href="/members/detail">회원 보기</Link></Button></div></div>)}<Button data-dialog-id="DLG-S005" variant="outline" className="w-full" onClick={() => openDialog("DLG-S005")}>메모 편집</Button><Button data-dialog-id="DLG-S012" variant="outline" className="w-full" onClick={() => openDialog("DLG-S012")}>목표 설정</Button></CardContent></Card><DialogDock screen={screen} openDialog={openDialog} /><DialogDock screen={screen} openDialog={openDialog} /><HandoffContractCard screen={screen} /></aside></div></div>;
+  const [activeTab, setActiveTab] = useState<"TAB-001" | "TAB-002" | "TAB-006" | "TAB-007">("TAB-001");
+  const [searchValue, setSearchValue] = useState("");
+  const [periodUnit, setPeriodUnit] = useState<"일" | "주" | "월">("일");
+  const [roundFilter, setRoundFilter] = useState("");
+  const rows = salesLedgerRows.filter((row) => `${row.buyer} ${row.product} ${row.status}`.includes(searchValue));
+
+  const PRESETS = ["오늘", "이번 주", "이번 달", "지난 달", "최근 3개월", "올해"];
+  const ROUND_TYPES = ["신규", "재등록", "휴면복귀", "기타"];
+
+  const tabs = [
+    { key: "TAB-001" as const, label: "전체 거래" },
+    { key: "TAB-002" as const, label: "기간별 집계" },
+    { key: "TAB-006" as const, label: "환불 내역" },
+    { key: "TAB-007" as const, label: "미수 내역" },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="매출 운영 (admin-pando 구조)" />
+
+      {/* PageHeader — admin-pando 1:1 */}
+      <div className="flex items-end justify-between border-b border-line/60 pb-4">
+        <div>
+          <h1 className="text-[24px] font-black tracking-tight text-content">매출 관리</h1>
+          <p className="mt-1 text-[13px] text-content-secondary">결제·환불·미수·할부 거래를 통합 추적하고 운영 코크핏에서 우선 처리합니다.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => notify("엑셀 다운로드 mock", "info")}>Excel</Button>
+          <Button asChild size="sm"><Link href="/sales/pos">+ 신규 결제(POS)</Link></Button>
+        </div>
+      </div>
+
+      {/* 운영 코크핏 + 처리 큐 — admin-pando 1:1 */}
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.95fr)]">
+        <section className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-content-tertiary">Sales Cockpit</p>
+              <h2 className="mt-1 text-[20px] font-bold text-content">운영 코크핏</h2>
+              <p className="mt-1 text-[13px] leading-relaxed text-content-secondary">미수 추적, 환불 검토, 재등록 성과를 한 화면에서 우선순위대로 확인하고 바로 처리합니다.</p>
+            </div>
+            <Button asChild variant="outline" size="sm"><Link href="/sales/pos">POS 열기</Link></Button>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <button className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-left transition-colors hover:bg-rose-100/80" onClick={() => setActiveTab("TAB-007")}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-100 text-rose-600"><AlertTriangle size={18} /></div>
+                  <div>
+                    <p className="text-[12px] font-semibold text-content">미수 추적</p>
+                    <p className="text-[11px] text-content-tertiary">당장 회수 필요한 거래</p>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-content-tertiary" />
+              </div>
+              <p className="mt-3 text-[24px] font-bold tabular-nums text-rose-600">1,120,000원</p>
+              <p className="mt-1 text-[12px] text-content-secondary">3건 미수 거래가 남아 있습니다.</p>
+            </button>
+            <button className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left transition-colors hover:bg-amber-100/80" onClick={() => setActiveTab("TAB-006")}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-amber-700"><AlertTriangle size={18} /></div>
+                  <div>
+                    <p className="text-[12px] font-semibold text-content">환불 검토</p>
+                    <p className="text-[11px] text-content-tertiary">금액 영향이 큰 환불 건</p>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-content-tertiary" />
+              </div>
+              <p className="mt-3 text-[24px] font-bold tabular-nums text-amber-700">620,000원</p>
+              <p className="mt-1 text-[12px] text-content-secondary">9건 환불 내역을 점검해야 합니다.</p>
+            </button>
+            <button className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left transition-colors hover:bg-emerald-100/80" onClick={() => { setActiveTab("TAB-001"); setRoundFilter("재등록"); }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700"><CheckCircle2 size={18} /></div>
+                  <div>
+                    <p className="text-[12px] font-semibold text-content">재등록 성과</p>
+                    <p className="text-[11px] text-content-tertiary">잔존 매출 회복 흐름</p>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-content-tertiary" />
+              </div>
+              <p className="mt-3 text-[24px] font-bold tabular-nums text-emerald-700">5,400,000원</p>
+              <p className="mt-1 text-[12px] text-content-secondary">14건 재등록·휴면복귀 거래가 잡혀 있습니다.</p>
+            </button>
+            <button className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-left transition-colors hover:bg-violet-100/80" onClick={() => setActiveTab("TAB-001")}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><AlertTriangle size={18} /></div>
+                  <div>
+                    <p className="text-[12px] font-semibold text-content">고할인 거래</p>
+                    <p className="text-[11px] text-content-tertiary">마진 점검 대상</p>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-content-tertiary" />
+              </div>
+              <p className="mt-3 text-[24px] font-bold tabular-nums text-violet-700">8건</p>
+              <p className="mt-1 text-[12px] text-content-secondary">5만원 이상 할인 거래를 따로 확인할 수 있습니다.</p>
+            </button>
+          </div>
+        </section>
+
+        <aside className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-content-tertiary">Action Queue</p>
+            <h2 className="mt-1 text-[18px] font-bold text-content">처리 큐</h2>
+            <p className="mt-1 text-[13px] leading-relaxed text-content-secondary">미수, 환불, 재등록 거래를 영향도 기준으로 모아 둡니다.</p>
+          </div>
+          <div className="mt-4 space-y-2">
+            {salesLedgerRows.slice(0, 3).map((row) => (
+              <div key={row.id} className="rounded-2xl border border-line bg-white/70 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-[13px] font-semibold text-content">{row.buyer}</p>
+                    <p className="mt-0.5 text-[12px] text-content-secondary">{row.product}</p>
+                  </div>
+                  <Badge variant={row.status === "미수" ? "warning" : row.status === "환불요청" ? "destructive" : "success"}>{row.status}</Badge>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-2 text-[12px] text-content-secondary">
+                  <span>{row.date} · {row.owner}</span>
+                  <span className="font-semibold tabular-nums text-content">{row.paid}원</span>
+                </div>
+                <div className="mt-3 flex gap-1">
+                  <Button size="sm" onClick={() => openDialog("DLG-S001")}>거래 보기</Button>
+                  <Button size="sm" variant="outline" asChild><Link href="/members/detail">회원 보기</Link></Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
+      </div>
+
+      {/* 필터 영역 — admin-pando 1:1 */}
+      <div className="space-y-3">
+        {/* 기간 프리셋 */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {PRESETS.map((p) => (
+            <button
+              key={p}
+              onClick={() => { setPreset(p); notify(`${p} 기간 적용`, "info"); }}
+              className={cn(
+                "rounded-lg border px-3 py-1.5 text-[13px] font-semibold transition-all",
+                preset === p ? "bg-primary text-white border-primary shadow-sm" : "bg-surface text-content-secondary border-line hover:border-primary hover:text-primary"
+              )}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+
+        {/* 검색 + 필터 행 */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative max-w-md flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-content-tertiary" size={14} />
+            <Input value={searchValue} onChange={(e) => setSearchValue(e.target.value)} placeholder="구매자 또는 상품명 검색..." className="pl-8 h-9" />
+          </div>
+          <Select defaultValue="all">
+            <SelectTrigger className="w-32 h-9"><SelectValue placeholder="유형" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">전체 유형</SelectItem>
+              <SelectItem value="new">신규</SelectItem>
+              <SelectItem value="renewal">재등록</SelectItem>
+              <SelectItem value="refund">환불</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select defaultValue="all">
+            <SelectTrigger className="w-32 h-9"><SelectValue placeholder="상태" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">전체 상태</SelectItem>
+              <SelectItem value="paid">결제완료</SelectItem>
+              <SelectItem value="unpaid">미수</SelectItem>
+              <SelectItem value="refunded">환불</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={() => { setSearchValue(""); setRoundFilter(""); notify("필터 초기화", "info"); }}>초기화</Button>
+        </div>
+      </div>
+
+      {/* round 유형 필터 — admin-pando 1:1 */}
+      {activeTab === "TAB-001" && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[12px] font-semibold text-content-secondary">매출유형:</span>
+          <button
+            onClick={() => setRoundFilter("")}
+            className={cn("rounded-lg border px-2.5 py-1 text-[12px] font-semibold transition-all", roundFilter === "" ? "bg-primary text-white border-primary" : "bg-surface text-content-secondary border-line hover:border-primary hover:text-primary")}
+          >전체</button>
+          {ROUND_TYPES.map((r) => (
+            <button
+              key={r}
+              onClick={() => setRoundFilter((prev) => prev === r ? "" : r)}
+              className={cn("rounded-lg border px-2.5 py-1 text-[12px] font-semibold transition-all", roundFilter === r ? "bg-primary text-white border-primary" : "bg-surface text-content-secondary border-line hover:border-primary hover:text-primary")}
+            >{r}</button>
+          ))}
+        </div>
+      )}
+
+      {/* 탭 + 테이블 — admin-pando 1:1 */}
+      <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-card">
+        <div className="flex gap-6 border-b border-line px-5 pt-3">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={cn(
+                "relative pb-2.5 text-[13px] font-medium transition-colors",
+                activeTab === tab.key ? "text-primary" : "text-content-secondary hover:text-content"
+              )}
+            >
+              {tab.label}
+              {activeTab === tab.key && <div className="absolute -bottom-px left-0 right-0 h-0.5 rounded-t-full bg-primary" />}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === "TAB-002" && (
+          <div className="flex items-center gap-1.5 px-5 pt-3">
+            {(["일", "주", "월"] as const).map((unit) => (
+              <button
+                key={unit}
+                onClick={() => setPeriodUnit(unit)}
+                className={cn("rounded-lg border px-3 py-1 text-[13px] font-semibold transition-all", periodUnit === unit ? "bg-primary text-white border-primary shadow-sm" : "bg-surface text-content-secondary border-line hover:border-primary hover:text-primary")}
+              >{unit}별</button>
+            ))}
+          </div>
+        )}
+
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {["매출번호", "회원", "상품", "총액", "할인", "수납", "상태", "수단", "담당", "경로", "일시"].map((col) => (
+                  <TableHead key={col}>{col}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.id} className="cursor-pointer" onClick={() => openDialog("DLG-S001")}>
+                  <TableCell className="text-[12px] tabular-nums">{row.id}</TableCell>
+                  <TableCell className="font-semibold">{row.buyer}</TableCell>
+                  <TableCell>{row.product}</TableCell>
+                  <TableCell className="text-right tabular-nums">{row.gross}</TableCell>
+                  <TableCell className="text-right tabular-nums text-content-secondary">{row.discount}</TableCell>
+                  <TableCell className="text-right font-semibold tabular-nums">{row.paid}</TableCell>
+                  <TableCell>{statusAwareValue(row.status)}</TableCell>
+                  <TableCell className="text-[12px]">{row.method}</TableCell>
+                  <TableCell className="text-[12px]">{row.owner}</TableCell>
+                  <TableCell className="text-[12px]">{row.route}</TableCell>
+                  <TableCell className="text-[12px] text-content-secondary">{row.date}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      {/* 하단 요약 바 7종 — admin-pando 1:1 */}
+      <div className="flex flex-wrap items-center justify-between gap-6 rounded-xl border border-line bg-surface p-5 shadow-card">
+        <div className="flex flex-wrap gap-6">
+          <div>
+            <p className="text-[11px] text-content-tertiary">총 매출액</p>
+            <p className="text-[18px] font-bold tabular-nums text-primary">19,500,000원</p>
+          </div>
+          <div>
+            <p className="text-[11px] text-content-tertiary">순 매출액 <span className="text-[10px]">(환불 차감)</span></p>
+            <p className="text-[18px] font-bold tabular-nums text-accent">18,420,000원</p>
+          </div>
+          <div className="hidden sm:block h-10 w-px bg-line" />
+          <div>
+            <p className="text-[11px] text-content-tertiary">현금 합계</p>
+            <p className="text-[18px] font-bold tabular-nums text-content">4,500,000원</p>
+          </div>
+          <div>
+            <p className="text-[11px] text-content-tertiary">카드 합계</p>
+            <p className="text-[18px] font-bold tabular-nums text-content">12,800,000원</p>
+          </div>
+          <div>
+            <p className="text-[11px] text-content-tertiary">포인트 합계</p>
+            <p className="text-[18px] font-bold tabular-nums text-content">530,000원</p>
+          </div>
+        </div>
+        <div className="flex gap-6">
+          <div className="text-right">
+            <p className="text-[11px] text-content-tertiary">환불 금액</p>
+            <p className="text-[15px] font-semibold tabular-nums text-rose-600">-620,000원</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[11px] text-content-tertiary">미납 금액</p>
+            <p className="text-[15px] font-semibold tabular-nums text-amber-700">1,120,000원</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 검수용 핸드오프 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <HandoffContractCard screen={screen} />
+        <DialogDock screen={screen} openDialog={openDialog} />
+      </div>
+    </div>
+  );
 }
 
 function PosSalesScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
@@ -2166,93 +2888,360 @@ function PrimaryActionRow({ screen, role, openDialog, notify }: { screen: Screen
 // ---- D04 수업관리 ----
 
 function ClassCalendarScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
-  // admin-pando calendar 시각 차용: 월/주/일 뷰, 시간 슬롯 격자, 강사 색상 라벨
-  const [view, setView] = useState<"월" | "주" | "일" | "목록">("주");
-  const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
-  const hours = ["07:00", "10:00", "11:00", "14:00", "19:00"];
-  const slotData: Record<string, { 수업: string; 강사: string; tone: string }[]> = {
-    "07:00": [{ 수업: "요가 모닝", 강사: "정GX", tone: "bg-emerald-100 text-emerald-800 border-emerald-300" }],
-    "10:00": [{ 수업: "PT 김민준", 강사: "박트레이너", tone: "bg-blue-100 text-blue-800 border-blue-300" }],
-    "11:00": [{ 수업: "필라테스 그룹", 강사: "정GX", tone: "bg-violet-100 text-violet-800 border-violet-300" }],
-    "14:00": [{ 수업: "골프 레슨", 강사: "김프로", tone: "bg-amber-100 text-amber-800 border-amber-300" }],
-    "19:00": [{ 수업: "스피닝", 강사: "박GX", tone: "bg-rose-100 text-rose-800 border-rose-300" }]
+  // admin-pando calendar/page.tsx 구조 1:1 이식
+  const [activeTab, setActiveTab] = useState<"schedule" | "lessons" | "counts" | "penalty" | "valid">("schedule");
+  const [view, setView] = useState<"월" | "주" | "일" | "목록">("월");
+  const [instructor, setInstructor] = useState<string>("");
+  const [lessonFilter, setLessonFilter] = useState<string>("");
+  const [capacityFilter, setCapacityFilter] = useState<"전체" | "여유" | "마감">("전체");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState(29);
+
+  // admin-pando 색상 매핑 (docs4 분류와 동일)
+  const SCHEDULE_CATEGORIES = ["상담", "OT", "체성분", "방문", "수업", "PT", "기타"];
+  const SCHEDULE_COLORS: Record<string, string> = {
+    "방문": "#3B82F6", "OT": "#10B981", "상담": "#F59E0B", "체성분": "#8B5CF6", "수업": "#EF4444", "PT": "#F97316", "기타": "#6B7280",
   };
+
+  const instructors = [
+    { id: "1", name: "박트레이너", type: "PT", color: "#fb7185" },
+    { id: "2", name: "정GX", type: "GX", color: "#a78bfa" },
+    { id: "3", name: "김프로", type: "골프", color: "#38bdf8" },
+    { id: "4", name: "박GX", type: "스피닝", color: "#fbbf24" },
+    { id: "5", name: "최트레이너", type: "PT", color: "#34d399" },
+  ];
+
+  // 월간 캘린더 - 5월 2026 (목요일 시작)
+  const calendarDays: ({ day: number; isCurrentMonth: boolean; events: { title: string; instructor: string; type: string; category: string; color: string }[] })[] = [];
+  // 이전 달
+  for (let d = 26; d <= 30; d++) calendarDays.push({ day: d, isCurrentMonth: false, events: [] });
+  // 이번 달
+  for (let d = 1; d <= 31; d++) {
+    const events: { title: string; instructor: string; type: string; category: string; color: string }[] = [];
+    if (d % 5 === 1) events.push({ title: "요가 모닝", instructor: "정GX", type: "GX", category: "수업", color: SCHEDULE_COLORS["수업"] });
+    if (d % 4 === 2) events.push({ title: "PT 김민준", instructor: "박트레이너", type: "PT", category: "PT", color: SCHEDULE_COLORS["PT"] });
+    if (d % 7 === 3) events.push({ title: "OT 박서연", instructor: "최트레이너", type: "PT", category: "OT", color: SCHEDULE_COLORS["OT"] });
+    if (d === 29) events.push({ title: "필라테스 그룹", instructor: "정GX", type: "GX", category: "수업", color: SCHEDULE_COLORS["수업"] });
+    calendarDays.push({ day: d, isCurrentMonth: true, events });
+  }
+  // 다음 달
+  for (let d = 1; d <= 6; d++) calendarDays.push({ day: d, isCurrentMonth: false, events: [] });
+
+  const tabs = [
+    { key: "schedule", label: "일정표", count: null },
+    { key: "lessons", label: "수업 관리", count: 760 },
+    { key: "counts", label: "횟수 관리", count: null },
+    { key: "penalty", label: "페널티 관리", count: 0 },
+    { key: "valid", label: "유효 수업 목록", count: null },
+  ] as const;
+
+  const pendingCount = 5;
+  const selectedDayEvents = calendarDays.find((d) => d.day === selectedDate && d.isCurrentMonth)?.events || [];
+
   return (
     <div className="space-y-5">
-      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="수업 캘린더 보드" />
-      <MetricGrid metrics={screen.metrics} onSelect={(label) => { setSelectedMetric(label); notify(`${label} 지표 기준으로 캘린더 필터 적용`, "info"); }} active={selectedMetric} />
-      <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5">
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="수업 캘린더 (admin-pando 구조)" />
+
+      {/* PageHeader — admin-pando 1:1 */}
+      <div className="flex items-end justify-between border-b border-line/60 pb-4">
+        <div>
+          <h1 className="text-[24px] font-black tracking-tight text-content">수업/캘린더</h1>
+          <p className="mt-1 text-[13px] text-content-secondary">PT 및 그룹 수업 스케줄을 관리하고 회원의 예약 현황을 확인합니다.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => notify("스케줄 일괄 변경 mock", "info")}>스케줄 일괄 변경</Button>
+          <Button size="sm" onClick={() => openDialog("DLG-C001")}>+ 수업 등록</Button>
+        </div>
+      </div>
+
+      {/* TabNav — admin-pando 1:1 (5 탭) */}
+      <div className="flex gap-6 border-b border-line">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={cn(
+              "relative flex items-center gap-1.5 pb-2.5 text-[13px] font-medium transition-colors",
+              activeTab === tab.key ? "text-primary" : "text-content-secondary hover:text-content"
+            )}
+          >
+            {tab.label}
+            {tab.count !== null && (
+              <span className={cn("rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums", activeTab === tab.key ? "bg-primary text-white" : "bg-surface-tertiary text-content-secondary")}>
+                {tab.count}
+              </span>
+            )}
+            {activeTab === tab.key && <div className="absolute -bottom-px left-0 right-0 h-0.5 rounded-t-full bg-primary" />}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "schedule" && (
         <div className="space-y-4">
-          <Card className="shadow-none">
-            <CardHeader>
-              <div className="flex items-center justify-between"><CardTitle>{view} 캘린더</CardTitle>
-                <div className="flex gap-1">{(["월", "주", "일", "목록"] as const).map((v) => <Button key={v} size="sm" variant={view === v ? "default" : "outline"} onClick={() => setView(v)}>{v} 뷰</Button>)}</div>
+          {/* 미승인 일정 배너 — admin-pando 1:1 */}
+          {pendingCount > 0 && (
+            <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
+              <AlertTriangle size={15} className="shrink-0 text-amber-600" />
+              <span className="text-[13px] font-semibold text-amber-700">
+                미승인 일정 <span className="font-bold">{pendingCount}건</span>이 있습니다.
+              </span>
+              <Button size="sm" variant="outline" className="ml-auto border-amber-300 text-amber-700" onClick={() => openDialog("DLG-C003")}>승인 검토</Button>
+            </div>
+          )}
+
+          {/* 필터 바 — admin-pando 1:1 */}
+          <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-3 shadow-xs">
+            {/* 1행: 강사/수업명/정원 */}
+            <div className="flex flex-wrap items-center gap-3">
+              <Select value={instructor} onValueChange={setInstructor}>
+                <SelectTrigger className="w-40 h-9"><SelectValue placeholder="전체 강사" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체 강사</SelectItem>
+                  {instructors.map((i) => <SelectItem key={i.id} value={i.id}>{i.name} ({i.type})</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={lessonFilter} onValueChange={setLessonFilter}>
+                <SelectTrigger className="w-40 h-9"><SelectValue placeholder="전체 수업" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체 수업</SelectItem>
+                  <SelectItem value="yoga">요가 모닝</SelectItem>
+                  <SelectItem value="pilates">필라테스 그룹</SelectItem>
+                  <SelectItem value="pt">PT 개인레슨</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-1">
+                {(["전체", "여유", "마감"] as const).map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setCapacityFilter(opt)}
+                    className={cn(
+                      "h-9 rounded-lg border px-3 text-[12px] font-semibold transition-colors",
+                      capacityFilter === opt
+                        ? "bg-primary text-white border-primary"
+                        : "bg-surface-secondary text-content-secondary border-line hover:border-primary hover:text-primary"
+                    )}
+                  >
+                    {opt}
+                  </button>
+                ))}
               </div>
-              <CardDescription>강사 색상 라벨·예약 카드·드래그 mock — 실제 일정 충돌 검증은 개발 단계에서 연결합니다.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <FilterChips filters={screen.filters} notify={notify} />
-              <div className="overflow-hidden rounded-xl border">
-                <div className="grid grid-cols-[80px_repeat(7,minmax(0,1fr))] bg-surface-secondary text-xs font-semibold text-content-secondary">
-                  <div className="border-b border-r p-2">시간</div>
-                  {["월", "화", "수", "목", "금", "토", "일"].map((d) => <div key={d} className="border-b p-2 text-center">{d}</div>)}
-                </div>
-                {hours.map((hour) => (
-                  <div key={hour} className="grid grid-cols-[80px_repeat(7,minmax(0,1fr))] border-b last:border-b-0">
-                    <div className="border-r bg-surface-secondary p-2 text-xs font-semibold text-content-tertiary">{hour}</div>
-                    {[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => {
-                      const block = slotData[hour]?.[0];
-                      const show = block && dayIndex < 5;
-                      return (
-                        <div key={dayIndex} className="min-h-16 border-r p-1 last:border-r-0">
-                          {show && (
-                            <button type="button" className={cn("w-full rounded border px-2 py-1 text-left text-[11px] font-medium", block.tone)} onClick={() => openDialog("DLG-C002")}>
-                              <div>{block.수업}</div><div className="opacity-75">{block.강사}</div>
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
+            </div>
+
+            {/* 2행: 카테고리 칩 — admin-pando 색상 1:1 */}
+            <div className="flex flex-wrap items-center gap-1.5 border-t border-line pt-2">
+              <span className="text-[12px] font-semibold text-content-secondary mr-1">분류</span>
+              <button
+                type="button"
+                onClick={() => setSelectedCategories([])}
+                className={cn(
+                  "h-7 rounded-full border px-2.5 text-[11px] font-semibold transition-colors",
+                  selectedCategories.length === 0 ? "bg-primary text-white border-primary" : "bg-surface-secondary text-content-secondary border-line hover:border-primary hover:text-primary"
+                )}
+              >전체</button>
+              {SCHEDULE_CATEGORIES.map((cat) => {
+                const color = SCHEDULE_COLORS[cat];
+                const isSelected = selectedCategories.includes(cat);
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategories((prev) => isSelected ? prev.filter((c) => c !== cat) : [...prev, cat])}
+                    className="h-7 rounded-full border px-2.5 text-[11px] font-semibold transition-all"
+                    style={isSelected ? { backgroundColor: color, color: "#fff", borderColor: color } : { backgroundColor: color + "15", color, borderColor: color + "40" }}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 3행: 범례 — 강사/유형/분류 — admin-pando 1:1 */}
+            <div className="flex flex-wrap items-center gap-4 border-t border-line pt-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[12px] font-semibold text-content-secondary">강사</span>
+                {instructors.slice(0, 4).map((i) => (
+                  <div key={i.id} className="flex items-center gap-1">
+                    <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: i.color }} />
+                    <span className="text-[11px] text-content-secondary">{i.name}</span>
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-          <Card className="shadow-none">
-            <CardHeader><CardTitle>오늘 수업 타임라인</CardTitle><CardDescription>docs4 rows 기반 mock</CardDescription></CardHeader>
-            <CardContent>
+              <div className="h-4 w-px bg-line" />
+              <div className="flex items-center gap-2">
+                <span className="text-[12px] font-semibold text-content-secondary">유형</span>
+                {[{ label: "PT", color: "#3b82f6" }, { label: "GX", color: "#0ea5e9" }, { label: "개인레슨", color: "#22c55e" }].map((t) => (
+                  <div key={t.label} className="flex items-center gap-1">
+                    <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: t.color }} />
+                    <span className="text-[11px] text-content-secondary">{t.label}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="h-4 w-px bg-line" />
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[12px] font-semibold text-content-secondary">분류</span>
+                {Object.entries(SCHEDULE_COLORS).map(([cat, color]) => (
+                  <div key={cat} className="flex items-center gap-1">
+                    <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: color }} />
+                    <span className="text-[11px] text-content-secondary">{cat}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 캘린더 + 우측 패널 — admin-pando 1:1 */}
+          <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
+            <div className="rounded-xl border border-line bg-surface p-4 shadow-card">
+              {/* 캘린더 헤더 */}
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => notify("이전 달", "info")}><ChevronRight className="rotate-180" size={14} /></Button>
+                  <Button variant="outline" size="sm" onClick={() => notify("오늘", "info")}>오늘</Button>
+                  <Button variant="outline" size="sm" onClick={() => notify("다음 달", "info")}><ChevronRight size={14} /></Button>
+                </div>
+                <h3 className="text-[15px] font-bold text-content">2026년 5월</h3>
+                <div className="flex items-center gap-1">
+                  {(["월", "주", "일", "목록"] as const).map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setView(v)}
+                      className={cn(
+                        "h-8 rounded-lg border px-3 text-[12px] font-semibold transition-colors",
+                        view === v ? "bg-primary text-white border-primary" : "bg-surface-secondary text-content-secondary border-line hover:border-primary"
+                      )}
+                    >{v}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 월 캘린더 그리드 — admin-pando dayGridMonth 1:1 */}
+              <div className="overflow-hidden rounded-lg border border-line">
+                <div className="grid grid-cols-7 bg-surface-secondary">
+                  {["일", "월", "화", "수", "목", "금", "토"].map((d, idx) => (
+                    <div key={d} className={cn("p-2 text-center text-[12px] font-semibold", idx === 0 ? "text-rose-600" : idx === 6 ? "text-blue-600" : "text-content-secondary")}>{d}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7">
+                  {calendarDays.map((cell, idx) => {
+                    const isSelected = cell.isCurrentMonth && cell.day === selectedDate;
+                    const isToday = cell.isCurrentMonth && cell.day === 29;
+                    const weekday = idx % 7;
+                    return (
+                      <button
+                        key={`${cell.day}-${idx}`}
+                        type="button"
+                        onClick={() => cell.isCurrentMonth && setSelectedDate(cell.day)}
+                        className={cn(
+                          "min-h-[96px] border-b border-r border-line p-1.5 text-left transition-colors hover:bg-primary-light/30",
+                          !cell.isCurrentMonth && "bg-surface-tertiary/40 text-content-tertiary",
+                          isSelected && "bg-primary-light/50 ring-2 ring-primary/50"
+                        )}
+                      >
+                        <div className={cn(
+                          "inline-flex h-6 w-6 items-center justify-center text-[12px] font-bold",
+                          isToday && "rounded-full bg-primary text-white",
+                          !isToday && cell.isCurrentMonth && weekday === 0 && "text-rose-600",
+                          !isToday && cell.isCurrentMonth && weekday === 6 && "text-blue-600",
+                          !isToday && cell.isCurrentMonth && weekday !== 0 && weekday !== 6 && "text-content"
+                        )}>{cell.day}</div>
+                        <div className="mt-1 space-y-0.5">
+                          {cell.events.slice(0, 3).map((ev, eIdx) => (
+                            <div
+                              key={eIdx}
+                              className="truncate rounded-sm border-l-2 px-1 py-0.5 text-[10px] font-medium"
+                              style={{ borderLeftColor: ev.color, backgroundColor: ev.color + "15", color: ev.color }}
+                              onClick={(e) => { e.stopPropagation(); openDialog("DLG-C002"); }}
+                            >
+                              {ev.title}
+                            </div>
+                          ))}
+                          {cell.events.length > 3 && <div className="text-[10px] font-semibold text-content-tertiary">+{cell.events.length - 3} 더보기</div>}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* 우측 일자 상세 패널 — admin-pando 1:1 */}
+            <aside className="rounded-xl border border-line bg-surface p-4 shadow-card sticky top-4">
+              <div className="border-b border-line pb-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-content-tertiary">Selected Date</p>
+                <h3 className="mt-1 text-[18px] font-bold text-content">5월 {selectedDate}일 금</h3>
+                <p className="mt-0.5 text-[12px] text-content-secondary">조회 일정 {selectedDayEvents.length}건</p>
+              </div>
+              {selectedDayEvents.length === 0 ? (
+                <div className="py-8 text-center text-[12px] text-content-tertiary">선택한 일자의 일정이 없습니다.</div>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {selectedDayEvents.map((ev, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className="w-full rounded-lg border border-line bg-white p-3 text-left transition-colors hover:border-primary/30"
+                      onClick={() => openDialog("DLG-C002")}
+                      style={{ borderLeftWidth: 3, borderLeftColor: ev.color }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-[13px] font-bold text-content">{ev.title}</p>
+                        <Badge variant="outline" style={{ color: ev.color, borderColor: ev.color + "40" }}>{ev.category}</Badge>
+                      </div>
+                      <p className="mt-1 text-[11px] text-content-secondary">{ev.instructor} · {ev.type}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Button size="sm" onClick={() => openDialog("DLG-C001")}>+ 일정 등록</Button>
+                <Button size="sm" variant="outline" onClick={() => notify("일자별 통계 mock", "info")}>일별 통계</Button>
+              </div>
+            </aside>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "lessons" && (
+        <Card className="shadow-none">
+          <CardHeader><CardTitle>수업 관리 (목록)</CardTitle><CardDescription>총 760건 — 수업/강사/정원/예약/출석 합</CardDescription></CardHeader>
+          <CardContent>
+            <FilterChips filters={screen.filters} notify={notify} />
+            <div className="mt-3 overflow-hidden rounded-xl border">
               <Table>
                 <TableHeader><TableRow>{screen.tableColumns.map((c) => <TableHead key={c}>{c}</TableHead>)}</TableRow></TableHeader>
-                <TableBody>{screen.rows.map((row, index) => <TableRow key={index}>{screen.tableColumns.map((c) => <TableCell key={c}>{statusAwareValue(String(row[c] ?? "-"))}</TableCell>)}</TableRow>)}</TableBody>
+                <TableBody>{screen.rows.map((row, idx) => <TableRow key={idx}>{screen.tableColumns.map((c) => <TableCell key={c}>{statusAwareValue(String(row[c] ?? "-"))}</TableCell>)}</TableRow>)}</TableBody>
               </Table>
-            </CardContent>
-          </Card>
-        </div>
-        <aside className="space-y-4">
-          <Card className="shadow-none">
-            <CardHeader><CardTitle>오늘 강사 라벨</CardTitle><CardDescription>색상 구분 mock</CardDescription></CardHeader>
-            <CardContent className="space-y-2">
-              {[
-                { 강사: "박트레이너", role: "PT", color: "bg-blue-500" },
-                { 강사: "정GX", role: "GX 요가/필라테스", color: "bg-violet-500" },
-                { 강사: "김프로", role: "골프", color: "bg-amber-500" },
-                { 강사: "박GX", role: "스피닝", color: "bg-rose-500" }
-              ].map((item) => (
-                <div key={item.강사} className="flex items-center justify-between rounded-lg border bg-white px-3 py-2 text-sm">
-                  <div className="flex items-center gap-2"><span className={cn("size-3 rounded-full", item.color)} /><b>{item.강사}</b></div>
-                  <span className="text-xs text-content-tertiary">{item.role}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-          <Card className="shadow-none">
-            <CardHeader><CardTitle>운영 액션</CardTitle></CardHeader>
-            <CardContent className="space-y-2"><PrimaryActionRow screen={screen} role={role} openDialog={openDialog} notify={notify} /></CardContent>
-          </Card>
-          <DialogDock screen={screen} openDialog={openDialog} />
-          <HandoffContractCard screen={screen} />
-          <FrontStateNote screen={screen} />
-        </aside>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "counts" && (
+        <Card className="shadow-none">
+          <CardHeader><CardTitle>횟수 관리</CardTitle><CardDescription>PT/GX 잔여 횟수, 이관, 환불 처리 (docs4 V1 SCR-C007)</CardDescription></CardHeader>
+          <CardContent><Button asChild><Link href="/lesson-counts">횟수 관리 화면 이동</Link></Button></CardContent>
+        </Card>
+      )}
+
+      {activeTab === "penalty" && (
+        <Card className="shadow-none">
+          <CardHeader><CardTitle>페널티 관리</CardTitle><CardDescription>노쇼·취소 페널티 정책 mock (docs4 V1 SCR-C008)</CardDescription></CardHeader>
+          <CardContent><Button asChild><Link href="/penalties">페널티 관리 화면 이동</Link></Button></CardContent>
+        </Card>
+      )}
+
+      {activeTab === "valid" && (
+        <Card className="shadow-none">
+          <CardHeader><CardTitle>유효 수업 목록</CardTitle><CardDescription>유효 회원권/수강권 기준 수업 (docs4 V1 SCR-C011)</CardDescription></CardHeader>
+          <CardContent><Button asChild><Link href="/valid-lessons">유효 수업 목록 이동</Link></Button></CardContent>
+        </Card>
+      )}
+
+      {/* 검수용 핸드오프 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <HandoffContractCard screen={screen} />
+        <DialogDock screen={screen} openDialog={openDialog} />
       </div>
     </div>
   );
@@ -2479,50 +3468,338 @@ function ReservationListScreen({ screen, role, branch, openDialog, notify }: Spe
 // ---- D05 상품관리 ----
 
 function ProductManagementScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
-  // admin-pando products 시각 차용: 분류 탭 + 상품 카드 그리드
-  const [category, setCategory] = useState("전체");
+  // admin-pando products/page.tsx 구조 1:1 이식 (사용자 명시 예시 화면)
+  const [topTab, setTopTab] = useState<"products" | "categories">("products");
+  const [statusTab, setStatusTab] = useState("all");
+  const [classificationFilter, setClassificationFilter] = useState("전체");
+  const [categoryFilter, setCategoryFilter] = useState("전체");
+  const [searchValue, setSearchValue] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
+
+  // KPI 카드 — docs4 V1 SCR-P001 명시: 전체 상품 수 / 활성 상품 수 / 비활성 상품 수 (3개)
+  // + 운영 보조 1개 (대분류 카테고리 5개 — 회원권/수강권/락커/운동복/일반)
+  const kpiCards = [
+    { label: "전체 상품 수", value: "31", stripe: "bg-primary", icon: <ClipboardCheck size={16} /> },
+    { label: "활성 상품 수", value: "31", stripe: "bg-emerald-400", icon: <CheckCircle2 size={16} /> },
+    { label: "비활성 상품 수", value: "0", stripe: "bg-content-tertiary", icon: <Lock size={16} /> },
+    { label: "상품 마스터 카테고리", value: "5", stripe: "bg-amber-400", icon: <ChevronRight size={16} /> },
+  ];
+
+  // 상태 탭 — docs4 V1 SCR-P001 상품 대분류 6개 (전체/회원권/수강권/락커/운동복/일반)
+  const statusTabs = [
+    { key: "all", label: "전체", count: 31 },
+    { key: "MEMBERSHIP", label: "회원권", count: 4 },
+    { key: "LESSON_PASS", label: "수강권", count: 10 },
+    { key: "LOCKER", label: "락커", count: 2 },
+    { key: "WEAR", label: "운동복", count: 2 },
+    { key: "GENERAL", label: "일반", count: 13 },
+  ];
+
+  // 2단계 세부 필터 — docs4 V1 명시 (수강권: PT/GX/골프/기타 수강권, GX: 요가/필라테스/스피닝/줌바/GX 기타)
+  const classifications = [
+    { name: "전체", count: 31 },
+    { name: "PT", count: 5 },
+    { name: "GX", count: 8 },
+    { name: "골프 수강권", count: 1 },
+    { name: "기타 수강권", count: 4 },
+  ];
+
+  // GX 세부종목 — docs4 V1 명시 8개
+  const categories = ["전체", "요가", "필라테스", "스피닝", "줌바", "GX 기타"];
+
+  // 상품 목록 (docs4 컬럼 + admin-pando 시각)
+  const products = screen.rows.length > 0 ? screen.rows : [
+    { "상품명(유형·패키지·운영정책 배지)": "PT 20회권", 대분류: "수강권", "현금가": "1,200,000원", "카드가": "1,200,000원", 기간: "180일", 횟수: "20회", "상태": "사용", "이용 가능 지점": "전 지점", 홀딩: "Y", 양도: "N", 포인트: "Y", 판매: "현장" },
+    { "상품명(유형·패키지·운영정책 배지)": "회원권 3개월", 대분류: "회원권", "현금가": "450,000원", "카드가": "470,000원", 기간: "90일", 횟수: "무제한", "상태": "사용", "이용 가능 지점": "강남점", 홀딩: "Y", 양도: "Y", 포인트: "Y", 판매: "현장" },
+    { "상품명(유형·패키지·운영정책 배지)": "락커 1개월", 대분류: "대여권", "현금가": "30,000원", "카드가": "30,000원", 기간: "30일", 횟수: "1구좌", "상태": "사용", "이용 가능 지점": "강남점", 홀딩: "N", 양도: "N", 포인트: "N", 판매: "현장" },
+  ];
+
+  const selected = selectedProduct !== null ? products[selectedProduct] : null;
+
   return (
     <div className="space-y-5">
-      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="상품 마스터 콘솔" />
-      <MetricGrid metrics={screen.metrics} />
-      <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5">
-        <div className="space-y-4">
-          <Card className="shadow-none">
-            <CardHeader><CardTitle>상품 목록</CardTitle><CardDescription>1단계 대분류 → 2단계 GX 세부 → 상품명 검색</CardDescription></CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex flex-wrap gap-2">
-                {["전체", "회원권", "수강권", "락커", "운동복", "일반"].map((c) => (
-                  <Button key={c} size="sm" variant={category === c ? "default" : "outline"} onClick={() => { setCategory(c); notify(`${c} 분류 적용`, "info"); }}>{c}</Button>
-                ))}
-              </div>
-              <FilterChips filters={screen.filters} notify={notify} />
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader><TableRow><TableHead>상품명</TableHead><TableHead>대분류</TableHead><TableHead>이용 지점</TableHead><TableHead>현금가</TableHead><TableHead>카드가</TableHead><TableHead>기간/횟수</TableHead><TableHead>옵션</TableHead><TableHead>판매</TableHead><TableHead>상태</TableHead></TableRow></TableHeader>
-                  <TableBody>{screen.rows.map((row, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell><b>{row["상품명(유형·패키지·운영정책 배지)"]}</b></TableCell>
-                      <TableCell>{row["대분류"]}</TableCell>
-                      <TableCell className="text-xs">{row["이용 가능 지점"]}</TableCell>
-                      <TableCell>{row["현금가"]}</TableCell>
-                      <TableCell>{row["카드가"]}</TableCell>
-                      <TableCell className="text-xs">{row["기간"]} / {row["횟수"]}</TableCell>
-                      <TableCell className="text-xs">{[row["홀딩"], row["양도"], row["포인트"]].filter((x) => x === "Y").length}개 ON</TableCell>
-                      <TableCell>{row["판매"]}</TableCell>
-                      <TableCell>{statusAwareValue(String(row["상태"] ?? "-"))}</TableCell>
-                    </TableRow>
-                  ))}</TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="상품 관리 (admin-pando 구조)" />
+
+      {/* PageHeader — admin-pando 1:1 */}
+      <div className="flex items-end justify-between border-b border-line/60 pb-4">
+        <div>
+          <h1 className="text-[24px] font-black tracking-tight text-content">상품 관리</h1>
+          <p className="mt-1 text-[13px] text-content-secondary">센터에서 판매하는 이용권, PT, GX 및 기타 상품을 관리합니다.</p>
         </div>
-        <aside className="space-y-4">
-          <Card className="shadow-none"><CardHeader><CardTitle>운영 액션</CardTitle></CardHeader><CardContent className="space-y-2"><PrimaryActionRow screen={screen} role={role} openDialog={openDialog} notify={notify} /></CardContent></Card>
-          <DialogDock screen={screen} openDialog={openDialog} />
-          <HandoffContractCard screen={screen} />
-          <FrontStateNote screen={screen} />
-        </aside>
+        <div className="flex items-center gap-2">
+          {/* 상품 목록 / 분류 관리 토글 — admin-pando 1:1 */}
+          <div className="inline-flex rounded-lg border border-line bg-surface-secondary p-0.5">
+            <button
+              onClick={() => setTopTab("products")}
+              className={cn("h-8 px-3 rounded-md text-[12px] font-semibold transition-colors", topTab === "products" ? "bg-white text-primary shadow-sm" : "text-content-secondary")}
+            >상품 목록</button>
+            <button
+              onClick={() => setTopTab("categories")}
+              className={cn("h-8 px-3 rounded-md text-[12px] font-semibold transition-colors", topTab === "categories" ? "bg-white text-primary shadow-sm" : "text-content-secondary")}
+            >분류 관리</button>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => notify("Excel 다운로드 mock", "info")}>Excel</Button>
+          <Button asChild size="sm"><Link href="/products/p002">+ 상품 등록</Link></Button>
+        </div>
+      </div>
+
+      {/* KPI 4 카드 — admin-pando 1:1 (컬러 stripe) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {kpiCards.map((stat) => (
+          <div key={stat.label} className="relative overflow-hidden rounded-2xl border border-line bg-surface p-4 shadow-card">
+            <div className={cn("absolute inset-x-0 top-0 h-1", stat.stripe)} />
+            <div className="flex items-center justify-between">
+              <p className="text-[12px] font-semibold text-content-secondary">{stat.label}</p>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-light text-primary">{stat.icon}</div>
+            </div>
+            <p className="mt-2 text-[28px] font-black tabular-nums text-content">{stat.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {topTab === "products" && (
+        <>
+          {/* 상태 탭 5개 — admin-pando 1:1 */}
+          <div className="flex gap-6 border-b border-line">
+            {statusTabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setStatusTab(tab.key)}
+                className={cn(
+                  "relative flex items-center gap-1.5 pb-2.5 text-[13px] font-medium transition-colors",
+                  statusTab === tab.key ? "text-primary" : "text-content-secondary hover:text-content"
+                )}
+              >
+                {tab.label}
+                <span className={cn("rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums", statusTab === tab.key ? "bg-primary text-white" : "bg-surface-tertiary text-content-secondary")}>
+                  {tab.count}
+                </span>
+                {statusTab === tab.key && <div className="absolute -bottom-px left-0 right-0 h-0.5 rounded-t-full bg-primary" />}
+              </button>
+            ))}
+          </div>
+
+          {/* 분류 칩 7개 — admin-pando 1:1 */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[12px] font-semibold text-content-secondary mr-1">분류</span>
+            {classifications.map((c) => (
+              <button
+                key={c.name}
+                onClick={() => setClassificationFilter(c.name)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors",
+                  classificationFilter === c.name ? "bg-primary text-white border-primary" : "bg-surface-secondary text-content-secondary border-line hover:border-primary hover:text-primary"
+                )}
+              >
+                {c.name}
+                <span className={cn("rounded-full px-1 py-px text-[10px] font-bold", classificationFilter === c.name ? "bg-white/20 text-white" : "bg-white text-content-secondary")}>{c.count}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* 카테고리 칩 8개 — admin-pando 1:1 */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[12px] font-semibold text-content-secondary mr-1">카테고리</span>
+            {categories.map((c) => (
+              <button
+                key={c}
+                onClick={() => setCategoryFilter(c)}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors",
+                  categoryFilter === c ? "bg-content text-white border-content" : "bg-surface-secondary text-content-secondary border-line hover:border-content hover:text-content"
+                )}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+
+          {/* 검색 input — admin-pando 1:1 */}
+          <div className="relative max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-content-tertiary" size={14} />
+            <Input value={searchValue} onChange={(e) => setSearchValue(e.target.value)} placeholder="상품명 검색" className="pl-9" />
+          </div>
+
+          {/* 메인 테이블 + 우측 슬라이드 패널 — admin-pando 1:1 */}
+          <div className={cn("grid gap-4 items-start", selected ? "xl:grid-cols-[minmax(0,1fr)_400px]" : "grid-cols-1")}>
+            <div className="overflow-hidden rounded-xl border border-line bg-surface">
+              <div className="border-b border-line bg-surface-secondary px-4 py-2.5 text-[12px] font-semibold text-content-secondary">
+                총 <span className="font-bold text-content tabular-nums">{products.length}</span>개 상품
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>상품명</TableHead>
+                    <TableHead>대분류</TableHead>
+                    <TableHead>이용 지점</TableHead>
+                    <TableHead className="text-right">현금가</TableHead>
+                    <TableHead className="text-right">카드가</TableHead>
+                    <TableHead>기간</TableHead>
+                    <TableHead>횟수</TableHead>
+                    <TableHead>상태</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {products.map((row, idx) => (
+                    <TableRow
+                      key={idx}
+                      className={cn("cursor-pointer", selectedProduct === idx && "bg-primary-light/30")}
+                      onClick={() => setSelectedProduct(idx)}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="outline" className="bg-primary-light/40 border-primary/30 text-primary text-[10px]">{row["대분류"]}</Badge>
+                          <b className="text-[13px]">{row["상품명(유형·패키지·운영정책 배지)"]}</b>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-[12px]">{row["대분류"]}</TableCell>
+                      <TableCell className="text-[12px] text-content-secondary">{row["이용 가능 지점"]}</TableCell>
+                      <TableCell className="text-right font-semibold tabular-nums">{row["현금가"]}</TableCell>
+                      <TableCell className="text-right font-semibold tabular-nums">{row["카드가"]}</TableCell>
+                      <TableCell className="text-[12px]">{row["기간"]}</TableCell>
+                      <TableCell className="text-[12px]">{row["횟수"]}</TableCell>
+                      <TableCell><Badge variant={row["상태"] === "사용" ? "success" : "outline"}>{row["상태"]}</Badge></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* 우측 슬라이드 패널 — admin-pando 1:1 (상품수정) */}
+            {selected && (
+              <aside className="rounded-2xl border border-line bg-surface shadow-card sticky top-4">
+                <div className="flex items-center justify-between border-b border-line px-5 py-3">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-[16px] font-bold text-content">상품수정</h3>
+                    <Badge variant="success">활성</Badge>
+                  </div>
+                  <button className="text-content-tertiary hover:text-content" onClick={() => setSelectedProduct(null)}>✕</button>
+                </div>
+
+                <div className="max-h-[70vh] overflow-y-auto p-5 space-y-4">
+                  {/* 상품구분 라디오 4 + 사용인원 */}
+                  <div>
+                    <Label className="text-[12px] font-semibold text-content-secondary">상품구분</Label>
+                    <div className="mt-1 grid grid-cols-4 gap-1.5">
+                      {["레슨", "이용", "락커", "판매"].map((opt) => (
+                        <label key={opt} className="flex items-center justify-center rounded-lg border border-line bg-surface-secondary px-2 py-1.5 text-[12px] font-semibold cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary-light/40 has-[:checked]:text-primary">
+                          <input type="radio" name="kind" defaultChecked={opt === "레슨"} className="sr-only" />
+                          {opt}
+                        </label>
+                      ))}
+                    </div>
+                    <div className="mt-2"><Label className="text-[11px] text-content-tertiary">사용인원</Label><Input className="mt-1 h-8" defaultValue="1명" /></div>
+                  </div>
+
+                  {/* 1단계 / 2단계 */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><Label className="text-[12px] font-semibold text-content-secondary">1단계</Label><Select defaultValue="pt"><SelectTrigger className="mt-1 h-8"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="pt">PT</SelectItem><SelectItem value="gx">GX</SelectItem></SelectContent></Select></div>
+                    <div><Label className="text-[12px] font-semibold text-content-secondary">2단계</Label><Select defaultValue="personal"><SelectTrigger className="mt-1 h-8"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="personal">개인 PT</SelectItem><SelectItem value="group">그룹 PT</SelectItem></SelectContent></Select></div>
+                  </div>
+
+                  {/* 상품그룹/상품명 */}
+                  <div><Label className="text-[12px] font-semibold text-content-secondary">상품그룹</Label><Input className="mt-1 h-8" defaultValue="PT 패키지" /></div>
+                  <div><Label className="text-[12px] font-semibold text-content-secondary">상품명 *</Label><Input className="mt-1 h-8" defaultValue={String(selected["상품명(유형·패키지·운영정책 배지)"])} /></div>
+
+                  {/* 금액/카드가 */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><Label className="text-[12px] font-semibold text-content-secondary">금액 *</Label><Input className="mt-1 h-8" defaultValue={String(selected["현금가"])} /></div>
+                    <div><Label className="text-[12px] font-semibold text-content-secondary">카드가</Label><Input className="mt-1 h-8" defaultValue={String(selected["카드가"])} /></div>
+                  </div>
+
+                  {/* 레슨시간/유효기간/횟수 */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div><Label className="text-[12px] font-semibold text-content-secondary">레슨시간</Label><Input className="mt-1 h-8" defaultValue="50분" /></div>
+                    <div><Label className="text-[12px] font-semibold text-content-secondary">유효기간</Label><Input className="mt-1 h-8" defaultValue={String(selected["기간"])} /></div>
+                    <div><Label className="text-[12px] font-semibold text-content-secondary">횟수</Label><Input className="mt-1 h-8" defaultValue={String(selected["횟수"])} /></div>
+                  </div>
+
+                  {/* 수업구분/태그 */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><Label className="text-[12px] font-semibold text-content-secondary">수업구분</Label><Select defaultValue="indoor"><SelectTrigger className="mt-1 h-8"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="indoor">실내</SelectItem><SelectItem value="outdoor">실외</SelectItem></SelectContent></Select></div>
+                    <div><Label className="text-[12px] font-semibold text-content-secondary">태그</Label><Input className="mt-1 h-8" placeholder="태그 입력" /></div>
+                  </div>
+
+                  {/* 설명 */}
+                  <div><Label className="text-[12px] font-semibold text-content-secondary">설명</Label><Textarea className="mt-1 min-h-[60px]" placeholder="상품 설명을 입력하세요" /></div>
+
+                  {/* 요일·시간설정 */}
+                  <div>
+                    <Label className="text-[12px] font-semibold text-content-secondary">요일·시간설정</Label>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {["월", "화", "수", "목", "금", "토", "일"].map((d) => (
+                        <label key={d} className="flex h-7 min-w-7 items-center justify-center rounded-md border border-line bg-surface-secondary px-2 text-[11px] font-semibold cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-white has-[:checked]:border-primary">
+                          <input type="checkbox" defaultChecked={d !== "토" && d !== "일"} className="sr-only" />
+                          {d}
+                        </label>
+                      ))}
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <Input className="h-8" defaultValue="09:00" />
+                      <Input className="h-8" defaultValue="18:00" />
+                    </div>
+                  </div>
+
+                  {/* 옵션 토글 8개 — admin-pando 1:1 */}
+                  <div>
+                    <Label className="text-[12px] font-semibold text-content-secondary">옵션</Label>
+                    <div className="mt-1 space-y-1">
+                      {[
+                        { label: "예약 가능", defaultOn: true },
+                        { label: "시설 이용 가능", defaultOn: true },
+                        { label: "홀딩 가능", defaultOn: true },
+                        { label: "양도 가능", defaultOn: false },
+                        { label: "포인트 적립", defaultOn: true },
+                        { label: "회원 직접 휴회", defaultOn: false },
+                        { label: "키오스크 노출", defaultOn: true },
+                        { label: "활성 상태", defaultOn: true },
+                      ].map((opt) => (
+                        <label key={opt.label} className="flex items-center justify-between rounded-lg border border-line bg-white px-3 py-2 cursor-pointer">
+                          <span className="text-[12px] font-medium text-content">{opt.label}</span>
+                          <input type="checkbox" defaultChecked={opt.defaultOn} className="h-4 w-4 rounded accent-primary" />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-3">
+                  <Button variant="outline" size="sm" onClick={() => setSelectedProduct(null)}>취소</Button>
+                  <Button size="sm" onClick={() => { notify("상품이 저장되었습니다.", "success"); setSelectedProduct(null); }}>저장</Button>
+                </div>
+              </aside>
+            )}
+          </div>
+        </>
+      )}
+
+      {topTab === "categories" && (
+        <Card className="shadow-none">
+          <CardHeader><CardTitle>분류 관리</CardTitle><CardDescription>대분류·중분류·소분류 + 정렬·표시여부 관리</CardDescription></CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {classifications.slice(1).map((c) => (
+                <div key={c.name} className="rounded-xl border border-line bg-surface p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[14px] font-semibold text-content">{c.name}</p>
+                    <Badge variant="info">{c.count}</Badge>
+                  </div>
+                  <p className="mt-1 text-[11px] text-content-tertiary">정렬 순서 · 표시 여부 · 색상 mock</p>
+                  <div className="mt-3 flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => notify(`${c.name} 수정`, "info")}>수정</Button>
+                    <Button variant="ghost" size="sm" onClick={() => notify(`${c.name} 삭제 확인`, "warning")}>삭제</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 검수용 핸드오프 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <HandoffContractCard screen={screen} />
+        <DialogDock screen={screen} openDialog={openDialog} />
       </div>
     </div>
   );
@@ -3063,43 +4340,379 @@ function NoticesScreen({ screen, role, branch, openDialog, notify }: Specialized
 // ---- D10 본사관리 ----
 
 function BranchDashboardScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
-  // V2 신규: admin-pando (dashboard)/page.tsx 시각 차용
+  // admin-pando (dashboard)/page.tsx 구조 1:1 이식
+  const [showBanner, setShowBanner] = useState(true);
+  const refreshTime = "09:42";
+  const roleInfo = roleById.get(role)!;
+
+  // docs4 V2 SCR-090 명시 핵심 지표 5개 (전체 회원 / 활성 회원 / HQ-09 만료 알림 대상 / 오늘 출석 / 이번 달 매출)
+  // + V1+V2 합집합 운영 보조 5개 (만료 회원/활성 비율/방문 빈도/미수금/환불)
+  const kpiCards = [
+    { label: "전체 회원 수", value: "3,248", icon: <UserRound size={16} />, change: "전월 +132", tone: "default" as const },
+    { label: "활성 회원 수", value: "2,614", icon: <CheckCircle2 size={16} />, change: "전체 80.5%", tone: "default" as const },
+    { label: "HQ-09 만료 알림 대상", value: "92", icon: <AlertTriangle size={16} />, change: "회원 이용권 만료 step (기본 30일)", tone: "peach" as const },
+    { label: "오늘 출석 수", value: "412", icon: <ClipboardCheck size={16} />, change: "어제 +38", tone: "default" as const },
+    { label: "이번 달 매출", value: "18.4M원", icon: <Building2 size={16} />, change: "목표 82%", tone: "default" as const },
+    { label: "만료 회원 수", value: "184", icon: <AlertTriangle size={16} />, change: "전체 5.7%", tone: "default" as const },
+    { label: "활성 회원 비율", value: "80.5%", icon: <ShieldCheck size={16} />, change: "2,614 / 3,248명", tone: "mint" as const },
+    { label: "월 방문 빈도", value: "8.4회", icon: <UserRound size={16} />, change: "이번달 22,000건", tone: "default" as const },
+    { label: "미수금 총액", value: "1.12M원", icon: <AlertTriangle size={16} />, change: "미납 합계", tone: "peach" as const },
+    { label: "이번 달 환불", value: "9건", icon: <AlertTriangle size={16} />, change: "620,000원 (V1+V2)", tone: "peach" as const },
+  ];
+
+  const focusQueue = [
+    { label: "만료 임박 회원", value: "92명", description: "가장 가까운 만료: 박서연 D-3", tone: "amber", cta: "회원 보기" },
+    { label: "미수금 추적", value: "112만원", description: "박서연 120,000원 · 12일 경과", tone: "rose", cta: "매출 보기" },
+    { label: "홀딩 관리", value: "6건", description: "정하준 · 12일 남음", tone: "sky", cta: "회원 보기" },
+  ];
+
+  const quickActions = [
+    { label: "회원 목록", description: "이탈·재등록 대상 확인", icon: <UserRound size={14} />, route: "/members" },
+    { label: "매출 현황", description: "미수·환불 거래 점검", icon: <Building2 size={14} />, route: "/sales" },
+    { label: "자동 알림", description: "만료·미수 추적 메시지 관리", icon: <MessageSquare size={14} />, route: "/message/auto-alarm" },
+    { label: "Today Tasks", description: "당일 운영 큐 실행", icon: <ClipboardCheck size={14} />, route: "/today-tasks" },
+  ];
+
+  const birthdayMembers = [
+    { name: "김민준", birth: "1991-04-18", status: "활성" },
+    { name: "박서연", birth: "1994-05-29", status: "활성" },
+  ];
+
+  const unpaidMembers = [
+    { name: "박서연", item: "회원권 3개월", overdue: 12, amount: "120,000" },
+    { name: "오지우", item: "PT 잔여", overdue: 42, amount: "80,000" },
+    { name: "정하준", item: "락커 1개월", overdue: 5, amount: "30,000" },
+  ];
+
+  const holdingMembers = [
+    { name: "정하준", period: "05.01 ~ 07.10", remaining: 42 },
+    { name: "한서윤", period: "04.20 ~ 06.20", remaining: 22 },
+  ];
+
+  const expiringMembers = [
+    { name: "박서연", expiry: "2026.05.31", dday: "D-3", ddayNum: 3 },
+    { name: "오지우", expiry: "2026.06.04", dday: "D-7", ddayNum: 7 },
+    { name: "최가온", expiry: "2026.06.18", dday: "D-21", ddayNum: 21 },
+  ];
+
   return (
     <div className="space-y-5">
-      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="V2 신규 · 지점 운영 메인" />
-      <MetricGrid metrics={screen.metrics} />
-      <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5">
-        <div className="space-y-4">
-          <Card className="shadow-none">
-            <CardHeader><CardTitle>최근 활동 (감사 로그)</CardTitle><CardDescription>발생 시각 · 작업자 · 작업 유형 · 대상</CardDescription></CardHeader>
-            <CardContent className="space-y-3">
-              <Tabs defaultValue={screen.tabs[0]}>
-                <TabsList>{screen.tabs.map((t) => <TabsTrigger key={t} value={t}>{t}</TabsTrigger>)}</TabsList>
-              </Tabs>
-              <FilterChips filters={screen.filters} notify={notify} />
-              <Table>
-                <TableHeader><TableRow>{screen.tableColumns.map((c) => <TableHead key={c}>{c}</TableHead>)}</TableRow></TableHeader>
-                <TableBody>{screen.rows.map((row, idx) => (
-                  <TableRow key={idx}>{screen.tableColumns.map((c) => <TableCell key={c}>{statusAwareValue(String(row[c] ?? "-"))}</TableCell>)}</TableRow>
-                ))}</TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-          <Card className="shadow-none">
-            <CardHeader><CardTitle>주의 대상 위젯 (참고)</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-4 gap-2 text-xs">
-                {[{ name: "만료 step", count: 24, tone: "bg-amber-50 border-amber-200 text-amber-700" }, { name: "생일", count: 8, tone: "bg-pink-50 border-pink-200 text-pink-700" }, { name: "미수금", count: 12, tone: "bg-rose-50 border-rose-200 text-rose-700" }, { name: "홀딩", count: 6, tone: "bg-violet-50 border-violet-200 text-violet-700" }].map((item) => (
-                  <div key={item.name} className={cn("rounded-xl border p-3", item.tone)}><div className="font-bold">{item.count}</div><div className="text-[11px]">{item.name}</div></div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+      {/* DeliveryHeader 유지 — 검수 모드 + 출처 배지 */}
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="지점 운영 메인 (admin-pando 구조)" />
+
+      {/* 공지 배너 — admin-pando 1:1 */}
+      {showBanner && (
+        <div className="flex items-center justify-between rounded-xl border border-primary/10 bg-primary-light px-5 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <CheckCircle2 size={18} />
+            </div>
+            <div>
+              <p className="text-[13px] font-semibold text-content">신규 &apos;전자계약&apos; 기능이 업데이트 되었습니다!</p>
+              <p className="text-[12px] text-content-secondary">종이 계약서 대신 모바일로 간편하게 서명을 받으세요.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="default" size="sm" onClick={() => notify("기능 보기 mock", "info")}>기능 보기</Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowBanner(false)}>닫기</Button>
+          </div>
         </div>
-        <aside className="space-y-4">
-          <Card className="shadow-none"><CardHeader><CardTitle>대시보드 액션</CardTitle></CardHeader><CardContent><PrimaryActionRow screen={screen} role={role} openDialog={openDialog} notify={notify} /></CardContent></Card>
-          <HandoffContractCard screen={screen} />
+      )}
+
+      {/* 페이지 헤더 — admin-pando PageHeader 1:1 */}
+      <div className="flex items-end justify-between border-b border-line/60 pb-4">
+        <div>
+          <h1 className="text-[24px] font-black tracking-tight text-content">대시보드</h1>
+          <p className="mt-1 text-[13px] text-content-secondary">{branch}의 실시간 센터 운영 현황입니다.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5">
+            <span className="text-[12px] text-content-tertiary">갱신: {refreshTime}</span>
+            <Button variant="ghost" size="sm" onClick={() => notify("새로고침 mock", "info")}>새로고침</Button>
+          </div>
+          <Button asChild size="sm"><Link href="/members/new">회원 신규 등록</Link></Button>
+        </div>
+      </div>
+
+      {/* Daily Focus + Quick Actions — 2분할 — admin-pando 1:1 */}
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.95fr)]">
+        <section className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-content-tertiary">Daily Focus</p>
+              <h2 className="mt-1 text-[20px] font-bold text-content">오늘 집중 업무</h2>
+              <p className="mt-1 text-[13px] leading-relaxed text-content-secondary">운영 사고와 매출 누수를 막기 위해 오늘 먼저 봐야 할 항목을 우선순위대로 정리했습니다.</p>
+            </div>
+            <Button asChild variant="outline" size="sm"><Link href="/today-tasks">Today Tasks</Link></Button>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {focusQueue.map((item) => (
+              <button
+                key={item.label}
+                className={cn(
+                  "rounded-2xl border p-4 text-left transition-colors",
+                  item.tone === "amber" && "border-amber-200 bg-amber-50 hover:bg-amber-100/80",
+                  item.tone === "rose" && "border-rose-200 bg-rose-50 hover:bg-rose-100/80",
+                  item.tone === "sky" && "border-sky-200 bg-sky-50 hover:bg-sky-100/80"
+                )}
+                onClick={() => notify(`${item.label} mock 이동`, "info")}
+              >
+                <p className="text-[12px] font-semibold text-content">{item.label}</p>
+                <p className="mt-2 text-[24px] font-bold text-content">{item.value}</p>
+                <p className="mt-1 text-[12px] leading-relaxed text-content-secondary">{item.description}</p>
+                <div className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-primary">
+                  <span>{item.cta}</span>
+                  <ChevronRight size={12} />
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <aside className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-content-tertiary">Quick Actions</p>
+            <h2 className="mt-1 text-[18px] font-bold text-content">역할별 바로가기</h2>
+            <p className="mt-1 text-[13px] leading-relaxed text-content-secondary">{roleInfo.label} 역할에 맞는 주요 운영 화면만 추려서 바로 실행합니다.</p>
+          </div>
+          <div className="mt-4 space-y-2">
+            {quickActions.map((action) => (
+              <Link
+                key={action.label}
+                href={action.route}
+                className="flex w-full items-start gap-2 rounded-2xl border border-line bg-white/80 px-3 py-3 text-left transition-colors hover:border-primary/30 hover:bg-primary-light/20"
+              >
+                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary-light text-primary">{action.icon}</div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-semibold text-content">{action.label}</p>
+                  <p className="mt-0.5 text-[12px] leading-relaxed text-content-secondary">{action.description}</p>
+                </div>
+                <ChevronRight size={14} className="mt-0.5 text-content-tertiary" />
+              </Link>
+            ))}
+          </div>
         </aside>
+      </div>
+
+      {/* 10 KPI 카드 — admin-pando StatCardGrid 1:1 */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+        {kpiCards.map((stat) => (
+          <button
+            key={stat.label}
+            type="button"
+            onClick={() => notify(`${stat.label} 상세 mock`, "info")}
+            className={cn(
+              "relative overflow-hidden rounded-2xl border bg-white p-4 text-left shadow-card transition-all hover:-translate-y-0.5 hover:shadow-md",
+              stat.tone === "peach" && "border-amber-200 bg-amber-50/60",
+              stat.tone === "mint" && "border-emerald-200 bg-emerald-50/60",
+              stat.tone === "default" && "border-line"
+            )}
+          >
+            <div className={cn(
+              "absolute inset-x-0 top-0 h-1",
+              stat.tone === "peach" && "bg-amber-300",
+              stat.tone === "mint" && "bg-emerald-400",
+              stat.tone === "default" && "bg-primary/60"
+            )} />
+            <div className="flex items-center justify-between">
+              <p className="text-[12px] font-semibold text-content-secondary">{stat.label}</p>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-light text-primary">{stat.icon}</div>
+            </div>
+            <p className="mt-2 text-[22px] font-black tabular-nums text-content">{stat.value}</p>
+            <p className="mt-1 text-[11px] text-content-tertiary">{stat.change}</p>
+          </button>
+        ))}
+      </div>
+
+      {/* 운영 현황 차트 3분할 — admin-pando 1:1 */}
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-[16px] font-semibold text-content">운영 현황</h2>
+          <Badge variant="info" className="border-primary/30 bg-primary-light text-primary">실시간 mock</Badge>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {/* 회원 분포 */}
+          <div className="rounded-xl border border-line bg-surface p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-[14px] font-semibold text-content">회원 분포</h3>
+              <Badge variant="info" className="border-primary/30 bg-primary-light text-primary">전체회원 기준</Badge>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="relative h-20 w-20 shrink-0">
+                <svg className="h-full w-full rotate-[-90deg]" viewBox="0 0 36 36">
+                  <circle className="stroke-surface-tertiary" cx="18" cy="18" r="16" fill="none" strokeWidth="3.5" />
+                  <circle cx="18" cy="18" r="16" fill="none" strokeWidth="3.5" stroke="#fa3c64" strokeDasharray="56 44" strokeLinecap="round" />
+                  <circle cx="18" cy="18" r="16" fill="none" strokeWidth="3.5" stroke="#ff907f" strokeDasharray="44 56" strokeDashoffset="-56" strokeLinecap="round" />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-[11px] font-bold text-content">3,248</span>
+                </div>
+              </div>
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-primary" /><span className="text-[12px] text-content-secondary">여성</span></div>
+                  <span className="text-[12px] font-semibold text-content">56% (1,819명)</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-accent" /><span className="text-[12px] text-content-secondary">남성</span></div>
+                  <span className="text-[12px] font-semibold text-content">44% (1,429명)</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 space-y-2">
+              {[{ label: "20대", value: 38, color: "bg-primary" }, { label: "30대", value: 28, color: "bg-accent" }, { label: "40대", value: 18, color: "bg-content-tertiary" }, { label: "50대", value: 12, color: "bg-amber-400" }].map((age) => (
+                <div key={age.label} className="space-y-0.5">
+                  <div className="flex items-center justify-between text-[11px] text-content-secondary"><span>{age.label}</span><span className="font-semibold">{age.value}%</span></div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-tertiary"><div className={cn("h-full rounded-full", age.color)} style={{ width: `${age.value}%` }} /></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 주간 출석 */}
+          <div className="rounded-xl border border-line bg-surface p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-[14px] font-semibold text-content">주간 출석</h3>
+              <span className="text-[11px] text-content-tertiary">이번 주</span>
+            </div>
+            <div className="flex h-[180px] items-end justify-between gap-1.5">
+              {[{ d: "월", c: 380, today: false }, { d: "화", c: 412, today: false }, { d: "수", c: 358, today: false }, { d: "목", c: 442, today: true }, { d: "금", c: 0, today: false }, { d: "토", c: 0, today: false }, { d: "일", c: 0, today: false }].map((day) => {
+                const max = 442;
+                const pct = (day.c / max) * 100;
+                return (
+                  <div key={day.d} className="group relative flex h-full flex-1 flex-col items-center justify-end gap-1">
+                    {day.c > 0 && <span className="mb-0.5 text-[10px] font-semibold text-content-secondary">{day.c}</span>}
+                    <div className={cn("w-full max-w-[32px] rounded-t-md transition-all", day.today ? "bg-primary" : "bg-accent/60", day.c === 0 && "bg-surface-tertiary")} style={{ height: day.c > 0 ? `${Math.max(pct, 8)}%` : "4px" }} />
+                    <span className={cn("shrink-0 text-[10px] font-medium", day.today ? "text-primary font-bold" : "text-content-tertiary")}>{day.d}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex items-center justify-between rounded-lg bg-surface-secondary p-3">
+              <div><p className="text-[11px] text-content-secondary">오늘 총 방문</p><p className="text-[18px] font-bold text-content">412명</p></div>
+              <div className="text-right"><p className="text-[11px] text-content-tertiary">실시간</p><p className="text-[13px] font-semibold text-emerald-600">Live</p></div>
+            </div>
+          </div>
+
+          {/* 매출 추이 */}
+          <div className="rounded-xl border border-line bg-surface p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-[14px] font-semibold text-content">매출 추이</h3>
+              <span className="text-[11px] text-content-tertiary">최근 6개월</span>
+            </div>
+            <div className="flex h-[180px] items-end justify-between gap-1.5">
+              {[{ m: "12월", v: 14.2 }, { m: "1월", v: 12.8 }, { m: "2월", v: 13.6 }, { m: "3월", v: 15.4 }, { m: "4월", v: 16.4 }, { m: "5월", v: 18.4 }].map((m, idx) => {
+                const max = 18.4;
+                const pct = (m.v / max) * 100;
+                const isCurrent = idx === 5;
+                return (
+                  <div key={m.m} className="group relative flex h-full flex-1 flex-col items-center justify-end gap-1">
+                    <div className={cn("w-full max-w-[32px] rounded-t-md transition-all", isCurrent ? "bg-primary" : "bg-accent/60")} style={{ height: `${Math.max(pct, 8)}%` }} />
+                    <span className="shrink-0 text-[10px] text-content-tertiary">{m.m}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="rounded-lg bg-surface-secondary p-2"><p className="text-[11px] text-content-tertiary">이번달 매출</p><p className="mt-0.5 text-[14px] font-bold text-content">18.4M</p></div>
+              <div className="rounded-lg bg-surface-secondary p-2"><p className="text-[11px] text-content-tertiary">활성 회원</p><p className="mt-0.5 text-[14px] font-bold text-content">2,614명</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 리스트 카드 — 2x2 admin-pando 1:1 */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+        <div className="space-y-3">
+          {/* 생일자 */}
+          <div className="overflow-hidden rounded-xl border border-line bg-surface">
+            <div className="flex items-center justify-between border-b border-line px-5 py-3">
+              <div className="flex items-center gap-2"><CheckCircle2 size={16} className="text-primary" /><h3 className="text-[13px] font-semibold text-content">오늘 생일자 회원</h3></div>
+              <span className="text-[12px] font-semibold text-primary">{birthdayMembers.length}명</span>
+            </div>
+            <div className="p-2">
+              <Table>
+                <TableHeader><TableRow><TableHead>이름</TableHead><TableHead>생년월일</TableHead><TableHead>상태</TableHead><TableHead className="w-10" /></TableRow></TableHeader>
+                <TableBody>{birthdayMembers.map((m) => <TableRow key={m.name}><TableCell className="font-semibold">{m.name}</TableCell><TableCell>{m.birth}</TableCell><TableCell><Badge variant="success">{m.status}</Badge></TableCell><TableCell><Button size="sm" variant="ghost" asChild><Link href="/members/detail"><ChevronRight size={12} /></Link></Button></TableCell></TableRow>)}</TableBody>
+              </Table>
+            </div>
+          </div>
+
+          {/* 미수금 */}
+          <div className="overflow-hidden rounded-xl border border-line bg-surface">
+            <div className="flex items-center justify-between border-b border-line px-5 py-3">
+              <div className="flex items-center gap-2"><AlertTriangle size={16} className="text-rose-600" /><h3 className="text-[13px] font-semibold text-content">미수금 회원</h3></div>
+              <span className="text-[12px] font-semibold text-rose-600">{unpaidMembers.length}건</span>
+            </div>
+            <div className="p-2">
+              <Table>
+                <TableHeader><TableRow><TableHead>이름</TableHead><TableHead>상품명</TableHead><TableHead>연체</TableHead><TableHead className="text-right">미납 금액</TableHead><TableHead /></TableRow></TableHeader>
+                <TableBody>{unpaidMembers.map((m) => <TableRow key={m.name}><TableCell className="font-semibold">{m.name}</TableCell><TableCell>{m.item}</TableCell><TableCell>{m.overdue > 30 ? <Badge variant="destructive">장기미납</Badge> : <span className="text-[12px] text-content-secondary">{m.overdue}일</span>}</TableCell><TableCell className="text-right font-semibold tabular-nums">{m.amount}원</TableCell><TableCell><Button size="sm" variant="ghost" asChild><Link href="/sales/payment">결제</Link></Button></TableCell></TableRow>)}</TableBody>
+              </Table>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {/* 홀딩 */}
+          <div className="overflow-hidden rounded-xl border border-line bg-surface">
+            <div className="flex items-center justify-between border-b border-line px-5 py-3">
+              <div className="flex items-center gap-2"><Lock size={16} className="text-content-secondary" /><h3 className="text-[13px] font-semibold text-content">연기(홀딩) 중인 회원</h3></div>
+              <span className="text-[12px] font-semibold text-content-secondary">{holdingMembers.length}명</span>
+            </div>
+            <div className="p-2">
+              <Table>
+                <TableHeader><TableRow><TableHead>이름</TableHead><TableHead>홀딩 기간</TableHead><TableHead>잔여일</TableHead><TableHead /></TableRow></TableHeader>
+                <TableBody>{holdingMembers.map((m) => <TableRow key={m.name}><TableCell className="font-semibold">{m.name}</TableCell><TableCell className="text-center">{m.period}</TableCell><TableCell className="text-center"><Badge variant="info">{m.remaining}일</Badge></TableCell><TableCell><Button size="sm" variant="ghost" asChild><Link href="/members/detail"><ChevronRight size={12} /></Link></Button></TableCell></TableRow>)}</TableBody>
+              </Table>
+            </div>
+          </div>
+
+          {/* 만료 임박 */}
+          <div className="overflow-hidden rounded-xl border border-line bg-surface">
+            <div className="flex items-center justify-between border-b border-line px-5 py-3">
+              <div className="flex items-center gap-2"><AlertTriangle size={16} className="text-amber-500" /><h3 className="text-[13px] font-semibold text-content">이용권 만료 임박</h3></div>
+              <span className="text-[12px] font-semibold text-content">{expiringMembers.length}명</span>
+            </div>
+            <div className="p-2">
+              <Table>
+                <TableHeader><TableRow><TableHead>이름</TableHead><TableHead>만료 예정일</TableHead><TableHead>D-Day</TableHead><TableHead /></TableRow></TableHeader>
+                <TableBody>{expiringMembers.map((m) => <TableRow key={m.name}><TableCell className="font-semibold">{m.name}</TableCell><TableCell className="text-center">{m.expiry}</TableCell><TableCell className="text-center"><Badge variant={m.ddayNum <= 3 ? "destructive" : m.ddayNum <= 7 ? "warning" : "outline"}>{m.dday}</Badge></TableCell><TableCell><button className="rounded-md bg-primary-light px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary hover:text-white transition-all" onClick={() => notify(`${m.name} 재등록 상담 mock`, "info")}>재등록 상담</button></TableCell></TableRow>)}</TableBody>
+              </Table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 프로모션 배너 2분할 — admin-pando 1:1 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <button className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-primary to-[#ff907f] p-6 text-left text-white transition-transform hover:scale-[1.005]" onClick={() => notify("구독형 키오스크 패키지 보기", "info")}>
+          <div className="relative z-10">
+            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold backdrop-blur-sm">Premium</span>
+            <h4 className="mt-3 text-[17px] font-bold leading-snug">구독형 키오스크 패키지<br />출시 기념 30% 할인!</h4>
+            <p className="mt-2 text-[12px] text-white/70">무인 센터 운영을 시작해보세요.</p>
+            <div className="mt-3 flex items-center gap-1 text-[13px] font-semibold"><span>혜택 보기</span><ChevronRight size={14} className="transition-transform group-hover:translate-x-0.5" /></div>
+          </div>
+          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/5 blur-2xl" />
+        </button>
+        <button className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-content to-content-secondary p-6 text-left text-white transition-transform hover:scale-[1.005]" onClick={() => notify("자동 알림 설정 mock", "info")}>
+          <div className="relative z-10">
+            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold backdrop-blur-sm">Automation</span>
+            <h4 className="mt-3 text-[17px] font-bold leading-snug">알림톡 자동 발송으로<br />재등록률을 높이세요</h4>
+            <p className="mt-2 text-[12px] text-white/70">만료 전 안내, 생일 축하 메시지를 자동 발송합니다.</p>
+            <div className="mt-3 flex items-center gap-1 text-[13px] font-semibold"><span>설정 바로가기</span><ChevronRight size={14} className="transition-transform group-hover:translate-x-0.5" /></div>
+          </div>
+          <div className="absolute -right-8 -bottom-8 h-32 w-32 rounded-full bg-white/5 blur-2xl" />
+        </button>
+      </div>
+
+      {/* 핸드오프 카드 (검수용) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <HandoffContractCard screen={screen} />
+        <Card className="shadow-none">
+          <CardHeader><CardTitle>대시보드 액션</CardTitle><CardDescription>{roleInfo.label} 권한별 처리 큐</CardDescription></CardHeader>
+          <CardContent><PrimaryActionRow screen={screen} role={role} openDialog={openDialog} notify={notify} /></CardContent>
+        </Card>
       </div>
     </div>
   );
