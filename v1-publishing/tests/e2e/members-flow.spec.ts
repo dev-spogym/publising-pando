@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-test("회원 목록 화면은 docs4 V1 12컬럼 헤더를 노출한다", async ({ page }) => {
+test("회원 목록 화면은 docs4 V1 컬럼 헤더와 admin-pando 1:1 구조를 노출한다", async ({ page }) => {
   await page.goto("/members");
   await expect(page.getByText("SCR-M001", { exact: true }).first()).toBeVisible();
-  for (const column of ["No", "상태", "회원명", "연락처", "보유 이용권", "소속 지점", "마지막 방문일", "등록일"]) {
+  // admin-pando 1:1 이식된 specialized MemberListScreen 컬럼
+  for (const column of ["상태", "회원명", "연락처", "소속 지점", "이용권", "만료일", "성별", "생년월일"]) {
     await expect(page.getByText(column).first()).toBeVisible();
   }
 });
