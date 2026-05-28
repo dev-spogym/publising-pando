@@ -659,34 +659,293 @@ function statusAwareValue(value: string) {
   return value;
 }
 
-function RuntimeDialog({ dialogId, role, onClose, notify }: { dialogId: string | null; role: RoleId; onClose: () => void; notify: (message: string, tone?: "success" | "warning" | "info") => void }) {
+type DialogKind = "session" | "destructive" | "payment" | "search" | "bulk" | "status" | "form";
+
+type RuntimeDialogProps = { dialogId: string | null; role: RoleId; onClose: () => void; notify: Notify };
+
+type DialogBodyProps = {
+  dialog: DialogDefinition;
+  kind: DialogKind;
+  role: RoleId;
+  allowed: boolean;
+  dirty: boolean;
+  setDirty: (dirty: boolean) => void;
+  onClose: () => void;
+  notify: Notify;
+  contract: NonNullable<ReturnType<typeof getDialogContract>>;
+};
+
+const dialogTone: Record<DialogKind, { badge: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info"; panel: string; icon: string; label: string }> = {
+  session: { badge: "info", panel: "border-blue-200 bg-blue-50 text-blue-900", icon: "세션", label: "세션 복구" },
+  destructive: { badge: "destructive", panel: "border-rose-200 bg-rose-50 text-rose-900", icon: "위험", label: "위험 확인" },
+  payment: { badge: "warning", panel: "border-amber-200 bg-amber-50 text-amber-900", icon: "정산", label: "결제/정산" },
+  search: { badge: "info", panel: "border-sky-200 bg-sky-50 text-sky-900", icon: "검색", label: "검색 선택" },
+  bulk: { badge: "warning", panel: "border-violet-200 bg-violet-50 text-violet-900", icon: "일괄", label: "대량 처리" },
+  status: { badge: "success", panel: "border-emerald-200 bg-emerald-50 text-emerald-900", icon: "상태", label: "상태/설정" },
+  form: { badge: "secondary", panel: "border-slate-200 bg-slate-50 text-slate-900", icon: "입력", label: "입력 폼" }
+};
+
+function getDialogKind(dialog: DialogDefinition): DialogKind {
+  const text = `${dialog.id} ${dialog.title} ${dialog.purpose} ${dialog.components.join(" ")}`;
+  if (dialog.id === "DLG-000" || /세션/.test(text)) return "session";
+  if (dialog.destructive || /삭제|탈퇴|병합|작업 취소|초기화|취소 확인|퇴사|회수/.test(dialog.title)) return "destructive";
+  if (/검색|중복 안내|선택 목록|주소/.test(text)) return "search";
+  if (/일괄|대량|배포|전체 반복|일정 이후|여러|다중/.test(text)) return "bulk";
+  if (/결제|매출|환불|납입|할부|세금|정산|수납|미수|영수증|쿠폰|선수익|목표 매출/.test(text)) return "payment";
+  if (/상태|권한|설정|변경|홀딩|해제|이관|등급|정책|토글|승인|등록|수정|추가|처리|확인/.test(text)) return "status";
+  return "form";
+}
+
+function RuntimeDialog({ dialogId, role, onClose, notify }: RuntimeDialogProps) {
   const dialog = dialogId ? dialogById.get(dialogId) : undefined;
   const allowed = dialog ? hasPermission(role, dialog.requiredPermission) : true;
   const contract = dialog ? getDialogContract(dialog) : null;
+  const kind = dialog ? getDialogKind(dialog) : "form";
+  const tone = dialogTone[kind];
   const [dirty, setDirty] = useState(false);
+
+
+  const closeDialog = () => {
+    if (dirty) notify("입력 변경사항을 저장하지 않고 닫았습니다.", "warning");
+    setDirty(false);
+    onClose();
+  };
+
+  const confirmDialog = () => {
+    if (!dialog) return;
+    if (!allowed) {
+      notify(`${dialog.id} ${dialog.title}: 현재 역할 권한으로는 확인 처리할 수 없습니다.`, "warning");
+      return;
+    }
+    notify(`${dialog.id} ${dialog.title} mock 처리 완료`, dialog.policyPending ? "warning" : "success");
+    setDirty(false);
+    onClose();
+  };
+
   return (
-    <Dialog open={Boolean(dialog)} onOpenChange={(open) => !open && onClose()}>
-      {dialog && <DialogContent data-testid="runtime-dialog">
-        <DialogHeader>
-          <div className="flex flex-wrap items-center gap-2"><Badge variant={dialog.destructive ? "destructive" : "info"}>{dialog.id}</Badge><Badge variant="outline">{dialog.source}</Badge>{dialog.policyPending && <Badge variant="warning">정책 확인 필요</Badge>}</div>
-          <DialogTitle>{dialog.title}</DialogTitle>
-          <DialogDescription>{dialog.purpose}</DialogDescription>
-        </DialogHeader>
-        {!allowed && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><Lock className="mr-2 inline size-4" />현재 역할에는 처리 권한이 없습니다. 검수용으로 입력 필드는 보이지만 확인 버튼은 권한 차단 toast를 표시합니다.</div>}
-        <div className="grid gap-3 sm:grid-cols-2">
-          {dialog.components.map((component, index) => <div key={component} className="space-y-1"><Label>{component}</Label>{index % 3 === 2 ? <Textarea defaultValue={`${component} mock 입력`} onChange={() => setDirty(true)} /> : <Input defaultValue={`${component} mock`} onChange={() => setDirty(true)} />}</div>)}
-        </div>
-        <Separator />
-        <div className="rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-600">
-          실제 저장·삭제·승인·발송·결제·환불·외부연동은 수행하지 않습니다. 버튼 클릭 시 로컬 toast 또는 화면 상태만 mock 변경합니다.<br />
-          Contract: <code>{contract?.submitContract.method} {contract?.submitContract.endpoint}</code> · 상태 {dirty ? "dirty" : "pristine"}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => { if (dirty) notify("입력 변경사항을 저장하지 않고 닫았습니다.", "warning"); setDirty(false); onClose(); }}>닫기</Button>
-          <Button variant={dialog.destructive ? "destructive" : "default"} data-blocked={!allowed} onClick={() => { if (!allowed) { notify(`${dialog.id} ${dialog.title}: 현재 역할 권한으로는 확인 처리할 수 없습니다.`, "warning"); return; } notify(`${dialog.id} ${dialog.title} mock 처리 완료`, dialog.policyPending ? "warning" : "success"); setDirty(false); onClose(); }}>{dialog.policyPending ? "정책 확인 상태로 저장" : "확인"}</Button>
-        </DialogFooter>
-      </DialogContent>}
+    <Dialog open={Boolean(dialog)} onOpenChange={(open) => !open && closeDialog()}>
+      {dialog && contract && (
+        <DialogContent data-testid="runtime-dialog" className="max-w-[920px] p-0">
+          <div className={cn("rounded-t-lg border-b px-6 py-5", tone.panel)}>
+            <DialogHeader className="gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={dialog.destructive ? "destructive" : tone.badge}>{dialog.id}</Badge>
+                <Badge variant="outline" className="bg-white/70">{dialog.source}</Badge>
+                <Badge variant="secondary">{tone.label}</Badge>
+                {dialog.policyPending && <Badge variant="warning">정책 확인 필요</Badge>}
+                {!allowed && <Badge variant="warning">권한 차단</Badge>}
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-white/80 text-sm font-black shadow-sm">{tone.icon}</div>
+                <div className="min-w-0">
+                  <DialogTitle className="text-2xl leading-tight">{dialog.title}</DialogTitle>
+                  <DialogDescription className="mt-2 leading-6 text-current/75">{dialog.purpose}</DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+          </div>
+
+          <div className="space-y-4 px-6 pb-6">
+            <DialogMetaPanel dialog={dialog} role={role} allowed={allowed} contract={contract} kind={kind} />
+            {!allowed && <PermissionBlockedMessage dialog={dialog} />}
+            <DialogWorkflowBody dialog={dialog} kind={kind} role={role} allowed={allowed} dirty={dirty} setDirty={setDirty} onClose={onClose} notify={notify} contract={contract} />
+            <DialogContractPanel contract={contract} dirty={dirty} />
+            <DialogFooter>
+              <Button variant="outline" onClick={closeDialog}>닫기</Button>
+              <Button variant={dialog.destructive || kind === "destructive" ? "destructive" : "default"} data-blocked={!allowed} onClick={confirmDialog}>{dialog.policyPending ? "정책 확인 상태로 저장" : kind === "session" ? "재로그인 mock" : kind === "destructive" ? "위험 확인" : "확인"}</Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      )}
     </Dialog>
+  );
+}
+
+function DialogMetaPanel({ dialog, role, allowed, contract, kind }: { dialog: DialogDefinition; role: RoleId; allowed: boolean; contract: NonNullable<ReturnType<typeof getDialogContract>>; kind: DialogKind }) {
+  const roleInfo = roleById.get(role)!;
+  return (
+    <div className="grid gap-3 pt-4 md:grid-cols-4">
+      <div className="rounded-xl border bg-white p-3"><div className="text-xs font-semibold text-slate-500">문서 기준</div><div className="mt-1 text-sm font-medium text-slate-900">{dialog.source.replace("share/", "")}</div></div>
+      <div className="rounded-xl border bg-white p-3"><div className="text-xs font-semibold text-slate-500">역할/권한</div><div className="mt-1 text-sm font-medium text-slate-900">{roleInfo.label} · {allowed ? "가능" : "차단"}</div></div>
+      <div className="rounded-xl border bg-white p-3"><div className="text-xs font-semibold text-slate-500">처리 유형</div><div className="mt-1 text-sm font-medium text-slate-900">{dialogTone[kind].label} · {contract.handoffStatus}</div></div>
+      <div className="rounded-xl border bg-white p-3"><div className="text-xs font-semibold text-slate-500">Mock 범위</div><div className="mt-1 text-sm font-medium text-slate-900">API 호출 없음 · toast/local state</div></div>
+    </div>
+  );
+}
+
+function PermissionBlockedMessage({ dialog }: { dialog: DialogDefinition }) {
+  return <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><Lock className="mr-2 inline size-4" />현재 역할에는 <b>{dialog.requiredPermission}</b> 처리 권한이 없습니다. 검수용으로 입력과 상태는 보이지만 확인 버튼은 권한 차단 toast만 표시합니다.</div>;
+}
+
+function DialogWorkflowBody(props: DialogBodyProps) {
+  if (props.kind === "session") return <SessionDialogBody {...props} />;
+  if (props.kind === "destructive") return <DestructiveDialogBody {...props} />;
+  if (props.kind === "payment") return <PaymentDialogBody {...props} />;
+  if (props.kind === "search") return <SearchDialogBody {...props} />;
+  if (props.kind === "bulk") return <BulkDialogBody {...props} />;
+  if (props.kind === "status") return <StatusDialogBody {...props} />;
+  return <FormDialogBody {...props} />;
+}
+
+function SessionDialogBody({ setDirty, notify }: DialogBodyProps) {
+  return (
+    <div className="grid gap-4 md:grid-cols-[1fr_300px]">
+      <div className="rounded-2xl border bg-white p-5">
+        <div className="flex items-center gap-3"><Lock className="size-5 text-blue-600" /><h3 className="font-semibold">세션 복구 플로우</h3></div>
+        <p className="mt-2 text-sm leading-6 text-slate-600">현재 위치를 저장한 뒤 재로그인 화면으로 이동하고, 인증 완료 후 마지막 업무 화면으로 복귀하는 D01 공통 다이얼로그입니다.</p>
+        <div className="mt-4 grid gap-2 text-sm">
+          <div className="flex justify-between rounded-lg bg-slate-50 px-3 py-2"><span className="text-slate-500">만료 사유</span><b>30분 이상 미활동</b></div>
+          <div className="flex justify-between rounded-lg bg-slate-50 px-3 py-2"><span className="text-slate-500">복귀 URL</span><b>/members 또는 직전 화면</b></div>
+          <div className="flex justify-between rounded-lg bg-slate-50 px-3 py-2"><span className="text-slate-500">보안 정책</span><b>토큰 폐기 + 재인증</b></div>
+        </div>
+      </div>
+      <div className="space-y-3 rounded-2xl border bg-slate-50 p-4">
+        <Label>재로그인 메모</Label>
+        <Textarea defaultValue="세션 만료 후 원래 화면으로 돌아갑니다." onChange={() => setDirty(true)} />
+        <Button className="w-full" onClick={() => notify("재로그인 화면 이동 mock", "info")}>재로그인 화면으로 이동</Button>
+      </div>
+    </div>
+  );
+}
+
+function DestructiveDialogBody({ dialog, setDirty, contract }: DialogBodyProps) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-900">
+        <div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 size-5" /><div><h3 className="font-semibold">복구가 어렵거나 운영 이력이 바뀌는 위험 액션입니다.</h3><p className="mt-1 text-sm leading-6">삭제/탈퇴/병합/취소성 DLG는 대상, 영향 범위, 감사 로그 사유를 분리해서 확인하도록 퍼블리싱했습니다.</p></div></div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        {dialog.components.slice(0, 3).map((component, index) => <div key={component} className="rounded-xl border bg-white p-3"><div className="text-xs font-semibold text-slate-500">확인 {index + 1}</div><div className="mt-1 font-medium">{component}</div><p className="mt-2 text-xs leading-5 text-slate-500">mock 대상: {index === 0 ? "김민준 / S-260528-001" : index === 1 ? "연결 이력·미수·예약 영향" : "권한자 재확인 필요"}</p></div>)}
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="space-y-2"><Label>처리 사유 / 감사 로그</Label><Textarea defaultValue={`${dialog.title} 사유를 남깁니다.`} onChange={() => setDirty(true)} /></div>
+        <div className="space-y-2"><Label>확인 문구</Label><Input defaultValue={dialog.id} onChange={() => setDirty(true)} /><p className="text-xs text-slate-500">실개발 시 {contract.submitContract.method} 요청 전 확인 문구 검증을 권장합니다.</p></div>
+      </div>
+    </div>
+  );
+}
+
+function PaymentDialogBody({ dialog, setDirty, contract }: DialogBodyProps) {
+  const totalLabel = /환불/.test(dialog.title) ? "환불 예정액" : /세금/.test(dialog.title) ? "공급가액" : /할부|납입|미수/.test(dialog.title) ? "잔여/납입액" : "최종 결제액";
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-4">
+        {[{ label: "원거래", value: "S-260528-001" }, { label: totalLabel, value: /환불/.test(dialog.title) ? "120,000원" : "1,200,000원" }, { label: "외부 연동", value: dialog.policyPending ? "정책 확인" : "mock" }, { label: "승인 상태", value: dialog.requiredPermission ? "권한 필요" : "조회" }].map((item) => <div key={item.label} className="rounded-xl border bg-white p-3"><div className="text-xs font-semibold text-slate-500">{item.label}</div><div className="mt-1 text-lg font-bold text-slate-950">{item.value}</div></div>)}
+      </div>
+      <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-2xl border bg-white p-4">
+          <div className="mb-3 flex items-center justify-between"><h3 className="font-semibold">정산 입력</h3><Badge variant={dialog.policyPending ? "warning" : "success"}>{contract.handoffStatus}</Badge></div>
+          <DialogDynamicFields contract={contract} setDirty={setDirty} maxFields={4} />
+        </div>
+        <div className="rounded-2xl border bg-amber-50 p-4 text-sm text-amber-900">
+          <h3 className="font-semibold">개발 인수 포인트</h3>
+          <ul className="mt-3 space-y-2 leading-5">
+            <li>· 실제 카드/PG/세금계산서/환불 처리는 호출하지 않습니다.</li>
+            <li>· 버튼은 {contract.submitContract.endpoint} 계약으로 연결할 수 있게 표시합니다.</li>
+            <li>· 정책 미확정 산식은 수기 입력/확인 필요 배지로 남깁니다.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SearchDialogBody({ dialog, setDirty, notify, contract }: DialogBodyProps) {
+  return (
+    <div className="grid gap-4 md:grid-cols-[320px_1fr]">
+      <div className="space-y-3 rounded-2xl border bg-white p-4">
+        <Label>{dialog.components[0] ?? "검색어"}</Label>
+        <div className="relative"><Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" /><Input className="pl-9" defaultValue="김민준 / 010" onChange={() => setDirty(true)} /></div>
+        <DialogDynamicFields contract={contract} setDirty={setDirty} maxFields={2} skipFirst />
+        <Button className="w-full" variant="secondary" onClick={() => notify(`${dialog.title} 검색 mock 실행`, "info")}>검색 mock</Button>
+      </div>
+      <div className="rounded-2xl border bg-slate-50 p-4">
+        <div className="mb-3 flex items-center justify-between"><h3 className="font-semibold">검색 결과</h3><Badge variant="info">3건</Badge></div>
+        <div className="space-y-2">
+          {["김민준 · 010-1234-5678 · 강남점", "김민준(가족) · 010-0000-1111 · 서초점", "비회원 현장 결제 · 연락처 미확정"].map((item) => <button key={item} type="button" onClick={() => { setDirty(true); notify(`${item} 선택 mock`, "info"); }} className="flex w-full items-center justify-between rounded-xl border bg-white p-3 text-left text-sm hover:border-blue-300"><span>{item}</span><Badge variant="outline">선택</Badge></button>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BulkDialogBody({ dialog, setDirty, contract }: DialogBodyProps) {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-4">
+        {[{ label: "대상", value: "128건" }, { label: "처리 가능", value: "116건" }, { label: "충돌/제외", value: "12건" }, { label: "실행 방식", value: "mock" }].map((item) => <div key={item.label} className="rounded-xl border bg-white p-3"><div className="text-xs font-semibold text-slate-500">{item.label}</div><div className="mt-1 text-lg font-bold">{item.value}</div></div>)}
+      </div>
+      <div className="grid gap-4 md:grid-cols-[1fr_320px]">
+        <div className="rounded-2xl border bg-white p-4">
+          <h3 className="font-semibold">일괄 처리 미리보기</h3>
+          <Table className="mt-3"><TableHeader><TableRow><TableHead>대상</TableHead><TableHead>변경 전</TableHead><TableHead>변경 후</TableHead><TableHead>상태</TableHead></TableRow></TableHeader><TableBody>{["강남점", "서초점", "잠실점"].map((branch, index) => <TableRow key={branch}><TableCell>{branch}</TableCell><TableCell>기존 설정</TableCell><TableCell>{dialog.title}</TableCell><TableCell><Badge variant={index === 2 ? "warning" : "success"}>{index === 2 ? "충돌 확인" : "가능"}</Badge></TableCell></TableRow>)}</TableBody></Table>
+        </div>
+        <div className="space-y-3 rounded-2xl border bg-violet-50 p-4">
+          <h3 className="font-semibold text-violet-900">실행 전 체크</h3>
+          {contract.fields.slice(0, 4).map((field) => <label key={field.name} className="flex items-center gap-2 rounded-lg bg-white/70 p-2 text-sm"><input type="checkbox" onChange={() => setDirty(true)} /> {field.label} 확인</label>)}
+          <Textarea defaultValue="일괄 처리 사유" onChange={() => setDirty(true)} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatusDialogBody({ dialog, setDirty, contract }: DialogBodyProps) {
+  return (
+    <div className="grid gap-4 md:grid-cols-[1fr_300px]">
+      <div className="rounded-2xl border bg-white p-4">
+        <div className="mb-3 flex items-center justify-between"><h3 className="font-semibold">상태 전환 / 운영 입력</h3><Badge variant="success">필수값 표시</Badge></div>
+        <DialogDynamicFields contract={contract} setDirty={setDirty} />
+      </div>
+      <div className="rounded-2xl border bg-emerald-50 p-4 text-sm text-emerald-900">
+        <h3 className="font-semibold">처리 후 화면 반영</h3>
+        <div className="mt-3 space-y-2">
+          {["목록 상태 배지 변경", "상세 이력 타임라인 추가", "권한/정책 toast 표시", "감사 로그 payload 준비"].map((item) => <div key={item} className="flex items-center gap-2 rounded-lg bg-white/70 p-2"><CheckCircle2 className="size-4" />{item}</div>)}
+        </div>
+        <div className="mt-3 rounded-lg bg-white/70 p-2 text-xs leading-5">{dialog.purpose}</div>
+      </div>
+    </div>
+  );
+}
+
+function FormDialogBody({ setDirty, contract }: DialogBodyProps) {
+  return (
+    <div className="rounded-2xl border bg-white p-4">
+      <div className="mb-3 flex items-center justify-between"><h3 className="font-semibold">입력 항목</h3><Badge variant="secondary">문서 컴포넌트 기반</Badge></div>
+      <DialogDynamicFields contract={contract} setDirty={setDirty} />
+    </div>
+  );
+}
+
+function DialogDynamicFields({ contract, setDirty, maxFields, skipFirst = false }: { contract: NonNullable<ReturnType<typeof getDialogContract>>; setDirty: (dirty: boolean) => void; maxFields?: number; skipFirst?: boolean }) {
+  const fields = contract.fields.slice(skipFirst ? 1 : 0, maxFields ? (skipFirst ? maxFields + 1 : maxFields) : undefined);
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {fields.map((field, index) => (
+        <div key={field.name} className={cn("space-y-1", field.type === "textarea" && "sm:col-span-2")}>
+          <Label className="flex items-center gap-2">{field.label}{field.required && <Badge variant="outline">필수</Badge>}</Label>
+          {field.type === "textarea" ? (
+            <Textarea defaultValue={`${field.label} mock 입력`} onChange={() => setDirty(true)} />
+          ) : field.type === "select" ? (
+            <Select defaultValue="option-a" onValueChange={() => setDirty(true)}><SelectTrigger className="w-full bg-white"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="option-a">기본 상태</SelectItem><SelectItem value="option-b">변경 상태</SelectItem><SelectItem value="option-c">정책 확인 필요</SelectItem></SelectContent></Select>
+          ) : field.type === "checkbox" ? (
+            <label className="flex h-10 items-center gap-2 rounded-md border bg-white px-3 text-sm"><input type="checkbox" onChange={() => setDirty(true)} /> {field.validation}</label>
+          ) : (
+            <Input type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"} defaultValue={field.type === "date" ? "2026-05-28" : field.type === "number" ? `${(index + 1) * 10}` : `${field.label} mock`} onChange={() => setDirty(true)} />
+          )}
+          <p className="text-xs text-slate-500">{field.validation}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DialogContractPanel({ contract, dirty }: { contract: NonNullable<ReturnType<typeof getDialogContract>>; dirty: boolean }) {
+  return (
+    <div className="rounded-xl border bg-slate-50 p-3 text-xs leading-5 text-slate-600">
+      실제 저장·삭제·승인·발송·결제·환불·외부연동은 수행하지 않습니다. 버튼 클릭 시 로컬 toast 또는 화면 상태만 mock 변경합니다.<br />
+      Contract: <code>{contract.submitContract.method} {contract.submitContract.endpoint}</code> · 상태 {dirty ? "dirty" : "pristine"} · 오류상태 {contract.submitContract.errorStates.join(" / ")}
+    </div>
   );
 }
 
