@@ -1,9 +1,9 @@
 # V1 D01~D11 Coverage Report
 
-- Generated: 2026-05-28T14:12:30.137Z
+- Generated: 2026-05-28T16:42:03.205Z
 - 기준 문서: docs4/V1 D01~D11 화면설계 문서
-- 화면 구현: 83/82
-- 다이얼로그 구현: 129/129
+- 화면 구현: 108/82
+- 다이얼로그 구현: 151/129
 - 라우트 오류: 0
 - 화면 연결 없는 DLG: 0
 
@@ -14,7 +14,54 @@
 - 없음
 
 ## Extra Implementations
+- SCR-051
+- SCR-052
+- SCR-053
+- SCR-054
+- SCR-055
+- SCR-056
+- SCR-057
+- SCR-058
+- SCR-059
+- SCR-077
+- SCR-085
+- SCR-088
+- SCR-090
+- SCR-091
+- SCR-096
+- SCR-C010
+- SCR-C012
+- SCR-C015
 - SCR-DLG
+- SCR-H1002
+- SCR-H1003
+- SCR-H1005
+- SCR-P005
+- SCR-P006
+- SCR-P007
+- SCR-P008
+- DLG-052-001
+- DLG-052-002
+- DLG-052-003
+- DLG-053-001
+- DLG-053-002
+- DLG-056-001
+- DLG-056-002
+- DLG-056-003
+- DLG-057-001
+- DLG-057-002
+- DLG-057-003
+- DLG-058-001
+- DLG-085-001
+- DLG-085-002
+- DLG-P016
+- DLG-P017
+- DLG-P018
+- DLG-P019
+- DLG-P020
+- DLG-P021
+- DLG-P022
+- DLG-P023
 
 ## Routes
 - SCR-100 로그인: `/login`
@@ -51,15 +98,31 @@
 - SCR-C007 횟수 관리: `/lesson-counts`
 - SCR-C008 페널티 관리: `/penalties`
 - SCR-C009 일정 요청 처리: `/schedule-requests`
+- SCR-C010 운동 프로그램 관리: `/exercise-programs`
 - SCR-C011 유효 수업 목록: `/valid-lessons`
+- SCR-C012 대기열 관리: `/class-waitlist`
 - SCR-C013 수업 평가 피드백: `/class-feedback`
 - SCR-C014 수업 출석/완료 확인: `/attendance/lesson-completion`
+- SCR-C015 수업 녹화 관리: `/class-recording`
 - SCR-C016 예약 목록: `/class-reservations`
 - SCR-P001 상품 관리: `/products/p001`
 - SCR-P002 상품 등록: `/products/p002`
 - SCR-P003 상품 상세/수정 패널: `/products/detail`
 - SCR-P004 할인 설정: `/products/p004`
+- SCR-P005 상품 카탈로그: `/products/catalog`
+- SCR-P006 상품 비교: `/products/compare`
+- SCR-P007 재고 관리: `/products/inventory`
+- SCR-P008 시즌 가격 관리: `/products/seasonal-price`
 - SCR-050 락커 관리: `/facilities/050`
+- SCR-051 사물함 배정 관리: `/locker/management`
+- SCR-052 밴드/카드 관리: `/rfid`
+- SCR-053 운동룸 관리: `/rooms`
+- SCR-054 골프 타석 관리: `/golf-bays`
+- SCR-055 상품 재고 관리: `/facility/inventory`
+- SCR-056 장비 점검 일정: `/equipment-check`
+- SCR-057 소모품 재고 관리: `/consumables`
+- SCR-058 청소 스케줄: `/cleaning-schedule`
+- SCR-059 공간 자산 관리: `/rooms`
 - SCR-060 직원 목록: `/staff`
 - SCR-061 직원 등록/수정: `/staff/new`
 - SCR-062 직원 퇴사 처리: `/staff/resignation`
@@ -69,34 +132,43 @@
 - SCR-070 리드 관리: `/leads`
 - SCR-071 메시지 발송: `/message`
 - SCR-072 자동 알림 설정: `/message/auto-alarm`
-- SCR-072A 자동알림 운영현황: `/message/auto-alarm-2`
+- SCR-072A 자동알림 운영현황: `/message/auto-alarm`
 - SCR-073 쿠폰 관리: `/message/coupon`
 - SCR-074 마일리지 관리: `/mileage`
 - SCR-075 전자 계약: `/contracts/new`
 - SCR-076 캠페인 관리: `/marketing/campaign`
+- SCR-077 리퍼럴 프로그램: `/marketing/referral`
 - SCR-078 SMS/카카오 대량 발송: `/marketing/sms`
-- SCR-079 A/B 테스트: `/marketing/079`
+- SCR-079 A/B 테스트: `/marketing/ab-test`
 - SCR-080 센터 설정: `/settings`
 - SCR-080A 지점 자동화 적용: `/settings/automation`
 - SCR-081 권한 설정: `/settings/permissions`
 - SCR-082 키오스크 설정: `/settings/082`
-- SCR-082A 키오스크 IoT 설정: `/settings/082a`
-- SCR-083 IoT 출입 관리: `/settings/083`
+- SCR-082A 키오스크 IoT 설정: `/settings/iot`
+- SCR-083 IoT 출입 관리: `/settings/iot`
 - SCR-084 구독 결제 관리: `/subscription`
+- SCR-085 공지사항 관리: `/notices`
 - SCR-086 출석 관리 설정: `/settings/attendance`
 - SCR-087 커스텀 역할 생성: `/settings/custom-role`
+- SCR-088 다국어 설정: `/settings/language`
 - SCR-089 데이터 백업·복원: `/settings/089`
+- SCR-090 지점 대시보드: `/hq/branch-dashboard`
+- SCR-091 구버전 슈퍼 대시보드 리다이렉트: `/super-dashboard`
+- SCR-096 온보딩 대시보드: `/onboarding`
+- SCR-H1002 커스텀 대시보드 빌더: `/dashboard/builder`
+- SCR-H1003 벤치마크 비교: `/benchmark`
+- SCR-H1005 NPS 설문: `/nps`
 - SCR-092 지점 관리: `/branches`
 - SCR-093 지점 성과 리포트: `/branch-report`
+- SCR-094 KPI 대시보드: `/kpi`
 - SCR-095 KPI 센터: `/kpi-preview`
 - SCR-097 히스토리 로그: `/audit-log`
 - SCR-098 오늘의 할 일: `/today-tasks`
 - SCR-099 리포트 생성: `/reports`
-- SCR-H1004 예측 분석: `/analytics/forecast`
-- SCR-094 KPI 대시보드: `/kpi`
 - SCR-H1001 자동화 정책 라이브러리: `/hq/automation-policies`
+- SCR-H1004 예측 분석: `/analytics/forecast`
 - SCR-I001 통합 출석 관리: `/attendance`
-- SCR-I004 옷 락커 운영 관리: `/integrated/i004`
-- SCR-I005 고정 물품 락커 관리: `/integrated/i005`
+- SCR-I004 옷 락커 운영 관리: `/clothing-locker`
+- SCR-I005 고정 물품 락커 관리: `/locker/management`
 - SCR-I006 체성분 통합 관리: `/body-composition-2`
 - SCR-I007 회원 건강 연동 요약: `/members/health`
