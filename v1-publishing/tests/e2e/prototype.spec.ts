@@ -69,3 +69,24 @@ test("dialog form edits surface dirty close and submit contract feedback", async
   await page.getByRole("button", { name: "닫기" }).click();
   await expect(page.getByText(/입력 변경사항을 저장하지 않고 닫았습니다/)).toBeVisible();
 });
+
+
+test("persisted role preferences hydrate without client/server mismatch", async ({ page }) => {
+  const hydrationErrors: string[] = [];
+  page.on("pageerror", (error) => {
+    if (/Hydration failed|server rendered text didn't match/i.test(error.message)) hydrationErrors.push(error.message);
+  });
+  page.on("console", (message) => {
+    if (message.type() === "error" && /Hydration failed|server rendered text didn't match/i.test(message.text())) hydrationErrors.push(message.text());
+  });
+
+  await page.goto("/members");
+  await page.evaluate(() => {
+    window.localStorage.setItem("pando-role", "HQ_ADMIN");
+    window.localStorage.setItem("pando-branch", "본사 통합");
+  });
+  await page.reload();
+
+  await expect(page.getByText("본사 관리자").first()).toBeVisible();
+  expect(hydrationErrors).toEqual([]);
+});

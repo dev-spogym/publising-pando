@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { AlertTriangle, Bell, Building2, CheckCircle2, ChevronRight, ClipboardCheck, Lock, LogOut, Menu, Search, ShieldCheck, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,27 +24,47 @@ const defaultRole: RoleId = "OWNER";
 type ToastTone = "success" | "warning" | "info";
 type ToastState = { message: string; tone: ToastTone } | null;
 
+const preferencesEvent = "pando-preferences-change";
+
+function subscribePreferences(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(preferencesEvent, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(preferencesEvent, callback);
+  };
+}
+
+function emitPreferencesChange() {
+  window.dispatchEvent(new Event(preferencesEvent));
+}
+
+function getRoleSnapshot(): RoleId {
+  const savedRole = window.localStorage.getItem("pando-role") as RoleId | null;
+  return savedRole && roleById.has(savedRole) ? savedRole : defaultRole;
+}
+
+function getBranchSnapshot() {
+  const savedBranch = window.localStorage.getItem("pando-branch");
+  return savedBranch && branches.includes(savedBranch) ? savedBranch : branches[0];
+}
+
 export function PrototypeApp({ initialRoute }: { initialRoute: string }) {
   const pathname = usePathname();
   const route = pathname === "/" ? initialRoute : pathname.replace(/\/$/, "") || "/login";
   const screen = screens.find((item) => item.route === route) ?? screens[0];
-  const [role, setRole] = useState<RoleId>(() => {
-    if (typeof window === "undefined") return defaultRole;
-    const savedRole = window.localStorage.getItem("pando-role") as RoleId | null;
-    return savedRole && roleById.has(savedRole) ? savedRole : defaultRole;
-  });
-  const [branch, setBranch] = useState(() => {
-    if (typeof window === "undefined") return branches[0];
-    return window.localStorage.getItem("pando-branch") ?? branches[0];
-  });
+  const role = useSyncExternalStore(subscribePreferences, getRoleSnapshot, () => defaultRole);
+  const branch = useSyncExternalStore(subscribePreferences, getBranchSnapshot, () => branches[0]);
   const [activeDialog, setActiveDialog] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
-
-
-  useEffect(() => {
-    window.localStorage.setItem("pando-role", role);
-    window.localStorage.setItem("pando-branch", branch);
-  }, [role, branch]);
+  const setRole = (nextRole: RoleId) => {
+    window.localStorage.setItem("pando-role", nextRole);
+    emitPreferencesChange();
+  };
+  const setBranch = (nextBranch: string) => {
+    window.localStorage.setItem("pando-branch", nextBranch);
+    emitPreferencesChange();
+  };
 
   useEffect(() => {
     if (!toast) return;
