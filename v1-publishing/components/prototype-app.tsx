@@ -106,32 +106,64 @@ export function PrototypeApp({ initialRoute }: { initialRoute: string }) {
 function LoginScreen({ role, branch, setRole, setBranch, openDialog, notify }: { role: RoleId; branch: string; setRole: (role: RoleId) => void; setBranch: (branch: string) => void; openDialog: (id: string) => void; notify: (message: string, tone?: "success" | "warning" | "info") => void }) {
   const router = useRouter();
   const roleInfo = roleById.get(role)!;
+  const [loginId, setLoginId] = useState("owner.gangnam");
+  const [password, setPassword] = useState("password");
+  const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(true);
+  const [step, setStep] = useState<"credential" | "twoFactor" | "passwordChange">("credential");
+  const [otp, setOtp] = useState("");
+  const canSubmit = loginId.includes(".") && password.length >= 6;
+  const submitLogin = () => {
+    if (!canSubmit) {
+      notify("로그인 ID 형식과 비밀번호 6자 이상을 확인해주세요.", "warning");
+      return;
+    }
+    if (role === "HQ_ADMIN" && step === "credential") {
+      setStep("twoFactor");
+      notify("본사 관리자 2FA 인증 단계로 이동합니다.", "info");
+      return;
+    }
+    if (loginId.includes("temp") && step !== "passwordChange") {
+      setStep("passwordChange");
+      notify("첫 로그인 임시 비밀번호 변경 단계입니다.", "warning");
+      return;
+    }
+    if (step === "twoFactor" && otp.length < 6) {
+      notify("6자리 인증 코드를 입력해주세요.", "warning");
+      return;
+    }
+    notify(`mock 로그인 완료: ${remember ? "로그인 유지" : "세션 로그인"}로 회원 목록 이동`);
+    router.push("/members");
+  };
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dbeafe,transparent_35%),linear-gradient(135deg,#0f172a,#1e3a8a)] p-8 text-white">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl grid-cols-[1fr_460px] items-center gap-10">
+    <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,#dbeafe,transparent_35%),radial-gradient(circle_at_bottom_right,#60a5fa33,transparent_30%),linear-gradient(135deg,#0f172a,#1e3a8a)] p-8 text-white">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-7xl grid-cols-[1fr_480px] items-center gap-12">
         <section>
-          <Badge variant="info" className="border-blue-300 bg-white/10 text-blue-50">SCR-100 · AUTH-01</Badge>
-          <h1 className="mt-5 text-5xl font-bold tracking-tight">Pando CRM Admin V1</h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-blue-50/85">직원 1명 = 로그인 계정 1개 원칙을 반영한 정적 프로토타입입니다. 역할을 선택하면 동일 화면도 권한·액션·지점 범위가 다르게 표시됩니다.</p>
+          <Badge variant="info" className="border-blue-300 bg-white/10 text-blue-50">SCR-100 · AUTH-01 · 직원 1명 = 계정 1개</Badge>
+          <h1 className="mt-5 text-6xl font-bold tracking-tight">Pando CRM Admin V1</h1>
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-blue-50/85">운영자가 매일 쓰는 고밀도 Admin 퍼블리싱입니다. 역할·지점·보안 상태에 따라 진입 후 보이는 메뉴와 액션이 달라집니다.</p>
           <div className="mt-8 grid max-w-3xl grid-cols-3 gap-3">
-            {["API 없음", "Mock 데이터", "Next + shadcn/ui"].map((item) => <div key={item} className="rounded-xl border border-white/15 bg-white/10 p-4 text-sm font-semibold">{item}</div>)}
+            {["Next + shadcn", "docs4/V1 기준", "API 없는 mock"].map((item) => <div key={item} className="rounded-xl border border-white/15 bg-white/10 p-4 text-sm font-semibold backdrop-blur">{item}</div>)}
+          </div>
+          <div className="mt-8 grid max-w-3xl grid-cols-2 gap-3 text-sm text-blue-50/80">
+            {["5회 실패 잠금 30분", "2FA 추가 인증", "첫 로그인 PW 변경", "세션 만료 후 복귀"].map((item) => <div key={item} className="flex items-center gap-2"><CheckCircle2 className="size-4 text-emerald-300" />{item}</div>)}
           </div>
         </section>
-        <Card className="border-white/20 bg-white text-slate-950 shadow-2xl">
+        <Card className="admin-surface border-white/20 bg-white text-slate-950 shadow-2xl">
           <CardHeader>
-            <CardTitle>직원 로그인</CardTitle>
-            <CardDescription>검수용으로 역할과 지점을 선택한 뒤 진입합니다.</CardDescription>
+            <CardTitle className="text-2xl">직원 로그인</CardTitle>
+            <CardDescription>문서의 지점 선택, 보안 상태, 2FA, 임시 비밀번호 플로우를 mock으로 확인합니다.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2"><Label>지점 선택</Label><BranchSelect branch={branch} setBranch={setBranch} /></div>
-            <div className="space-y-2"><Label>역할 선택</Label><RoleSelect role={role} setRole={setRole} /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>로그인 ID</Label><Input defaultValue="owner.gangnam" /></div>
-              <div className="space-y-2"><Label>비밀번호</Label><Input type="password" defaultValue="password" /></div>
-            </div>
+            <div className="grid grid-cols-2 gap-3"><div className="space-y-2"><Label>지점 선택</Label><BranchSelect branch={branch} setBranch={setBranch} /></div><div className="space-y-2"><Label>역할 선택</Label><RoleSelect role={role} setRole={setRole} /></div></div>
+            <div className="space-y-2"><Label>로그인 ID</Label><Input value={loginId} onChange={(event) => setLoginId(event.target.value)} placeholder="owner.gangnam" />{loginId && !loginId.includes(".") && <p className="text-xs text-rose-600">직원 로그인 ID 형식 예: owner.gangnam</p>}</div>
+            <div className="space-y-2"><Label>비밀번호</Label><div className="flex gap-2"><Input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} /><Button type="button" variant="outline" onClick={() => setShowPassword((value) => !value)}>{showPassword ? "숨김" : "표시"}</Button></div>{password && password.length < 6 && <p className="text-xs text-rose-600">비밀번호는 6자 이상이어야 합니다.</p>}</div>
+            <label className="flex items-center gap-2 rounded-lg border bg-slate-50 p-3 text-sm"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /> 로그인 상태 유지 <span className="ml-auto text-xs text-slate-500">refresh token mock</span></label>
+            {step === "twoFactor" && <div className="rounded-xl border border-blue-200 bg-blue-50 p-3"><Label>2단계 인증 코드</Label><Input className="mt-2 bg-white" value={otp} onChange={(event) => setOtp(event.target.value)} placeholder="123456" /><p className="mt-2 text-xs text-blue-700">코드 만료/불일치 상태는 toast로 확인합니다.</p></div>}
+            {step === "passwordChange" && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">첫 로그인 임시 비밀번호 상태입니다. 실제 개발 시 비밀번호 변경 화면을 먼저 통과해야 합니다.</div>}
             <div className="rounded-lg border bg-slate-50 p-3 text-sm text-slate-600"><b className="text-slate-950">{roleInfo.label}</b> · {roleInfo.branchScope}<br />{roleInfo.description}</div>
-            <Button className="w-full" size="lg" onClick={() => { notify("mock 로그인 완료: 회원 목록으로 이동합니다."); router.push("/members"); }}>로그인</Button>
-            <Button data-dialog-id="DLG-000" variant="outline" className="w-full" onClick={() => openDialog("DLG-000")}>DLG-000 세션 만료 모달 보기</Button>
+            <Button className="w-full" size="lg" onClick={submitLogin}>로그인</Button>
+            <div className="grid grid-cols-2 gap-2"><Button variant="outline" onClick={() => notify("비밀번호 재설정 메일 발송 mock", "info")}>비밀번호 재설정</Button><Button data-dialog-id="DLG-000" variant="outline" onClick={() => openDialog("DLG-000")}>세션 만료 보기</Button></div>
           </CardContent>
         </Card>
       </div>
@@ -197,6 +229,7 @@ function AdminScreen({ screen, role, branch, openDialog, notify }: { screen: Scr
   if (screen.id === "SCR-S001") return <SalesOverviewScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
   if (screen.id === "SCR-S002") return <PosSalesScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
   if (screen.id === "SCR-S003") return <PaymentProcessingScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
+  if (["D04", "D05", "D06", "D07", "D08", "D09", "D10", "D11"].includes(screen.domain)) return <DomainOperationsScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
 
   return (
     <div className="space-y-5">
@@ -471,6 +504,111 @@ function PaymentProcessingScreen({ screen, role, branch, openDialog, notify }: S
   const [receipt, setReceipt] = useState(false);
   const [done, setDone] = useState(false);
   return <div className="space-y-5"><DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="결제 등록 플로우" />{done ? <Card className="shadow-none"><CardContent className="grid place-items-center py-16 text-center"><CheckCircle2 className="size-16 text-emerald-600" /><h2 className="mt-4 text-2xl font-bold">결제 등록 완료</h2><p className="mt-2 text-sm text-slate-600">결제완료 상태와 회원권/수강권 구매 완료가 함께 반영되는 mock 완료 화면입니다.</p><div className="mt-6 flex gap-2"><Button onClick={() => notify("영수증 파일 보기 mock", "info")}>영수증 파일 보기</Button><Button variant="outline" onClick={() => notify("문자 발송 mock", "info")}>문자 발송</Button><Button variant="outline" onClick={() => setDone(false)}>계속 판매하기</Button><Button asChild><Link href="/sales">매출 현황</Link></Button></div></CardContent></Card> : <div className="grid grid-cols-[1fr_360px] gap-5"><Card className="shadow-none"><CardHeader><CardTitle>구매자 · 상품 · 수납 · 완료</CardTitle><CardDescription>현장 전액 등록, 잔액 등록, 계약금 등록을 분리합니다.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="grid grid-cols-3 gap-3">{["현장 전액 등록", "잔액 등록", "계약금 등록"].map((item) => <button key={item} className="rounded-xl border p-4 text-left hover:bg-slate-50" onClick={() => notify(`${item} 유형 선택`, "info")}><b>{item}</b><p className="mt-1 text-xs text-slate-500">외부 POS/현금 수납 완료 후 CRM 기록</p></button>)}</div><div className="grid grid-cols-2 gap-4"><Input placeholder="회원 검색" defaultValue="김민준" /><Input placeholder="상품" defaultValue="PT 20회" /><Input placeholder="수납 금액" defaultValue="1,150,000" /><Input placeholder="결제 수단" defaultValue="카드" /></div><div className="rounded-xl border p-4"><div className="flex items-center justify-between"><div><b>영수증 파일</b><p className="text-xs text-slate-500">이미지 또는 PDF만 첨부 가능</p></div><Button variant={receipt ? "default" : "outline"} onClick={() => { setReceipt(true); notify("영수증 첨부 mock 완료"); }}>{receipt ? "첨부 완료" : "파일 첨부"}</Button></div>{!receipt && <p className="mt-2 text-xs text-rose-600">영수증 파일을 첨부해주세요.</p>}</div><div className="flex justify-between"><Button variant="outline" onClick={() => notify("결제 상태 초기화", "info")}>초기화</Button><Button data-dialog-id="DLG-S003" disabled={!receipt} onClick={() => receipt ? setDone(true) : notify("영수증 파일을 첨부해주세요.", "warning")}>결제 등록</Button></div></CardContent></Card><aside className="space-y-5"><Card className="shadow-none"><CardHeader><CardTitle>예외/연결 DLG</CardTitle></CardHeader><CardContent className="space-y-2"><Button data-dialog-id="DLG-S002" className="w-full" variant="outline" onClick={() => openDialog("DLG-S002")}>구매자 검색</Button><Button data-dialog-id="DLG-S004" className="w-full" variant="outline" onClick={() => openDialog("DLG-S004")}>중복 결제 경고</Button><Button data-dialog-id="DLG-S009" className="w-full" variant="outline" onClick={() => openDialog("DLG-S009")}>할부 등록</Button></CardContent></Card><DialogDock screen={screen} openDialog={openDialog} /><HandoffContractCard screen={screen} /></aside></div>}</div>;
+}
+
+
+type DomainPublishingConfig = {
+  eyebrow: string;
+  title: string;
+  hero: string;
+  lanes: string[];
+  boardTitle: string;
+  boardColumns: string[];
+  queueTitle: string;
+  primaryCta: string;
+  secondaryCta: string;
+  accent: string;
+};
+
+const domainPublishing: Record<string, DomainPublishingConfig> = {
+  D04: { eyebrow: "수업 운영", title: "캘린더·예약·출석 운영 보드", hero: "강사·회원·룸 리소스를 시간축으로 겹쳐 보고 예약 요청과 노쇼/페널티까지 한 번에 처리합니다.", lanes: ["오전 PT", "GX/그룹", "골프", "대기/변경 요청"], boardTitle: "오늘 수업 타임라인", boardColumns: ["시간", "수업/강사", "예약", "상태", "운영 액션"], queueTitle: "예약·변경 요청 큐", primaryCta: "수업 등록", secondaryCta: "일괄 변경", accent: "blue" },
+  D05: { eyebrow: "상품 운영", title: "상품·가격·할인 정책 콘솔", hero: "상품 마스터와 지점 배포, 가격 이력, 복합 할인 정책을 분리해 운영 실수와 정책 누락을 줄입니다.", lanes: ["판매중", "배포 대기", "가격 변경", "할인 정책"], boardTitle: "상품 마스터", boardColumns: ["상품", "유형", "가격", "배포", "상태"], queueTitle: "정책 검토 큐", primaryCta: "상품 등록", secondaryCta: "전 지점 배포", accent: "emerald" },
+  D06: { eyebrow: "시설 운영", title: "락커·고장·배정 현황 맵", hero: "개별/일괄 배정, 회수, 고장 토글을 현장 직원이 바로 처리할 수 있게 시설 상태를 격자로 보여줍니다.", lanes: ["사용중", "빈 락커", "만료 임박", "고장"], boardTitle: "락커 맵", boardColumns: ["구역", "락커", "배정 회원", "만료", "상태"], queueTitle: "시설 처리 큐", primaryCta: "개별 배정", secondaryCta: "일괄 배정", accent: "amber" },
+  D07: { eyebrow: "직원 운영", title: "직원·근태·급여 운영 워크스페이스", hero: "직원 계정, 권한, 근태, 급여를 한 화면에서 연결해 퇴사/잠금/급여 예외를 추적합니다.", lanes: ["재직", "근태 예외", "급여 검토", "퇴사 처리"], boardTitle: "직원 운영 테이블", boardColumns: ["직원", "역할", "근태", "계정", "처리"], queueTitle: "인사 예외 큐", primaryCta: "직원 등록", secondaryCta: "급여 명세", accent: "violet" },
+  D08: { eyebrow: "마케팅", title: "리드·메시지·쿠폰·캠페인 센터", hero: "리드 상태, 메시지 발송, 자동 알림, 쿠폰/마일리지, 캠페인을 타겟 세그먼트 중심으로 운영합니다.", lanes: ["신규 리드", "발송 대기", "자동 알림", "캠페인 성과"], boardTitle: "타겟/캠페인 목록", boardColumns: ["대상", "채널", "세그먼트", "예약", "성과"], queueTitle: "발송/승인 큐", primaryCta: "메시지 작성", secondaryCta: "쿠폰 발급", accent: "pink" },
+  D09: { eyebrow: "설정", title: "센터 정책·권한·자동화 설정", hero: "본사 정책과 지점 적용 범위를 분리하고 권한/키오스크/IoT/백업 같은 위험 설정을 감사 가능하게 관리합니다.", lanes: ["센터 기본", "권한", "키오스크/IoT", "백업"], boardTitle: "설정 항목", boardColumns: ["설정", "적용 범위", "최근 변경", "위험도", "상태"], queueTitle: "정책 변경 큐", primaryCta: "설정 저장", secondaryCta: "변경 로그", accent: "slate" },
+  D10: { eyebrow: "본사 운영", title: "지점 성과·KPI·감사 로그 대시보드", hero: "전 지점 성과, KPI, 자동화 정책, 오늘의 할 일, 리포트 생성을 본사 관점에서 검토합니다.", lanes: ["KPI", "지점 성과", "감사 로그", "리포트"], boardTitle: "본사 운영 지표", boardColumns: ["지점/지표", "실적", "전월 대비", "리스크", "액션"], queueTitle: "본사 검토 큐", primaryCta: "리포트 생성", secondaryCta: "정책 배포", accent: "indigo" },
+  D11: { eyebrow: "통합 운영", title: "출석·락커·건강 연동 통합 관제", hero: "지점별 출석, 락커, 체성분, 건강 연동 요약을 한 화면에서 관제하고 예외를 빠르게 처리합니다.", lanes: ["출석", "옷 락커", "고정 락커", "건강 연동"], boardTitle: "통합 운영 현황", boardColumns: ["영역", "대상", "상태", "마지막 동기화", "처리"], queueTitle: "통합 예외 큐", primaryCta: "예외 처리", secondaryCta: "동기화", accent: "cyan" }
+};
+
+const accentClasses: Record<string, { panel: string; chip: string; ring: string }> = {
+  blue: { panel: "from-blue-600 to-slate-900", chip: "bg-blue-50 text-blue-700 border-blue-200", ring: "border-blue-300 bg-blue-50" },
+  emerald: { panel: "from-emerald-600 to-slate-900", chip: "bg-emerald-50 text-emerald-700 border-emerald-200", ring: "border-emerald-300 bg-emerald-50" },
+  amber: { panel: "from-amber-500 to-slate-900", chip: "bg-amber-50 text-amber-700 border-amber-200", ring: "border-amber-300 bg-amber-50" },
+  violet: { panel: "from-violet-600 to-slate-900", chip: "bg-violet-50 text-violet-700 border-violet-200", ring: "border-violet-300 bg-violet-50" },
+  pink: { panel: "from-pink-600 to-slate-900", chip: "bg-pink-50 text-pink-700 border-pink-200", ring: "border-pink-300 bg-pink-50" },
+  slate: { panel: "from-slate-700 to-slate-950", chip: "bg-slate-50 text-slate-700 border-slate-200", ring: "border-slate-300 bg-slate-50" },
+  indigo: { panel: "from-indigo-600 to-slate-900", chip: "bg-indigo-50 text-indigo-700 border-indigo-200", ring: "border-indigo-300 bg-indigo-50" },
+  cyan: { panel: "from-cyan-600 to-slate-900", chip: "bg-cyan-50 text-cyan-700 border-cyan-200", ring: "border-cyan-300 bg-cyan-50" }
+};
+
+function DomainOperationsScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
+  const config = domainPublishing[screen.domain] ?? domainPublishing.D09;
+  const accent = accentClasses[config.accent] ?? accentClasses.slate;
+  const [activeLane, setActiveLane] = useState(config.lanes[0]);
+  const [query, setQuery] = useState("");
+  const rows = screen.rows.length ? screen.rows : [{ 항목: screen.title, 상태: screen.policyPending ? "확인 필요" : "정상", 담당: roleById.get(role)?.label ?? "운영자", 일정: "오늘" }];
+  const filteredRows = rows.filter((row) => Object.values(row).join(" ").includes(query));
+  const columns = screen.tableColumns.length ? screen.tableColumns : Object.keys(rows[0] ?? {}).slice(0, 5);
+  const visibleColumns = columns.slice(0, Math.max(4, Math.min(columns.length, 6)));
+  const primaryDialog = screen.dialogs[0];
+  const secondaryDialog = screen.dialogs[1] ?? primaryDialog;
+  return (
+    <div className="space-y-5">
+      <section className={cn("overflow-hidden rounded-2xl bg-gradient-to-br p-5 text-white shadow-sm", accent.panel)}>
+        <div className="flex flex-wrap items-start justify-between gap-5">
+          <div className="max-w-4xl">
+            <div className="flex flex-wrap items-center gap-2"><Badge className="border-white/20 bg-white/10 text-white">{screen.id}</Badge><Badge className="border-white/20 bg-white/10 text-white">{config.eyebrow}</Badge><Badge className="border-white/20 bg-white/10 text-white">{screen.feature}</Badge></div>
+            <h1 className="mt-4 text-3xl font-bold tracking-tight">{screen.title}</h1>
+            <p className="mt-3 text-sm leading-6 text-white/80">{config.hero}</p>
+            <p className="mt-2 text-xs leading-5 text-white/65">문서 목적: {screen.purpose}</p>
+          </div>
+          <div className="min-w-72 rounded-xl border border-white/15 bg-white/10 p-3 text-sm backdrop-blur">
+            <div className="font-semibold">{roleById.get(role)?.label} · {branch}</div>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-white/75"><span>Mock state</span><span>API excluded</span><span>권한 표시</span><span>DLG 연결</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-4 gap-3">
+        {screen.metrics.slice(0, 4).map((metric) => <button key={metric.label} type="button" className="text-left" onClick={() => { setActiveLane(metric.label); notify(`${metric.label} 지표 기준으로 보드 필터 적용`, "info"); }}><Card className={cn("h-full shadow-none", activeLane === metric.label && accent.ring)}><CardHeader><CardDescription>{metric.label}</CardDescription><CardTitle className="text-xl">{metric.value}</CardTitle></CardHeader><CardContent><p className="text-xs text-slate-500">{metric.hint}</p></CardContent></Card></button>)}
+        {!screen.metrics.length && config.lanes.map((lane, index) => <Card key={lane} className="shadow-none"><CardHeader><CardDescription>{lane}</CardDescription><CardTitle className="text-xl">{index + 3}</CardTitle></CardHeader></Card>)}
+      </section>
+
+      <section className="grid grid-cols-[1fr_340px] gap-5">
+        <div className="space-y-5">
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>{config.title}</CardTitle><CardDescription>도메인 문서의 실제 운영 동선을 반영한 전용 퍼블리싱 섹션입니다.</CardDescription></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-4 gap-3">
+                {config.lanes.map((lane) => <button key={lane} type="button" className={cn("rounded-xl border p-4 text-left transition hover:-translate-y-0.5 hover:bg-slate-50", activeLane === lane && accent.ring)} onClick={() => { setActiveLane(lane); notify(`${lane} 운영 lane 선택`, "info"); }}><div className="font-semibold">{lane}</div><div className="mt-1 text-xs text-slate-500">{screen.title} 문맥 필터</div></button>)}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {screen.filters.slice(0, 7).map((filter) => <Button key={filter} variant="outline" size="sm" onClick={() => notify(`${filter} 필터 적용`, "info")}>{filter}</Button>)}
+                {role === "HQ_ADMIN" && <Badge className={accent.chip}>전 지점 통합</Badge>}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>{config.boardTitle}</CardTitle><CardDescription>검색·탭·상태 배지·행 액션이 모두 mock feedback을 제공합니다.</CardDescription></CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2"><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`${screen.title} 통합 검색`} className="max-w-sm" /><Button variant="outline" onClick={() => { setQuery(""); notify("검색/필터 초기화", "info"); }}>전체 해제</Button><Button data-dialog-id={primaryDialog} onClick={() => primaryDialog ? openDialog(primaryDialog) : notify(`${config.primaryCta} mock 실행`)}>{config.primaryCta}</Button><Button data-dialog-id={secondaryDialog} variant="outline" onClick={() => secondaryDialog ? openDialog(secondaryDialog) : notify(`${config.secondaryCta} mock 실행`, "info")}>{config.secondaryCta}</Button></div>
+              <div className="overflow-hidden rounded-xl border"><Table><TableHeader><TableRow>{visibleColumns.map((column) => <TableHead key={column}>{column}</TableHead>)}<TableHead>운영 상태</TableHead><TableHead>행 액션</TableHead></TableRow></TableHeader><TableBody>{filteredRows.slice(0, 8).map((row, index) => <TableRow key={index}>{visibleColumns.map((column) => <TableCell key={column}>{statusAwareValue(String(row[column] ?? row[Object.keys(row)[0]] ?? "-"))}</TableCell>)}<TableCell>{statusAwareValue(String(row.상태 ?? row.status ?? (screen.policyPending ? "확인 필요" : "정상")))}</TableCell><TableCell><Button size="sm" variant="ghost" onClick={() => notify(`${screen.id} ${index + 1}번 행 상세 패널 mock`, "info")}>상세</Button></TableCell></TableRow>)}</TableBody></Table></div>
+              <div className="flex items-center justify-between rounded-xl border bg-slate-50 px-4 py-3 text-xs text-slate-500"><span>{filteredRows.length ? `1-${Math.min(8, filteredRows.length)} of ${filteredRows.length}` : "검색 결과 없음"} · active lane {activeLane}</span><span>페이지네이션 · 스켈레톤 · empty/error 상태 연결 대상</span></div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <aside className="space-y-5">
+          <Card className="shadow-none"><CardHeader><CardTitle>{config.queueTitle}</CardTitle><CardDescription>운영자가 지금 처리해야 할 항목</CardDescription></CardHeader><CardContent className="space-y-2">{config.lanes.map((lane, index) => <div key={lane} className="rounded-lg border p-3 text-sm"><div className="flex items-center justify-between"><b>{lane}</b><Badge variant={index === 0 ? "warning" : "secondary"}>{index + 1}건</Badge></div><p className="mt-1 text-xs text-slate-500">{screen.title} · {lane} 예외/처리 대상</p><div className="mt-2 flex gap-2"><Button size="sm" onClick={() => notify(`${lane} 처리 시작`, "info")}>처리</Button><Button size="sm" variant="outline" onClick={() => notify(`${lane} 담당자 배정 mock`, "info")}>배정</Button></div></div>)}</CardContent></Card>
+          <DialogDock screen={screen} openDialog={openDialog} />
+          <HandoffContractCard screen={screen} />
+          <Card className="shadow-none"><CardHeader><CardTitle>프론트 상태 명세</CardTitle></CardHeader><CardContent className="space-y-2 text-sm text-slate-600"><CheckLine label="loading skeleton 영역 확보" /><CheckLine label="empty/search none 메시지" /><CheckLine label="permission/policy badge" /><CheckLine label="row action + modal 연결" />{screen.policyPending && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800"><AlertTriangle className="mr-2 inline size-4" />정책 확인 필요 항목은 실제 계산/연동 없이 UI 상태만 표시합니다.</div>}</CardContent></Card>
+        </aside>
+      </section>
+    </div>
+  );
 }
 
 function DataPanel({ screen, notify }: { screen: ScreenDefinition; notify: (message: string, tone?: "success" | "warning" | "info") => void }) {

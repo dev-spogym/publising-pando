@@ -90,3 +90,22 @@ test("persisted role preferences hydrate without client/server mismatch", async 
   await expect(page.getByText("본사 관리자").first()).toBeVisible();
   expect(hydrationErrors).toEqual([]);
 });
+
+test("D04-D11 routes use domain-specific publishing layouts", async ({ page }) => {
+  const expectations = [
+    ["/classes/c001", "캘린더·예약·출석 운영 보드"],
+    ["/products/p001", "상품·가격·할인 정책 콘솔"],
+    ["/facilities/050", "락커·고장·배정 현황 맵"],
+    ["/staff", "직원·근태·급여 운영 워크스페이스"],
+    ["/leads", "리드·메시지·쿠폰·캠페인 센터"],
+    ["/settings", "센터 정책·권한·자동화 설정"],
+    ["/branches", "지점 성과·KPI·감사 로그 대시보드"],
+    ["/attendance", "출석·락커·건강 연동 통합 관제"]
+  ] as const;
+
+  for (const [route, heading] of expectations) {
+    await page.goto(route);
+    await expect(page.getByText(heading)).toBeVisible();
+    await expect(page.getByText("프론트 상태 명세")).toBeVisible();
+  }
+});
