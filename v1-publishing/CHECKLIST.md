@@ -1,0 +1,101 @@
+# V1 D01~D11 Coverage Report
+
+- Generated: 2026-05-28T11:52:48.994Z
+- 기준 문서: docs4/V1 D01~D11 화면설계 문서
+- 화면 구현: 82/82
+- 다이얼로그 구현: 129/129
+- 라우트 오류: 0
+- 화면 연결 없는 DLG: 0
+
+## Missing Screens
+- 없음
+
+## Missing Dialogs
+- 없음
+
+## Extra Implementations
+- 없음
+
+## Routes
+- SCR-100 로그인: `/login`
+- SCR-104 알림 센터: `/notifications`
+- SCR-M001 회원 목록: `/members`
+- SCR-M002 회원 등록: `/members/new`
+- SCR-M003 회원 수정: `/members/edit`
+- SCR-M004 회원 상세: `/members/detail`
+- SCR-M005 회원 이관: `/members/transfer`
+- SCR-M006 체성분 관리: `/body-composition`
+- SCR-M007 회원 병합: `/members/merge`
+- SCR-M008 가족 회원: `/members/family`
+- SCR-M009 등급 관리: `/members/grade`
+- SCR-M010 세그먼트 관리: `/members/segment`
+- SCR-S001 매출 현황: `/sales`
+- SCR-S002 POS 판매: `/sales/pos`
+- SCR-S003 결제 처리: `/sales/payment`
+- SCR-S004 매출 통계: `/sales/stats`
+- SCR-S005 통계 관리: `/sales/statistics-admin`
+- SCR-S006 선수익금 조회: `/sales/deferred-revenue`
+- SCR-S007 환불 관리: `/sales/refunds`
+- SCR-S008 미수금 관리: `/sales/receivables`
+- SCR-S009 할부결제 관리: `/sales/installments`
+- SCR-S010 세금계산서 발행: `/sales/tax-invoice`
+- SCR-S011 매출 예측: `/sales/forecast`
+- SCR-S012 결제 취소 / 부분 환불: `/sales/refund-partial`
+- SCR-C001 수업 캘린더: `/classes/c001`
+- SCR-C002 수업 관리: `/lessons`
+- SCR-C003 시간표 일괄 등록: `/class-schedule`
+- SCR-C004 그룹 수업 템플릿: `/class-templates`
+- SCR-C005 그룹 수업 현황: `/classes/c005`
+- SCR-C006 강사 근무 현황: `/instructor-status`
+- SCR-C007 횟수 관리: `/lesson-counts`
+- SCR-C008 페널티 관리: `/penalties`
+- SCR-C009 일정 요청 처리: `/schedule-requests`
+- SCR-C011 유효 수업 목록: `/valid-lessons`
+- SCR-C013 수업 평가 피드백: `/class-feedback`
+- SCR-C014 수업 출석/완료 확인: `/attendance/lesson-completion`
+- SCR-C016 예약 목록: `/class-reservations`
+- SCR-P001 상품 관리: `/products/p001`
+- SCR-P002 상품 등록: `/products/p002`
+- SCR-P003 상품 상세/수정 패널: `/products/detail`
+- SCR-P004 할인 설정: `/products/p004`
+- SCR-050 락커 관리: `/facilities/050`
+- SCR-060 직원 목록: `/staff`
+- SCR-061 직원 등록/수정: `/staff/new`
+- SCR-062 직원 퇴사 처리: `/staff/resignation`
+- SCR-063 직원 근태 관리: `/staff/attendance`
+- SCR-064 급여 관리: `/payroll`
+- SCR-065 급여 명세서: `/payroll/statements`
+- SCR-070 리드 관리: `/leads`
+- SCR-071 메시지 발송: `/message`
+- SCR-072 자동 알림 설정: `/message/auto-alarm`
+- SCR-072A 자동알림 운영현황: `/message/auto-alarm-2`
+- SCR-073 쿠폰 관리: `/message/coupon`
+- SCR-074 마일리지 관리: `/mileage`
+- SCR-075 전자 계약: `/contracts/new`
+- SCR-076 캠페인 관리: `/marketing/campaign`
+- SCR-078 SMS/카카오 대량 발송: `/marketing/sms`
+- SCR-079 A/B 테스트: `/marketing/079`
+- SCR-080 센터 설정: `/settings`
+- SCR-080A 지점 자동화 적용: `/settings/automation`
+- SCR-081 권한 설정: `/settings/permissions`
+- SCR-082 키오스크 설정: `/settings/082`
+- SCR-082A 키오스크 IoT 설정: `/settings/082a`
+- SCR-083 IoT 출입 관리: `/settings/083`
+- SCR-084 구독 결제 관리: `/subscription`
+- SCR-086 출석 관리 설정: `/settings/attendance`
+- SCR-087 커스텀 역할 생성: `/settings/custom-role`
+- SCR-089 데이터 백업·복원: `/settings/089`
+- SCR-092 지점 관리: `/branches`
+- SCR-093 지점 성과 리포트: `/branch-report`
+- SCR-095 KPI 센터: `/kpi-preview`
+- SCR-097 히스토리 로그: `/audit-log`
+- SCR-098 오늘의 할 일: `/today-tasks`
+- SCR-099 리포트 생성: `/reports`
+- SCR-H1004 예측 분석: `/analytics/forecast`
+- SCR-094 KPI 대시보드: `/kpi`
+- SCR-H1001 자동화 정책 라이브러리: `/hq/automation-policies`
+- SCR-I001 통합 출석 관리: `/attendance`
+- SCR-I004 옷 락커 운영 관리: `/integrated/i004`
+- SCR-I005 고정 물품 락커 관리: `/integrated/i005`
+- SCR-I006 체성분 통합 관리: `/body-composition-2`
+- SCR-I007 회원 건강 연동 요약: `/members/health`
