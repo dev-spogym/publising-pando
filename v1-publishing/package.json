@@ -15,7 +15,8 @@
     "test:e2e:ui": "playwright test --ui",
     "preview": "serve out -l 3100",
     "docs:handoff": "tsx scripts/generate-handoff-docs.ts",
-    "verify:handoff": "npm run docs:handoff && tsx scripts/verify-handoff.ts"
+    "verify:handoff": "npm run docs:handoff && tsx scripts/verify-handoff.ts",
+    "visual:audit": "tsx scripts/visual-audit.ts"
   },
   "keywords": [],
   "author": "",

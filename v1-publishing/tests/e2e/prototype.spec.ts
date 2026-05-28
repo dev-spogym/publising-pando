@@ -41,7 +41,7 @@ test("protected owner action is permission-gated for staff", async ({ page }) =>
 test("publishing controls provide mock feedback for filters, rows, metrics, and handoff contracts", async ({ page }) => {
   await page.goto("/members");
   await expect(page.getByText("개발 핸드오프 계약")).toBeVisible();
-  await expect(page.getByText(/GET \/api\/admin\/members/)).toBeVisible();
+  await expect(page.getByText(/API 호출 없음/).first()).toBeVisible();
 
   await page.getByRole("button", { name: /활성 회원/ }).click();
   await expect(page.getByText(/활성 회원 지표 필터 mock 적용/)).toBeVisible();
@@ -63,7 +63,7 @@ test("publishing controls provide mock feedback for filters, rows, metrics, and 
 test("dialog form edits surface dirty close and submit contract feedback", async ({ page }) => {
   await page.goto("/members");
   await page.locator('[data-dialog-id="DLG-M001"]').first().click();
-  await expect(page.getByText(/Contract: POST \/api\/admin\/members\/dialogs\/m001/)).toBeVisible();
+  await expect(page.getByText(/Contract key: DLG-M001.submit/)).toBeVisible();
   await page.locator("textarea").first().fill("검수용 변경");
   await expect(page.getByText(/상태 dirty/)).toBeVisible();
   await page.getByRole("button", { name: "닫기" }).click();
@@ -108,4 +108,15 @@ test("D04-D11 routes use domain-specific publishing layouts", async ({ page }) =
     await expect(page.getByText(heading)).toBeVisible();
     await expect(page.getByText("프론트 상태 명세")).toBeVisible();
   }
+});
+
+
+test("DLG component gallery renders D01-D03 component cards", async ({ page }) => {
+  await page.goto("/dialogs");
+  await expect(page.getByText("DLG 컴포넌트 갤러리").first()).toBeVisible();
+  await expect(page.getByText("DLG 컴포넌트화").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "D02 회원관리" })).toBeVisible();
+  await expect(page.getByText("DLG-M001").first()).toBeVisible();
+  await page.getByRole("button", { name: /D03 매출관리/ }).click();
+  await expect(page.getByText("DLG-S013").first()).toBeVisible();
 });

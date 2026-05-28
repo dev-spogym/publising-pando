@@ -1,11 +1,12 @@
 # V1 Screen Routes
 
-Generated: 2026-05-28T12:26:18.154Z
+Generated: 2026-05-28T14:16:33.025Z
 
 | ID | 화면 | Domain | Route | Handoff | DLG | Source |
 |---|---|---|---|---|---:|---|
 | SCR-100 | 로그인 | D01 | `/login` | production-ready | 1 | docs4/V1/D01-공통/공통.md |
 | SCR-104 | 알림 센터 | D01 | `/notifications` | production-ready | 1 | docs4/V1/D01-공통/공통.md |
+| SCR-DLG | DLG 컴포넌트 갤러리 | D01 | `/dialogs` | production-ready | 0 | docs4/V1/D01~D03 |
 | SCR-M001 | 회원 목록 | D02 | `/members` | production-ready | 4 | docs4/V1/D02-회원관리/회원관리.md |
 | SCR-M002 | 회원 등록 | D02 | `/members/new` | production-ready | 4 | docs4/V1/D02-회원관리/회원관리.md |
 | SCR-M003 | 회원 수정 | D02 | `/members/edit` | production-ready | 4 | docs4/V1/D02-회원관리/회원관리.md |

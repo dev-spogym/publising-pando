@@ -1,8 +1,8 @@
 # V1 D01~D11 Coverage Report
 
-- Generated: 2026-05-28T12:26:18.599Z
+- Generated: 2026-05-28T14:12:30.137Z
 - 기준 문서: docs4/V1 D01~D11 화면설계 문서
-- 화면 구현: 82/82
+- 화면 구현: 83/82
 - 다이얼로그 구현: 129/129
 - 라우트 오류: 0
 - 화면 연결 없는 DLG: 0
@@ -14,11 +14,12 @@
 - 없음
 
 ## Extra Implementations
-- 없음
+- SCR-DLG
 
 ## Routes
 - SCR-100 로그인: `/login`
 - SCR-104 알림 센터: `/notifications`
+- SCR-DLG DLG 컴포넌트 갤러리: `/dialogs`
 - SCR-M001 회원 목록: `/members`
 - SCR-M002 회원 등록: `/members/new`
 - SCR-M003 회원 수정: `/members/edit`

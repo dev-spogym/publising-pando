@@ -1,6 +1,6 @@
 # V1 API Contracts for Development Handoff
 
-Generated: 2026-05-28T13:20:01.769Z
+Generated: 2026-05-28T14:16:33.025Z
 
 > 실제 API는 구현하지 않습니다. 아래 endpoint/request/response는 개발 연결용 mock contract입니다.
 
@@ -27,6 +27,16 @@ Generated: 2026-05-28T13:20:01.769Z
 | SCR-104.list | GET | `/api/admin/notifications` | 알림 센터 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-104", rows, metrics, permissions, policyFlags }` |
 | SCR-104.전체-읽음-처리 | PATCH | `/api/admin/notifications/actions/전체-읽음-처리` | 알림 센터 - 전체 읽음 처리 처리 | `{ ok: true, toast: "전체 읽음 처리 mock 처리 완료", updatedRows?, nextState? }` |
 | SCR-104.세션-만료-테스트 | PATCH | `/api/admin/notifications/actions/세션-만료-테스트` | 알림 센터 - 세션 만료 테스트 처리 | `{ ok: true, toast: "세션 만료 테스트 mock 처리 완료", updatedRows?, nextState? }` |
+
+### SCR-DLG DLG 컴포넌트 갤러리
+- Route: `/dialogs`
+- Handoff: production-ready
+- Query Params: `도메인`, `정책-확인`, `권한`, `처리-유형`
+- States: loading skeleton, empty state, filtered result, validation error, permission blocked, policy pending, mock success toast
+
+| Key | Method | Endpoint | Purpose | Response |
+|---|---|---|---|---|
+| SCR-DLG.list | GET | `/api/admin/dialogs` | DLG 컴포넌트 갤러리 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-DLG", rows, metrics, permissions, policyFlags }` |
 
 ### SCR-M001 회원 목록
 - Route: `/members`

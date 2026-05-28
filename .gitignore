@@ -1,1 +1,7 @@
+# private contract
 share/소프트웨어_기획_디자인_QA_용역_계약서_2026-02-24.md
+
+# local/runtime artifacts
+.DS_Store
+.omc/
+.omx/
