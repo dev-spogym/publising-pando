@@ -2213,9 +2213,333 @@ function PosSalesScreen({ screen, role, branch, openDialog, notify }: Specialize
 }
 
 function PaymentProcessingScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
-  const [receipt, setReceipt] = useState(false);
+  // admin-pando payment 패턴 + 운영자 UX
+  // 결제 유형 3종 (현장 전액/잔액/계약금) + 영수증 첨부 검증 + 결제 완료 화면 + 회원 검색 + 권한 차등
+  type PaymentType = "full" | "remaining" | "deposit";
+  type PaymentMethod = "card" | "cash" | "transfer" | "mixed";
+  type ReceiptStatus = "none" | "attaching" | "attached" | "rejected";
+
+  const typeMeta: Record<PaymentType, { label: string; description: string; color: string }> = {
+    full: { label: "현장 전액 등록", description: "외부 POS/현금 수납 완료 후 CRM 기록", color: "bg-emerald-50 border-emerald-200" },
+    remaining: { label: "잔액 등록", description: "기존 결제 잔액 추가 수납", color: "bg-blue-50 border-blue-200" },
+    deposit: { label: "계약금 등록", description: "정식 결제 전 계약금 선납 기록", color: "bg-amber-50 border-amber-200" }
+  };
+
+  const methodMeta: Record<PaymentMethod, { label: string; icon: typeof CreditCard }> = {
+    card: { label: "카드", icon: CreditCard },
+    cash: { label: "현금", icon: AlertTriangle },
+    transfer: { label: "계좌이체", icon: Building2 },
+    mixed: { label: "복합", icon: ClipboardCheck }
+  };
+
+  const [paymentType, setPaymentType] = useState<PaymentType>("full");
+  const [memberQuery, setMemberQuery] = useState("김민준");
+  const [memberPhone] = useState("010-1234-5678");
+  const [product, setProduct] = useState("PT 20회권");
+  const [amountInput, setAmountInput] = useState("1150000");
+  const [originalAmount] = useState(1200000);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
+  const [receiptStatus, setReceiptStatus] = useState<ReceiptStatus>("none");
+  const [receiptFileName, setReceiptFileName] = useState("");
   const [done, setDone] = useState(false);
-  return <div className="space-y-5"><DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="결제 등록 플로우" />{done ? <Card className="shadow-none"><CardContent className="grid place-items-center py-16 text-center"><CheckCircle2 className="size-16 text-emerald-600" /><h2 className="mt-4 text-2xl font-bold">결제 등록 완료</h2><p className="mt-2 text-sm text-content-secondary">결제완료 상태와 회원권/수강권 구매 완료가 함께 반영되는 mock 완료 화면입니다.</p><div className="mt-6 flex gap-2"><Button onClick={() => notify("영수증 파일 보기 mock", "info")}>영수증 파일 보기</Button><Button variant="outline" onClick={() => notify("문자 발송 mock", "info")}>문자 발송</Button><Button variant="outline" onClick={() => setDone(false)}>계속 판매하기</Button><Button asChild><Link href="/sales">매출 현황</Link></Button></div></CardContent></Card> : <div className="grid grid-cols-[minmax(0,1fr)_360px] gap-5"><Card className="shadow-none"><CardHeader><CardTitle>구매자 · 상품 · 수납 · 완료</CardTitle><CardDescription>현장 전액 등록, 잔액 등록, 계약금 등록을 분리합니다.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="grid grid-cols-3 gap-3">{["현장 전액 등록", "잔액 등록", "계약금 등록"].map((item) => <button key={item} className="rounded-xl border p-4 text-left hover:bg-surface-secondary" onClick={() => notify(`${item} 유형 선택`, "info")}><b>{item}</b><p className="mt-1 text-xs text-content-tertiary">외부 POS/현금 수납 완료 후 CRM 기록</p></button>)}</div><div className="grid grid-cols-2 gap-4"><Input placeholder="회원 검색" defaultValue="김민준" /><Input placeholder="상품" defaultValue="PT 20회" /><Input placeholder="수납 금액" defaultValue="1,150,000" /><Input placeholder="결제 수단" defaultValue="카드" /></div><div className="rounded-xl border p-4"><div className="flex items-center justify-between"><div><b>영수증 파일</b><p className="text-xs text-content-tertiary">이미지 또는 PDF만 첨부 가능</p></div><Button variant={receipt ? "default" : "outline"} onClick={() => { setReceipt(true); notify("영수증 첨부 mock 완료"); }}>{receipt ? "첨부 완료" : "파일 첨부"}</Button></div>{!receipt && <p className="mt-2 text-xs text-rose-600">영수증 파일을 첨부해주세요.</p>}</div><div className="flex justify-between"><Button variant="outline" onClick={() => notify("결제 상태 초기화", "info")}>초기화</Button><Button data-dialog-id="DLG-S003" disabled={!receipt} onClick={() => receipt ? setDone(true) : notify("영수증 파일을 첨부해주세요.", "warning")}>결제 등록</Button></div></CardContent></Card><aside className="min-w-0 space-y-5"><Card className="shadow-none"><CardHeader><CardTitle>예외/연결 DLG</CardTitle></CardHeader><CardContent className="space-y-2"><Button data-dialog-id="DLG-S002" className="w-full" variant="outline" onClick={() => openDialog("DLG-S002")}>구매자 검색</Button><Button data-dialog-id="DLG-S004" className="w-full" variant="outline" onClick={() => openDialog("DLG-S004")}>중복 결제 경고</Button><Button data-dialog-id="DLG-S009" className="w-full" variant="outline" onClick={() => openDialog("DLG-S009")}>할부 등록</Button></CardContent></Card><DialogDock screen={screen} openDialog={openDialog} /><HandoffContractCard screen={screen} /></aside></div>}</div>;
+  const [submittedSnapshot, setSubmittedSnapshot] = useState<{
+    member: string; phone: string; product: string; amount: string; method: PaymentMethod;
+    type: PaymentType; receipt: string; timestamp: string;
+  } | null>(null);
+
+  const amountNum = Number(amountInput.replace(/[^0-9]/g, "")) || 0;
+  const amountFmt = amountNum.toLocaleString("ko-KR");
+  const isOverPaying = paymentType === "remaining" && amountNum > originalAmount;
+  const isUnderPaying = paymentType === "full" && amountNum < originalAmount * 0.5;
+
+  const canCreatePayment = hasPermission(role, "salesWrite");
+
+  const attachReceipt = () => {
+    if (receiptStatus === "attaching") return;
+    setReceiptStatus("attaching");
+    notify("영수증 파일 첨부 중...", "info");
+    window.setTimeout(() => {
+      const fakeName = `receipt_${Date.now().toString().slice(-6)}.pdf`;
+      setReceiptFileName(fakeName);
+      setReceiptStatus("attached");
+      notify("영수증 첨부 완료 (1.2MB)", "success");
+    }, 800);
+  };
+
+  const removeReceipt = () => {
+    setReceiptStatus("none");
+    setReceiptFileName("");
+    notify("영수증 파일 제거", "info");
+  };
+
+  const resetForm = () => {
+    setPaymentType("full");
+    setMemberQuery("");
+    setProduct("");
+    setAmountInput("");
+    setPaymentMethod("card");
+    setReceiptStatus("none");
+    setReceiptFileName("");
+    notify("결제 입력 초기화", "info");
+  };
+
+  const submitPayment = () => {
+    if (!canCreatePayment) { notify("결제 등록 권한이 없습니다 (salesWrite 필요)", "warning"); return; }
+    if (!memberQuery.trim()) { notify("구매자를 검색해주세요.", "warning"); return; }
+    if (!product.trim()) { notify("상품을 선택해주세요.", "warning"); return; }
+    if (amountNum <= 0) { notify("결제 금액을 입력해주세요.", "warning"); return; }
+    if (receiptStatus !== "attached") { notify("영수증 파일을 첨부해주세요.", "warning"); return; }
+    setSubmittedSnapshot({
+      member: memberQuery, phone: memberPhone, product, amount: amountFmt,
+      method: paymentMethod, type: paymentType, receipt: receiptFileName,
+      timestamp: new Date().toTimeString().slice(0, 8)
+    });
+    setDone(true);
+    notify("결제 등록 완료 — 매출/회원 상세 자동 반영");
+  };
+
+  if (done && submittedSnapshot) {
+    return (
+      <div className="space-y-5">
+        <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="결제 등록 완료" />
+        <Card className="shadow-none">
+          <CardContent className="grid place-items-center py-16 text-center">
+            <div className="size-20 rounded-full bg-emerald-100 grid place-items-center">
+              <CheckCircle2 className="size-12 text-emerald-600" />
+            </div>
+            <h2 className="mt-4 text-2xl font-bold">결제 등록 완료</h2>
+            <p className="mt-2 text-sm text-content-secondary">결제완료 상태 + 회원권/수강권 구매 완료가 함께 반영되었습니다.</p>
+
+            {/* 결제 요약 카드 */}
+            <div className="mt-6 w-full max-w-md rounded-2xl border bg-surface-secondary p-5 text-left">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-content-tertiary">구매자</span><span className="font-semibold">{submittedSnapshot.member} <span className="text-xs text-content-tertiary">({submittedSnapshot.phone})</span></span></div>
+                <div className="flex justify-between"><span className="text-content-tertiary">상품</span><span className="font-semibold">{submittedSnapshot.product}</span></div>
+                <div className="flex justify-between"><span className="text-content-tertiary">결제 유형</span><span className="font-semibold">{typeMeta[submittedSnapshot.type].label}</span></div>
+                <div className="flex justify-between"><span className="text-content-tertiary">결제 수단</span><span className="font-semibold">{methodMeta[submittedSnapshot.method].label}</span></div>
+                <div className="flex justify-between"><span className="text-content-tertiary">영수증</span><span className="font-mono text-xs text-emerald-700">{submittedSnapshot.receipt}</span></div>
+                <div className="flex justify-between"><span className="text-content-tertiary">처리 시각</span><span className="font-mono text-xs">{submittedSnapshot.timestamp}</span></div>
+              </div>
+              <div className="mt-4 pt-3 border-t flex justify-between items-baseline">
+                <span className="text-sm font-bold">결제 금액</span>
+                <span className="text-2xl font-bold text-primary tabular-nums">{submittedSnapshot.amount}원</span>
+              </div>
+            </div>
+
+            {/* 후속 액션 */}
+            <div className="mt-6 flex flex-wrap gap-2 justify-center">
+              <Button onClick={() => notify("영수증 파일 보기 mock", "info")}><ClipboardCheck size={14} className="mr-1.5" /> 영수증 파일 보기</Button>
+              <Button variant="outline" onClick={() => notify(`${submittedSnapshot.member} 결제 완료 안내 SMS 발송`, "info")}><MessageSquare size={14} className="mr-1.5" /> 결제 완료 SMS 발송</Button>
+              <Button variant="outline" onClick={() => notify(`${submittedSnapshot.member} 회원 상세 이동`, "info")}>회원 상세</Button>
+              <Button variant="outline" onClick={() => { setDone(false); resetForm(); }}>계속 판매하기</Button>
+              <Button asChild><Link href="/sales">매출 현황</Link></Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="결제 등록 플로우 · 영수증 필수" />
+
+      <div className="grid grid-cols-[minmax(0,1fr)_360px] gap-5">
+        <div className="space-y-4">
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle>구매자 · 상품 · 수납 · 완료</CardTitle>
+              <CardDescription>현장 전액 등록, 잔액 등록, 계약금 등록 3가지 유형을 분리합니다.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {/* Step 1: 결제 유형 */}
+              <div>
+                <Label className="text-xs font-bold mb-2 block flex items-center gap-1.5">
+                  <span className="size-5 rounded-full bg-primary text-white grid place-items-center text-[10px] font-bold">1</span>
+                  결제 유형 선택 *
+                </Label>
+                <div className="grid grid-cols-3 gap-3">
+                  {(Object.keys(typeMeta) as PaymentType[]).map((t) => {
+                    const meta = typeMeta[t];
+                    return (
+                      <button
+                        key={t}
+                        onClick={() => { setPaymentType(t); notify(`${meta.label} 선택`, "info"); }}
+                        className={cn(
+                          "rounded-xl border-2 p-3 text-left transition-all",
+                          paymentType === t ? cn(meta.color, "ring-2 ring-primary border-primary") : "border-line bg-white hover:border-primary/50"
+                        )}
+                      >
+                        <b className="text-sm">{meta.label}</b>
+                        <p className="mt-1 text-[10px] text-content-tertiary">{meta.description}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Step 2: 구매자 / 상품 */}
+              <div>
+                <Label className="text-xs font-bold mb-2 block flex items-center gap-1.5">
+                  <span className="size-5 rounded-full bg-primary text-white grid place-items-center text-[10px] font-bold">2</span>
+                  구매자 · 상품 *
+                </Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-[10px] text-content-tertiary mb-1 block">구매자 *</Label>
+                    <div className="flex gap-1">
+                      <div className="relative flex-1">
+                        <UserRound size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-content-tertiary" />
+                        <Input value={memberQuery} onChange={(e) => setMemberQuery(e.target.value)} className="pl-9" placeholder="회원 검색" />
+                      </div>
+                      <Button data-dialog-id="DLG-S002" size="sm" variant="outline" onClick={() => openDialog("DLG-S002")}>검색</Button>
+                    </div>
+                    {memberQuery && <p className="mt-1 text-[10px] text-content-tertiary">{memberPhone}</p>}
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-content-tertiary mb-1 block">상품 *</Label>
+                    <Input value={product} onChange={(e) => setProduct(e.target.value)} placeholder="상품명" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3: 금액 / 결제 수단 */}
+              <div>
+                <Label className="text-xs font-bold mb-2 block flex items-center gap-1.5">
+                  <span className="size-5 rounded-full bg-primary text-white grid place-items-center text-[10px] font-bold">3</span>
+                  결제 금액 · 수단 *
+                </Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-[10px] text-content-tertiary mb-1 block">수납 금액 (원) *</Label>
+                    <Input value={amountInput} onChange={(e) => setAmountInput(e.target.value.replace(/[^0-9]/g, ""))} placeholder="1,150,000" className={cn((isOverPaying || isUnderPaying) && "border-amber-400 bg-amber-50")} />
+                    {amountNum > 0 && <p className="mt-1 text-[10px] text-content-secondary">{amountFmt}원</p>}
+                    {isOverPaying && <p className="mt-1 text-[10px] text-amber-700">⚠️ 원 금액({originalAmount.toLocaleString()}원) 초과 — 잔액 등록은 추가 금액만 입력</p>}
+                    {isUnderPaying && <p className="mt-1 text-[10px] text-amber-700">⚠️ 전액 등록인데 50% 미만 — 계약금 등록으로 변경 권장</p>}
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-content-tertiary mb-1 block">결제 수단 *</Label>
+                    <div className="grid grid-cols-4 gap-1">
+                      {(Object.keys(methodMeta) as PaymentMethod[]).map((m) => {
+                        const M = methodMeta[m].icon;
+                        return (
+                          <Button
+                            key={m} size="sm"
+                            variant={paymentMethod === m ? "default" : "outline"}
+                            onClick={() => setPaymentMethod(m)}
+                            className="px-2"
+                          >
+                            <M size={12} className="mr-0.5" /> {methodMeta[m].label}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 4: 영수증 첨부 */}
+              <div>
+                <Label className="text-xs font-bold mb-2 block flex items-center gap-1.5">
+                  <span className="size-5 rounded-full bg-primary text-white grid place-items-center text-[10px] font-bold">4</span>
+                  영수증 첨부 * (필수)
+                </Label>
+                <div className={cn("rounded-xl border-2 p-4",
+                  receiptStatus === "attached" ? "border-emerald-200 bg-emerald-50" :
+                  receiptStatus === "rejected" ? "border-rose-200 bg-rose-50" :
+                  receiptStatus === "attaching" ? "border-blue-200 bg-blue-50" :
+                  "border-dashed border-line bg-surface-secondary"
+                )}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {receiptStatus === "attached" ? (
+                        <div className="size-9 rounded-lg bg-emerald-100 grid place-items-center"><CheckCircle2 size={18} className="text-emerald-600" /></div>
+                      ) : receiptStatus === "attaching" ? (
+                        <div className="size-9 rounded-lg bg-blue-100 grid place-items-center animate-pulse"><Clock size={18} className="text-blue-600" /></div>
+                      ) : (
+                        <div className="size-9 rounded-lg bg-surface-tertiary grid place-items-center"><ClipboardCheck size={18} className="text-content-tertiary" /></div>
+                      )}
+                      <div className="min-w-0">
+                        <b className="text-sm">
+                          {receiptStatus === "attached" ? "첨부 완료" : receiptStatus === "attaching" ? "업로드 중..." : "영수증 파일"}
+                        </b>
+                        <p className="text-[11px] text-content-tertiary truncate">
+                          {receiptStatus === "attached" ? receiptFileName : "이미지(JPG/PNG) 또는 PDF만 첨부 가능 · 최대 5MB"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      {receiptStatus === "attached" ? (
+                        <>
+                          <Button size="sm" variant="ghost" onClick={() => notify("영수증 미리보기 mock", "info")}>미리보기</Button>
+                          <Button size="sm" variant="outline" onClick={removeReceipt}><X size={12} className="mr-1" />제거</Button>
+                        </>
+                      ) : (
+                        <Button size="sm" onClick={attachReceipt} disabled={receiptStatus === "attaching"}>
+                          {receiptStatus === "attaching" ? "업로드 중..." : "파일 첨부"}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  {receiptStatus === "none" && <p className="mt-2 text-[10px] text-rose-600 font-semibold">⚠️ 영수증 파일을 첨부해야 결제 등록이 가능합니다.</p>}
+                </div>
+              </div>
+
+              {/* 최종 버튼 */}
+              <div className="flex justify-between items-center pt-2 border-t">
+                <Button variant="outline" onClick={resetForm}>초기화</Button>
+                <div className="flex items-center gap-3">
+                  {amountNum > 0 && (
+                    <div className="text-right">
+                      <p className="text-[10px] text-content-tertiary">최종 결제 금액</p>
+                      <p className="text-lg font-bold tabular-nums text-primary">{amountFmt}원</p>
+                    </div>
+                  )}
+                  <Button
+                    data-dialog-id="DLG-S003"
+                    disabled={receiptStatus !== "attached" || !canCreatePayment}
+                    onClick={submitPayment}
+                  >
+                    <CreditCard size={14} className="mr-1.5" /> 결제 등록
+                  </Button>
+                </div>
+              </div>
+              {!canCreatePayment && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs">
+                  <AlertTriangle size={14} className="inline text-amber-600 mr-1.5" />
+                  <b>권한 안내:</b> 결제 등록은 salesWrite 권한 필요 ({roleById.get(role)?.label} → 매니저+/FC/Owner)
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <aside className="min-w-0 space-y-5">
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>예외/연결 DLG</CardTitle><CardDescription>결제 보조 액션</CardDescription></CardHeader>
+            <CardContent className="space-y-2">
+              <Button data-dialog-id="DLG-S002" className="w-full" variant="outline" onClick={() => openDialog("DLG-S002")}>구매자 검색</Button>
+              <Button data-dialog-id="DLG-S004" className="w-full" variant="outline" onClick={() => openDialog("DLG-S004")}>중복 결제 경고</Button>
+              <Button data-dialog-id="DLG-S009" className="w-full" variant="outline" onClick={() => openDialog("DLG-S009")}>할부 등록</Button>
+            </CardContent>
+          </Card>
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>결제 유형 정책</CardTitle></CardHeader>
+            <CardContent className="space-y-1.5 text-xs">
+              {(Object.keys(typeMeta) as PaymentType[]).map((t) => (
+                <div key={t} className="rounded-lg border bg-white px-2 py-1.5">
+                  <b>{typeMeta[t].label}</b>
+                  <p className="text-content-tertiary text-[10px] mt-0.5">{typeMeta[t].description}</p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <DialogDock screen={screen} openDialog={openDialog} />
+          <HandoffContractCard screen={screen} />
+        </aside>
+      </div>
+    </div>
+  );
 }
 
 
@@ -2807,14 +3131,80 @@ const dialogTone: Record<DialogKind, { badge: "default" | "secondary" | "destruc
 };
 
 function getDialogKind(dialog: DialogDefinition): DialogKind {
-  const text = `${dialog.id} ${dialog.title} ${dialog.purpose} ${dialog.components.join(" ")}`;
-  if (dialog.id === "DLG-000" || /세션/.test(text)) return "session";
-  if (dialog.destructive || /삭제|탈퇴|병합|작업 취소|초기화|취소 확인|퇴사|회수/.test(dialog.title)) return "destructive";
-  if (/검색|중복 안내|선택 목록|주소/.test(text)) return "search";
-  if (/일괄|대량|배포|전체 반복|일정 이후|여러|다중/.test(text)) return "bulk";
-  if (/결제|매출|환불|납입|할부|세금|정산|수납|미수|영수증|쿠폰|선수익|목표 매출/.test(text)) return "payment";
-  if (/상태|권한|설정|변경|홀딩|해제|이관|등급|정책|토글|승인|등록|수정|추가|처리|확인/.test(text)) return "status";
+  // ID + 타이틀 우선순위 분류: 타이틀이 정확한 의도. components 텍스트는 보조.
+  // 잘못된 매칭 방지: "신규 지점 등록" DLG가 "주소 / 주소 검색" components 때문에 search로 잡히지 않도록 타이틀 우선.
+  const id = dialog.id;
+  const title = dialog.title;
+  const compsText = dialog.components.join(" ");
+
+  // 1. session: DLG-000 또는 타이틀에 "세션"
+  if (id === "DLG-000" || /세션/.test(title)) return "session";
+
+  // 2. destructive: destructive 플래그 또는 위험 키워드 (타이틀만)
+  if (dialog.destructive || /삭제|탈퇴|병합|작업 취소|초기화 확인|취소 확인|퇴사|회수|비활성화|중지/.test(title)) return "destructive";
+
+  // 3. search: 타이틀에 "검색"/"중복" 또는 components의 첫 라인이 검색 input일 때
+  if (/검색|중복 안내|선택 목록/.test(title) || /^주소 검색/.test(dialog.components[0] ?? "")) return "search";
+
+  // 4. bulk: 타이틀에 "일괄"/"대량"/"전체"/"다중"
+  if (/일괄|대량|전체 반복|다중|일정 이후/.test(title)) return "bulk";
+
+  // 5. payment: 타이틀에 결제·환불·매출·할부 관련
+  if (/결제|매출|환불|납입|할부|세금|정산|수납|미수|영수증|쿠폰|선수익|목표 매출|환급/.test(title)) return "payment";
+
+  // 6. status: 타이틀에 상태/처리/변경 관련
+  if (/상태|권한|설정|변경|홀딩|해제|이관|등급|정책|토글|승인|처리/.test(title)) return "status";
+
+  // 7. form: 등록/추가/입력 등 신규 데이터 입력 = FormDialogBody (구조화된 컴포넌트 자동 렌더)
+  if (/등록|추가|입력|작성|발급|생성|만들기|배정/.test(title)) return "form";
+
+  // fallback: components 텍스트 보조 검사
+  if (/검색|주소/.test(compsText) && !/등록|추가/.test(title)) return "search";
   return "form";
+}
+
+// 동사형 푸터 액션 라벨 — DLG ID 또는 kind 기반 명확한 의도
+function getDialogActionLabel(dialog: DialogDefinition, kind: DialogKind): string {
+  // ID 기반 정확한 매핑 우선
+  const idMap: Record<string, string> = {
+    "DLG-000": "재로그인",
+    "DLG-M001": "상태 변경",
+    "DLG-M002": "회원 삭제",
+    "DLG-M005": "탈퇴 처리",
+    "DLG-M006": "강제 등록",
+    "DLG-M013": "환불 처리",
+    "DLG-M022": "출석 등록",
+    "DLG-M023": "이관 확인",
+    "DLG-M027": "주소 선택",
+    "DLG-M028": "병합 확정",
+    "DLG-S001": "닫기",
+    "DLG-S002": "구매자 선택",
+    "DLG-S003": "결제 확정",
+    "DLG-S004": "계속 진행",
+    "DLG-S013": "환불 확정",
+    "DLG-S015": "환불 요청 접수",
+    "DLG-092-001": "지점 등록",
+    "DLG-092-002": "운영 상태 변경"
+  };
+  if (idMap[dialog.id]) return idMap[dialog.id];
+
+  // policy pending — 정책 확인 저장
+  if (dialog.policyPending) return "정책 확인 저장";
+
+  // kind 기반 fallback
+  if (kind === "session") return "재로그인";
+  if (kind === "destructive") return /삭제/.test(dialog.title) ? "삭제 확정" : /병합/.test(dialog.title) ? "병합 확정" : /비활성/.test(dialog.title) ? "비활성화 확정" : /퇴사/.test(dialog.title) ? "퇴사 처리" : "위험 액션 확정";
+  if (kind === "search") return "선택 적용";
+  if (kind === "bulk") return "일괄 실행";
+  if (kind === "payment") return /환불/.test(dialog.title) ? "환불 확정" : /세금/.test(dialog.title) ? "발행" : "결제 확정";
+
+  // form/status — 타이틀에서 동사 추출
+  if (/등록/.test(dialog.title)) return "등록";
+  if (/수정/.test(dialog.title)) return "저장";
+  if (/추가/.test(dialog.title)) return "추가";
+  if (/생성|만들기|발급/.test(dialog.title)) return "생성";
+  if (/변경|이관/.test(dialog.title)) return "변경";
+  return "확인";
 }
 
 function RuntimeDialog({ dialogId, role, onClose, notify }: RuntimeDialogProps) {
@@ -2822,9 +3212,7 @@ function RuntimeDialog({ dialogId, role, onClose, notify }: RuntimeDialogProps) 
   const allowed = dialog ? hasPermission(role, dialog.requiredPermission) : true;
   const contract = dialog ? getDialogContract(dialog) : null;
   const kind = dialog ? getDialogKind(dialog) : "form";
-  const tone = dialogTone[kind];
   const [dirty, setDirty] = useState(false);
-
 
   const closeDialog = () => {
     if (dirty) notify("입력 변경사항을 저장하지 않고 닫았습니다.", "warning");
@@ -2835,62 +3223,57 @@ function RuntimeDialog({ dialogId, role, onClose, notify }: RuntimeDialogProps) 
   const confirmDialog = () => {
     if (!dialog) return;
     if (!allowed) {
-      notify(`${dialog.id} ${dialog.title}: 현재 역할 권한으로는 확인 처리할 수 없습니다.`, "warning");
+      notify(`${dialog.id} ${dialog.title}: 현재 역할 권한으로는 처리할 수 없습니다.`, "warning");
       return;
     }
-    notify(`${dialog.id} ${dialog.title} mock 처리 완료`, dialog.policyPending ? "warning" : "success");
+    notify(`${dialog.title} mock 처리 완료`, dialog.policyPending ? "warning" : "success");
     setDirty(false);
     onClose();
   };
 
+  if (!dialog || !contract) {
+    return <Dialog open={false} onOpenChange={(open) => !open && closeDialog()}><DialogContent /></Dialog>;
+  }
+
+  const actionLabel = getDialogActionLabel(dialog, kind);
+  const isDestructive = dialog.destructive || kind === "destructive";
+  const widthClass = kind === "search" || kind === "bulk" || dialog.id === "DLG-M028" ? "max-w-3xl" : "max-w-2xl";
+
   return (
     <Dialog open={Boolean(dialog)} onOpenChange={(open) => !open && closeDialog()}>
-      {dialog && contract && (
-        <DialogContent data-testid="runtime-dialog" className="max-w-[920px] p-0">
-          <div className={cn("rounded-t-lg border-b px-6 py-5", tone.panel)}>
-            <DialogHeader className="gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={dialog.destructive ? "destructive" : tone.badge}>{dialog.id}</Badge>
-                <Badge variant="outline" className="bg-white/70">{dialog.source}</Badge>
-                <Badge variant="secondary">{tone.label}</Badge>
-                {dialog.policyPending && <Badge variant="warning">정책 확인 필요</Badge>}
-                {!allowed && <Badge variant="warning">권한 차단</Badge>}
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-white/80 text-sm font-black shadow-sm">{tone.icon}</div>
-                <div className="min-w-0">
-                  <DialogTitle className="text-2xl leading-tight">{dialog.title}</DialogTitle>
-                  <DialogDescription className="mt-2 leading-6 text-current/75">{dialog.purpose}</DialogDescription>
-                </div>
-              </div>
-            </DialogHeader>
+      <DialogContent data-testid="runtime-dialog" className={cn("p-0 overflow-hidden", widthClass)}>
+        {/* 헤더: 컴팩트. ID 배지 + 타이틀 + source path 모노스페이스 + 닫기 X */}
+        <DialogHeader className="px-6 pt-5 pb-4 border-b space-y-2 text-left">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant={isDestructive ? "destructive" : "info"} className="text-[10px] font-mono">{dialog.id}</Badge>
+            {dialog.policyPending && <Badge variant="warning" className="text-[10px]">정책 확인 필요</Badge>}
+            {!allowed && <Badge variant="warning" className="text-[10px]"><Lock className="size-2.5 mr-1" />권한 차단</Badge>}
+            <code className="ml-auto font-mono text-[10px] text-content-tertiary truncate max-w-[260px]">{dialog.source.replace("share/", "")}</code>
           </div>
+          <DialogTitle className="text-xl leading-tight">{dialog.title}</DialogTitle>
+          <DialogDescription className="text-sm text-content-secondary leading-relaxed">{dialog.purpose}</DialogDescription>
+        </DialogHeader>
 
-          <div className="space-y-4 px-6 pb-6">
-            <DialogMetaPanel dialog={dialog} role={role} allowed={allowed} contract={contract} kind={kind} />
-            {!allowed && <PermissionBlockedMessage dialog={dialog} />}
-            <DialogWorkflowBody dialog={dialog} kind={kind} role={role} allowed={allowed} dirty={dirty} setDirty={setDirty} onClose={onClose} notify={notify} contract={contract} />
-            <DialogContractPanel contract={contract} dirty={dirty} />
-            <DialogFooter>
-              <Button variant="outline" onClick={closeDialog}>닫기</Button>
-              <Button variant={dialog.destructive || kind === "destructive" ? "destructive" : "default"} data-blocked={!allowed} onClick={confirmDialog}>{dialog.policyPending ? "정책 확인 상태로 저장" : kind === "session" ? "재로그인 mock" : kind === "destructive" ? "위험 확인" : "확인"}</Button>
-            </DialogFooter>
-          </div>
-        </DialogContent>
-      )}
+        {/* 본문 */}
+        <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
+          {!allowed && <PermissionBlockedMessage dialog={dialog} />}
+          <DialogWorkflowBody dialog={dialog} kind={kind} role={role} allowed={allowed} dirty={dirty} setDirty={setDirty} onClose={onClose} notify={notify} contract={contract} />
+        </div>
+
+        {/* 푸터: 동사형 액션 라벨 */}
+        <DialogFooter className="px-6 py-4 border-t bg-surface-secondary/40">
+          <Button variant="outline" onClick={closeDialog}>취소</Button>
+          <Button
+            variant={isDestructive ? "destructive" : "default"}
+            data-blocked={!allowed}
+            disabled={!allowed}
+            onClick={confirmDialog}
+          >
+            {actionLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
-  );
-}
-
-function DialogMetaPanel({ dialog, role, allowed, contract, kind }: { dialog: DialogDefinition; role: RoleId; allowed: boolean; contract: NonNullable<ReturnType<typeof getDialogContract>>; kind: DialogKind }) {
-  const roleInfo = roleById.get(role)!;
-  return (
-    <div className="grid gap-3 pt-4 md:grid-cols-4">
-      <div className="rounded-xl border bg-white p-3"><div className="text-xs font-semibold text-content-tertiary">문서 기준</div><div className="mt-1 text-sm font-medium text-content">{dialog.source.replace("share/", "")}</div></div>
-      <div className="rounded-xl border bg-white p-3"><div className="text-xs font-semibold text-content-tertiary">역할/권한</div><div className="mt-1 text-sm font-medium text-content">{roleInfo.label} · {allowed ? "가능" : "차단"}</div></div>
-      <div className="rounded-xl border bg-white p-3"><div className="text-xs font-semibold text-content-tertiary">처리 유형</div><div className="mt-1 text-sm font-medium text-content">{dialogTone[kind].label} · {contract.handoffStatus}</div></div>
-      <div className="rounded-xl border bg-white p-3"><div className="text-xs font-semibold text-content-tertiary">Mock 범위</div><div className="mt-1 text-sm font-medium text-content">API 호출 없음 · toast/local state</div></div>
-    </div>
   );
 }
 
@@ -2899,13 +3282,709 @@ function PermissionBlockedMessage({ dialog }: { dialog: DialogDefinition }) {
 }
 
 function DialogWorkflowBody(props: DialogBodyProps) {
-  if (props.kind === "session") return <SessionDialogBody {...props} />;
-  if (props.kind === "destructive") return <DestructiveDialogBody {...props} />;
-  if (props.kind === "payment") return <PaymentDialogBody {...props} />;
-  if (props.kind === "search") return <SearchDialogBody {...props} />;
-  if (props.kind === "bulk") return <BulkDialogBody {...props} />;
-  if (props.kind === "status") return <StatusDialogBody {...props} />;
-  return <FormDialogBody {...props} />;
+  const { dialog, kind } = props;
+
+  // ID 기반 정확한 분기 (핵심 DLG 30+)
+  if (dialog.id === "DLG-000") return <SessionDialogBody {...props} />;
+  if (dialog.id === "DLG-M001") return <MemberStatusChangeDialog {...props} />;
+  if (dialog.id === "DLG-M002") return <MemberDeleteDialog {...props} />;
+  if (dialog.id === "DLG-M005") return <MemberWithdrawDialog {...props} />;
+  if (dialog.id === "DLG-M006") return <PhoneDuplicateDialog {...props} />;
+  if (dialog.id === "DLG-M013") return <MemberRefundDialog {...props} />;
+  if (dialog.id === "DLG-M022") return <ManualAttendanceDialog {...props} />;
+  if (dialog.id === "DLG-M023") return <MemberTransferDialog {...props} />;
+  if (dialog.id === "DLG-M027") return <AddressSearchDialog {...props} />;
+  if (dialog.id === "DLG-M028") return <MemberMergeDialog {...props} />;
+  if (dialog.id === "DLG-S001") return <SalesDetailDialog />;
+  if (dialog.id === "DLG-S002") return <BuyerSearchDialog {...props} />;
+  if (dialog.id === "DLG-S003") return <PaymentConfirmDialog />;
+  if (dialog.id === "DLG-S004") return <DuplicatePaymentDialog />;
+  if (dialog.id === "DLG-S013") return <SalesRefundDialog {...props} />;
+  if (dialog.id === "DLG-S015") return <RefundRequestDialog {...props} />;
+  if (dialog.id === "DLG-092-001") return <BranchCreateDialog {...props} />;
+  if (dialog.id === "DLG-092-002") return <BranchDeactivateDialog {...props} />;
+
+  // kind 기반 fallback (나머지 100+ DLG)
+  if (kind === "session") return <SessionDialogBody {...props} />;
+  if (kind === "destructive") return <DestructiveDialogBody {...props} />;
+  if (kind === "payment") return <PaymentDialogBody {...props} />;
+  if (kind === "search") return <SearchDialogBody {...props} />;
+  if (kind === "bulk") return <BulkDialogBody {...props} />;
+  if (kind === "status") return <StatusDialogBody {...props} />;
+  return <ComponentDrivenForm {...props} />;
+}
+
+// 핵심 30 DLG 명시 분기 컴포넌트 ----------------------------------------------
+
+// DLG-M001 회원 상태 변경
+function MemberStatusChangeDialog({ setDirty }: DialogBodyProps) {
+  const [newStatus, setNewStatus] = useState("");
+  const [reason, setReason] = useState("");
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border bg-surface-secondary p-3 text-sm">
+        <div className="text-xs text-content-tertiary mb-1">대상 회원</div>
+        <div className="flex items-center gap-2">
+          <b>김민준</b><span className="text-xs text-content-tertiary">M0142 · 강남점</span>
+          <Badge variant="success" className="text-[10px] ml-auto">현재: 활성</Badge>
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">변경할 상태 *</Label>
+        <Select value={newStatus} onValueChange={(v) => { setNewStatus(v); setDirty(true); }}>
+          <SelectTrigger><SelectValue placeholder="선택해주세요" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">활성</SelectItem>
+            <SelectItem value="expired">만료</SelectItem>
+            <SelectItem value="holding">홀딩</SelectItem>
+            <SelectItem value="stopped">정지</SelectItem>
+            <SelectItem value="withdrawn">탈퇴</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">사유 * (감사 로그 필수)</Label>
+        <Textarea rows={3} value={reason} onChange={(e) => { setReason(e.target.value); setDirty(true); }} placeholder="예: 본인 요청 정지, 회비 미납 만료" />
+      </div>
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+        <AlertTriangle size={13} className="inline mr-1.5 text-amber-600" />
+        <b>예외처리:</b> 미수금 보유 회원의 탈퇴는 차단됩니다. 진행 예약이 있으면 자동 취소됩니다.
+      </div>
+    </div>
+  );
+}
+
+// DLG-M002 회원 삭제 (복구 불가)
+function MemberDeleteDialog({ setDirty }: DialogBodyProps) {
+  const [reason, setReason] = useState("");
+  const [confirmText, setConfirmText] = useState("");
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-900">
+        <div className="flex items-start gap-2">
+          <AlertTriangle size={16} className="mt-0.5" />
+          <div className="text-sm">
+            <b>복구 불가 액션</b>
+            <p className="mt-1 text-xs leading-5">회원 데이터가 영구 삭제됩니다. 결제·출석 이력은 보존되지만 개인정보는 90일 후 자동 마스킹됩니다.</p>
+          </div>
+        </div>
+      </div>
+      <div className="rounded-xl border bg-surface-secondary p-3">
+        <div className="text-xs text-content-tertiary mb-1">삭제 대상</div>
+        <div className="flex items-center gap-2">
+          <b>김민준</b><span className="text-xs text-content-tertiary">M0142 · 강남점 · 가입 2024-08-15</span>
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-2 block">차단 조건 확인</Label>
+        <div className="space-y-1.5">
+          {[{ label: "미수금 없음", ok: true }, { label: "진행 예약 없음", ok: true }, { label: "환불 필요 없음", ok: true }].map((c) => (
+            <div key={c.label} className="flex items-center gap-2 text-xs">
+              <CheckCircle2 size={13} className={c.ok ? "text-emerald-600" : "text-rose-600"} />
+              <span>{c.label}</span>
+              <Badge variant={c.ok ? "success" : "destructive"} className="text-[10px] ml-auto">{c.ok ? "OK" : "차단"}</Badge>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">삭제 사유 * (5자 이상)</Label>
+        <Textarea rows={2} value={reason} onChange={(e) => { setReason(e.target.value); setDirty(true); }} placeholder="예: 본인 요청, 중복 계정 정리" />
+        {reason.length > 0 && reason.length < 5 && (<p className="text-[10px] text-rose-600 mt-1">5자 이상 입력해주세요.</p>)}
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">확인 문구 입력 * &quot;삭제확인&quot;</Label>
+        <Input value={confirmText} onChange={(e) => { setConfirmText(e.target.value); setDirty(true); }} placeholder="삭제확인" className={cn(confirmText && confirmText !== "삭제확인" && "border-rose-400 bg-rose-50", confirmText === "삭제확인" && "border-emerald-400 bg-emerald-50")} />
+      </div>
+    </div>
+  );
+}
+
+// DLG-M005 탈퇴 처리
+function MemberWithdrawDialog({ setDirty }: DialogBodyProps) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border bg-surface-secondary p-3 text-sm">
+        <div className="text-xs text-content-tertiary mb-1">탈퇴 대상</div>
+        <b>김민준 · M0142 · 강남점</b>
+      </div>
+      <div className="grid grid-cols-2 gap-3 text-xs">
+        <div className="rounded-lg border p-3">
+          <div className="text-content-tertiary">잔여 이용권</div>
+          <div className="font-bold mt-1">PT 8회 · 회원권 D-42</div>
+        </div>
+        <div className="rounded-lg border border-rose-200 bg-rose-50 p-3">
+          <div className="text-rose-700">미수금</div>
+          <div className="font-bold mt-1 text-rose-700">120,000원</div>
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">탈퇴 사유 *</Label>
+        <Select onValueChange={() => setDirty(true)}>
+          <SelectTrigger><SelectValue placeholder="선택해주세요" /></SelectTrigger>
+          <SelectContent>
+            {["본인 요청", "이사", "건강 사유", "타지점 이관", "기타"].map((r) => (<SelectItem key={r} value={r}>{r}</SelectItem>))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">메모</Label>
+        <Textarea rows={2} onChange={() => setDirty(true)} placeholder="잔여 환불 처리는 별도 진행" />
+      </div>
+    </div>
+  );
+}
+
+// DLG-M006 전화번호 중복
+function PhoneDuplicateDialog({ notify }: DialogBodyProps) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-900 text-sm">
+        <AlertTriangle size={14} className="inline mr-1.5" />
+        입력한 연락처로 등록된 기존 회원이 있습니다. 동일인 여부를 확인해주세요.
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-2 block">중복 회원 목록</Label>
+        <div className="space-y-2">
+          {[
+            { name: "박서연", phone: "010-1234-5678", branch: "강남점", status: "활성", joined: "2024-03-12" },
+            { name: "박서연(가족)", phone: "010-1234-5678", branch: "서초점", status: "탈퇴", joined: "2023-11-05" }
+          ].map((m) => (
+            <div key={m.joined} className="rounded-lg border bg-white p-3 flex items-center justify-between">
+              <div>
+                <div className="font-semibold text-sm">{m.name} <span className="text-xs text-content-tertiary">({m.phone})</span></div>
+                <div className="text-[10px] text-content-tertiary mt-0.5">{m.branch} · 가입 {m.joined}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant={m.status === "활성" ? "success" : "secondary"} className="text-[10px]">{m.status}</Badge>
+                <Button size="sm" variant="outline" onClick={() => notify(`${m.name} 회원 상세 이동`, "info")}>상세</Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="rounded-lg border bg-surface-secondary p-3 text-xs text-content-secondary">
+        <b>처리 옵션:</b> 기존 회원이라면 [취소] → 회원 상세 이동. 다른 회원이라면 [강제 등록]으로 진행.
+      </div>
+    </div>
+  );
+}
+
+// DLG-M013 회원 결제 환불
+function MemberRefundDialog({ setDirty }: DialogBodyProps) {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-2 text-xs">
+        <div className="rounded-lg border p-2.5"><div className="text-content-tertiary">원 결제</div><div className="font-bold mt-1 font-mono">S-260520-018</div></div>
+        <div className="rounded-lg border p-2.5"><div className="text-content-tertiary">결제일</div><div className="font-bold mt-1">2026-05-20</div></div>
+        <div className="rounded-lg border border-primary/30 bg-primary-light p-2.5"><div className="text-primary">결제 금액</div><div className="font-bold mt-1 text-primary tabular-nums">1,200,000원</div></div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">환불 금액 (수기 입력) *</Label>
+        <Input type="text" placeholder="700,000" onChange={() => setDirty(true)} />
+        <p className="text-[10px] text-content-tertiary mt-1">사용 기간/회차 차감 후 잔액 — 자동 산식 미확정 (정책 보류)</p>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">위약금 (선택)</Label>
+        <Input type="text" placeholder="0" onChange={() => setDirty(true)} />
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">환불 사유 *</Label>
+        <Textarea rows={2} onChange={() => setDirty(true)} placeholder="중도 해지, 이사, 만족도 불만 등" />
+      </div>
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+        <AlertTriangle size={13} className="inline mr-1.5" />
+        <b>정책 확인 필요:</b> 실제 환불은 외부 PG 또는 현금 별도 처리. 본 DLG는 CRM 기록만 진행합니다.
+      </div>
+    </div>
+  );
+}
+
+// DLG-M022 수동 출석 등록
+function ManualAttendanceDialog({ setDirty }: DialogBodyProps) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+        <AlertTriangle size={13} className="inline mr-1.5" />
+        키오스크/얼굴 인식/앱 QR 실패 등 <b>예외 상황만</b> 사용. 감사 로그 영구 기록됩니다.
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">회원 검색 *</Label>
+        <Input placeholder="이름 또는 연락처" onChange={() => setDirty(true)} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">출석 일시 *</Label>
+          <Input type="datetime-local" defaultValue="2026-05-29T09:30" onChange={() => setDirty(true)} />
+        </div>
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">담당자</Label>
+          <Input value="현재 로그인 직원 자동" disabled className="bg-surface-secondary" />
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">사유 * (5자 이상)</Label>
+        <Textarea rows={2} onChange={() => setDirty(true)} placeholder="키오스크 QR 인식 불가, 앱 미설치 등" />
+      </div>
+    </div>
+  );
+}
+
+// DLG-M023 이관 확인
+function MemberTransferDialog({ setDirty }: DialogBodyProps) {
+  const rows = [
+    { 필드: "소속지점", 현재: "강남점", 이관: "서초점" },
+    { 필드: "담당 FC", 현재: "이FC", 이관: "김FC" },
+    { 필드: "담당 트레이너", 현재: "박트레이너", 이관: "정트레이너" },
+    { 필드: "정산 지점", 현재: "강남점", 이관: "서초점" },
+    { 필드: "인센티브 귀속자", 현재: "이FC", 이관: "김FC" }
+  ];
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border bg-surface-secondary p-3">
+        <div className="text-xs text-content-tertiary mb-1">이관 대상</div>
+        <b>김민준 · M0142</b>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-2 block">재배정 표 (5필드)</Label>
+        <div className="rounded-lg border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow><TableHead>필드</TableHead><TableHead>현재</TableHead><TableHead className="text-right">이관 후</TableHead></TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow key={r.필드}>
+                  <TableCell className="text-xs font-semibold">{r.필드}</TableCell>
+                  <TableCell className="text-xs">{r.현재}</TableCell>
+                  <TableCell className="text-xs text-right text-primary font-semibold">{r.이관}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">이관 사유 *</Label>
+        <Textarea rows={2} onChange={() => setDirty(true)} placeholder="회원 요청, 이사, 담당자 재배정 등" />
+      </div>
+    </div>
+  );
+}
+
+// DLG-M027 주소 검색 (진짜 검색 DLG)
+function AddressSearchDialog({ setDirty, notify }: DialogBodyProps) {
+  const [query, setQuery] = useState("강남구 테헤란로");
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const results = [
+    { primary: "서울 강남구 테헤란로 152", secondary: "역삼동 강남파이낸스센터", postal: "06236" },
+    { primary: "서울 강남구 테헤란로 211", secondary: "역삼동 한국타이어빌딩", postal: "06141" },
+    { primary: "서울 강남구 테헤란로 305", secondary: "역삼동 BS타워", postal: "06151" }
+  ].filter((r) => query.length < 2 ? true : r.primary.includes(query) || r.secondary.includes(query));
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">주소 검색 *</Label>
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-content-tertiary" />
+          <Input className="pl-9" value={query} onChange={(e) => { setQuery(e.target.value); setDirty(true); setSelectedIdx(null); }} placeholder="도로명, 지번 또는 건물명" />
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-2 block">검색 결과 ({results.length}건)</Label>
+        <div className="space-y-2">
+          {results.length === 0 ? (
+            <div className="rounded-lg border border-dashed p-6 text-center text-xs text-content-tertiary">검색 결과 없음</div>
+          ) : results.map((r, idx) => (
+            <button
+              key={r.postal}
+              type="button"
+              onClick={() => { setSelectedIdx(idx); setDirty(true); notify(`${r.primary} 선택`, "info"); }}
+              className={cn("w-full rounded-lg border p-3 text-left transition", selectedIdx === idx ? "border-primary ring-2 ring-primary/20 bg-primary-light" : "hover:border-primary/30")}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="font-semibold text-sm">{r.primary}</div>
+                  <div className="text-[10px] text-content-tertiary mt-0.5">{r.secondary}</div>
+                </div>
+                <span className="font-mono text-[10px] text-content-tertiary">{r.postal}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// DLG-M028 회원 병합
+function MemberMergeDialog({ setDirty }: DialogBodyProps) {
+  const compareRows = [
+    { 항목: "이름", 주: "김민준", 부: "김민준", 채택: "주" },
+    { 항목: "연락처", 주: "010-1234-5678", 부: "010-9876-5432", 채택: "주" },
+    { 항목: "이용권", 주: "PT 20회", 부: "회원권 3개월", 채택: "합산" },
+    { 항목: "마일리지", 주: "12,000원", 부: "5,000원", 채택: "합산 17,000원" }
+  ];
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-900">
+        <AlertTriangle size={14} className="inline mr-1.5" />
+        <b>병합 후 부 계정은 비활성 처리됩니다 (즉시 삭제 아님). 5분 내 취소 가능.</b>
+      </div>
+      <div className="grid grid-cols-2 gap-3 text-xs">
+        <div className="rounded-lg border-2 border-primary/40 bg-primary-light p-3"><div className="text-primary font-bold">주 계정 (유지)</div><div className="mt-1 font-semibold">김민준 · M0142</div></div>
+        <div className="rounded-lg border p-3 bg-surface-secondary"><div className="text-content-tertiary font-bold">부 계정 (비활성)</div><div className="mt-1 font-semibold">김민준 · M0287</div></div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-2 block">병합 항목 비교</Label>
+        <div className="rounded-lg border overflow-hidden">
+          <Table>
+            <TableHeader><TableRow><TableHead>항목</TableHead><TableHead>주 계정</TableHead><TableHead>부 계정</TableHead><TableHead className="text-right">채택</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {compareRows.map((r) => (
+                <TableRow key={r.항목}>
+                  <TableCell className="text-xs font-semibold">{r.항목}</TableCell>
+                  <TableCell className="text-xs">{r.주}</TableCell>
+                  <TableCell className="text-xs text-content-tertiary">{r.부}</TableCell>
+                  <TableCell className="text-xs text-right text-primary font-semibold">{r.채택}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">병합 확인 문구 입력 * &quot;병합확인&quot;</Label>
+        <Input onChange={() => setDirty(true)} placeholder="병합확인" />
+      </div>
+    </div>
+  );
+}
+
+// DLG-S001 매출 상세 (조회 전용)
+function SalesDetailDialog() {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-lg border p-3"><div className="text-xs text-content-tertiary">매출 번호</div><div className="font-bold mt-1 font-mono">S-260528-001</div></div>
+        <div className="rounded-lg border p-3"><div className="text-xs text-content-tertiary">결제 일시</div><div className="font-bold mt-1">2026-05-28 14:32</div></div>
+        <div className="rounded-lg border p-3"><div className="text-xs text-content-tertiary">회원</div><div className="font-bold mt-1">김민준 (M0142)</div></div>
+        <div className="rounded-lg border p-3"><div className="text-xs text-content-tertiary">처리 직원</div><div className="font-bold mt-1">최FC</div></div>
+        <div className="rounded-lg border p-3"><div className="text-xs text-content-tertiary">상품</div><div className="font-bold mt-1">PT 20회권</div></div>
+        <div className="rounded-lg border p-3"><div className="text-xs text-content-tertiary">결제 수단</div><div className="font-bold mt-1">카드 100%</div></div>
+        <div className="rounded-lg border-2 border-primary/30 bg-primary-light p-3 col-span-2"><div className="text-xs text-primary">결제 금액</div><div className="text-2xl font-bold mt-1 text-primary tabular-nums">1,200,000원</div></div>
+      </div>
+    </div>
+  );
+}
+
+// DLG-S002 구매자 검색
+function BuyerSearchDialog({ setDirty, notify }: DialogBodyProps) {
+  const [query, setQuery] = useState("김민준");
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const results = [
+    { name: "김민준", phone: "010-1234-5678", branch: "강남점 활성", id: "M0142" },
+    { name: "김민준(가족)", phone: "010-0000-1111", branch: "서초점 활성", id: "M0287" }
+  ].filter((r) => query.length < 1 ? true : r.name.includes(query) || r.phone.includes(query));
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">구매자 검색 *</Label>
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-content-tertiary" />
+          <Input className="pl-9" value={query} onChange={(e) => { setQuery(e.target.value); setDirty(true); setSelectedIdx(null); }} placeholder="이름·연락처·운동 ID" />
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-2 block">검색 결과 ({results.length}건)</Label>
+        <div className="space-y-2">
+          {results.map((r, idx) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => { setSelectedIdx(idx); setDirty(true); notify(`${r.name} 선택`, "info"); }}
+              className={cn("w-full rounded-lg border p-3 text-left transition", selectedIdx === idx ? "border-primary ring-2 ring-primary/20 bg-primary-light" : "hover:border-primary/30")}
+            >
+              <div className="font-semibold text-sm">{r.name} <span className="text-xs text-content-tertiary">({r.phone})</span></div>
+              <div className="text-[10px] text-content-tertiary mt-0.5">{r.branch} · {r.id}</div>
+            </button>
+          ))}
+        </div>
+        <Button variant="outline" className="w-full mt-2" onClick={() => { setSelectedIdx(99); notify("비회원 현장 결제로 진행", "info"); }}>
+          비회원으로 진행
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// DLG-S003 결제 확인
+function PaymentConfirmDialog() {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border bg-surface-secondary p-3">
+        <div className="text-xs text-content-tertiary mb-1">구매자</div>
+        <b>김민준</b> <span className="text-xs text-content-tertiary">M0142 · 강남점</span>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-2 block">상품 목록</Label>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between rounded-lg border bg-white p-2.5 text-sm">
+            <div><b>PT 20회권</b> <span className="text-xs text-content-tertiary">120일</span></div>
+            <span className="tabular-nums font-semibold">1,200,000원</span>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3 text-xs">
+        <div className="rounded-lg border p-3"><div className="text-content-tertiary">결제 수단</div><div className="font-bold mt-1">카드 100%</div></div>
+        <div className="rounded-lg border p-3"><div className="text-content-tertiary">영수증</div><div className="font-bold mt-1">첨부 완료</div></div>
+      </div>
+      <div className="rounded-2xl bg-gradient-to-br from-primary via-primary to-[#ff907f] p-3 text-white">
+        <div className="text-xs text-white/85">최종 결제 금액</div>
+        <div className="text-2xl font-bold tabular-nums">1,200,000원</div>
+      </div>
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
+        <b>안내:</b> PG 승인·현금영수증은 외부 처리. 본 DLG는 CRM 매출 기록 + 회원권 발급만 진행합니다.
+      </div>
+    </div>
+  );
+}
+
+// DLG-S004 중복 결제 경고
+function DuplicatePaymentDialog() {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-900">
+        <AlertTriangle size={14} className="inline mr-1.5" />
+        <b>동일 회원·동일 상품 단기간 중복 결제 감지</b>
+      </div>
+      <div className="rounded-lg border bg-surface-secondary p-3 text-sm">
+        <div className="text-xs text-content-tertiary mb-1">기존 결제 (24시간 이내)</div>
+        <div className="flex items-center justify-between">
+          <div>
+            <b>김민준 · PT 20회권</b>
+            <div className="text-[10px] text-content-tertiary mt-0.5">2026-05-28 12:18 · 1,200,000원 · 결제완료</div>
+          </div>
+          <Badge variant="warning" className="text-[10px]">2시간 전</Badge>
+        </div>
+      </div>
+      <div className="rounded-lg border bg-surface-secondary p-3 text-xs text-content-secondary">
+        <b>옵션:</b> 다른 상품/패키지 확인 후 [취소] 또는 의도된 중복 결제라면 [계속 진행].
+      </div>
+    </div>
+  );
+}
+
+// DLG-S013 환불 처리
+function SalesRefundDialog({ setDirty }: DialogBodyProps) {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 text-xs">
+        <div className="rounded-lg border p-2.5"><div className="text-content-tertiary">원 매출</div><div className="font-bold mt-1 font-mono">S-260520-018</div></div>
+        <div className="rounded-lg border border-primary/30 bg-primary-light p-2.5"><div className="text-primary">결제 금액</div><div className="font-bold mt-1 text-primary tabular-nums">1,200,000원</div></div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">환불 금액 *</Label>
+          <Input placeholder="700,000" onChange={() => setDirty(true)} />
+        </div>
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">위약금</Label>
+          <Input placeholder="50,000" onChange={() => setDirty(true)} />
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">환불 사유 *</Label>
+        <Textarea rows={2} onChange={() => setDirty(true)} placeholder="중도 해지, 이사, 만족도 불만 등" />
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">승인 메모</Label>
+        <Textarea rows={2} onChange={() => setDirty(true)} placeholder="Owner 검토 결과" />
+      </div>
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+        <AlertTriangle size={13} className="inline mr-1.5" />
+        환불 자동 산식 미확정 — 수기 입력 100%. 실제 환불은 외부 PG/현금 별도 처리.
+      </div>
+    </div>
+  );
+}
+
+// DLG-S015 환불 요청 접수
+function RefundRequestDialog({ setDirty }: DialogBodyProps) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border bg-surface-secondary p-3">
+        <div className="text-xs text-content-tertiary mb-1">환불 대상</div>
+        <b>김민준 · PT 20회권 · S-260520-018</b>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">요청자 *</Label>
+        <Select onValueChange={() => setDirty(true)}>
+          <SelectTrigger><SelectValue placeholder="선택해주세요" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="member">회원 본인</SelectItem>
+            <SelectItem value="staff">직원 (회원 위임)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">요청 사유 *</Label>
+        <Textarea rows={3} onChange={() => setDirty(true)} placeholder="환불 요청 사유를 자세히 적어주세요" />
+      </div>
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+        접수 후 Owner 승인이 필요합니다. 접수만으로는 환불 처리되지 않습니다.
+      </div>
+    </div>
+  );
+}
+
+// DLG-092-001 신규 지점 등록 (사용자가 본 잘못된 케이스 fix)
+function BranchCreateDialog({ setDirty }: DialogBodyProps) {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">지점명 *</Label>
+          <Input placeholder="예: 강남2호점" onChange={() => setDirty(true)} />
+        </div>
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">지점 코드 *</Label>
+          <Input placeholder="예: GN02 (자동 생성 가능)" onChange={() => setDirty(true)} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">대표 연락처 *</Label>
+          <Input placeholder="010-XXXX-XXXX" onChange={() => setDirty(true)} />
+        </div>
+        <div>
+          <Label className="text-xs font-semibold mb-1.5 block">운영 시작일 *</Label>
+          <Input type="date" onChange={() => setDirty(true)} />
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">주소 *</Label>
+        <div className="flex gap-1">
+          <Input placeholder="주소 검색" className="flex-1" onChange={() => setDirty(true)} />
+          <Button variant="outline" size="sm">검색</Button>
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">초기 Owner(지점장) 지정 *</Label>
+        <Select onValueChange={() => setDirty(true)}>
+          <SelectTrigger><SelectValue placeholder="기존 직원 선택 또는 신규 초대" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="invite">신규 초대 (이메일)</SelectItem>
+            <SelectItem value="existing-1">이센터 (강남점)</SelectItem>
+            <SelectItem value="existing-2">박매니저 (강남점)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">수용 가능 회원 수 (선택)</Label>
+        <Input type="number" placeholder="3000" onChange={() => setDirty(true)} />
+      </div>
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
+        <b>안내:</b> 등록 완료 후 본사 표준 정책 세트가 자동 적용됩니다. 온보딩 절차 (시설/직원/상품 초기 데이터)가 시작됩니다.
+      </div>
+    </div>
+  );
+}
+
+// DLG-092-002 지점 비활성화 확인
+function BranchDeactivateDialog({ setDirty }: DialogBodyProps) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-900">
+        <AlertTriangle size={14} className="inline mr-1.5" />
+        <b>지점 운영 상태를 변경합니다. 회원 이용·예약·신규 가입·앱 노출·직원 접근 모두 영향받습니다.</b>
+      </div>
+      <div className="rounded-xl border bg-surface-secondary p-3">
+        <div className="text-xs text-content-tertiary mb-1">대상 지점</div>
+        <b>강남점 · GN01</b>
+        <div className="text-[10px] text-content-tertiary mt-0.5">현재 운영 중 · 활성 회원 2,614명 · 진행 예약 42건</div>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">변경 후 상태 *</Label>
+        <Select onValueChange={() => setDirty(true)}>
+          <SelectTrigger><SelectValue placeholder="선택해주세요" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="paused">임시휴업 (운영 일시 정지)</SelectItem>
+            <SelectItem value="closed">폐점 (영구 종료)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">적용 예정일 *</Label>
+        <Input type="date" onChange={() => setDirty(true)} />
+      </div>
+      <div>
+        <Label className="text-xs font-semibold mb-1.5 block">변경 사유 * (필수)</Label>
+        <Textarea rows={2} onChange={() => setDirty(true)} placeholder="시설 리모델링, 임대차 종료, 운영 결정 등" />
+      </div>
+      <div className="rounded-lg border p-3 text-xs space-y-1">
+        <div className="font-semibold mb-1">영향 범위:</div>
+        <div>• 신규 가입·결제·예약 자동 차단</div>
+        <div>• 회원앱 지점 노출 비표시</div>
+        <div>• 직원 계정 접근 제한</div>
+        <div>• 진행 예약 42건 자동 환불 또는 타지점 이관 안내</div>
+      </div>
+    </div>
+  );
+}
+
+// Generic component-driven form — dialog.components 배열을 자동 렌더
+function ComponentDrivenForm({ dialog, setDirty }: DialogBodyProps) {
+  // components 배열에서 input 필드 자동 추론 + 액션 라벨 분리
+  const sections = dialog.components.filter((c) => !/^취소|^닫기|^확인|^등록$|^저장$|^적용$|^삭제$|^발송$/.test(c));
+  return (
+    <div className="space-y-3">
+      {sections.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-6 text-center text-xs text-content-tertiary">
+          {dialog.purpose}
+        </div>
+      ) : sections.map((comp) => {
+        const isRequired = /필수/.test(comp);
+        const isTextarea = /사유|메모|설명|내용|코멘트/.test(comp);
+        const isSelect = /선택|상태|구분|유형|등급|채널/.test(comp);
+        const isDate = /일자|날짜|기간|시작일|종료일|일시/.test(comp);
+        const isNumber = /금액|수량|회차|개수|수용/.test(comp);
+        const label = comp.replace(/\s*[(*][^)]*[)*]\s*/g, "").trim();
+
+        return (
+          <div key={comp}>
+            <Label className="text-xs font-semibold mb-1.5 block">
+              {label}{isRequired && <span className="text-rose-600 ml-1">*</span>}
+            </Label>
+            {isTextarea ? (
+              <Textarea rows={2} placeholder={`${label} 입력`} onChange={() => setDirty(true)} />
+            ) : isSelect ? (
+              <Select onValueChange={() => setDirty(true)}>
+                <SelectTrigger><SelectValue placeholder={`${label} 선택`} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="option-a">옵션 A</SelectItem>
+                  <SelectItem value="option-b">옵션 B</SelectItem>
+                  <SelectItem value="option-c">옵션 C</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : isDate ? (
+              <Input type="date" onChange={() => setDirty(true)} />
+            ) : isNumber ? (
+              <Input type="number" placeholder="0" onChange={() => setDirty(true)} />
+            ) : (
+              <Input placeholder={`${label} 입력`} onChange={() => setDirty(true)} />
+            )}
+          </div>
+        );
+      })}
+      {dialog.policyPending && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+          <AlertTriangle size={13} className="inline mr-1.5" />
+          <b>정책 확인 필요:</b> 본 DLG는 외부 연동·산식·승인 정책이 확정되지 않아 mock 처리만 진행합니다.
+        </div>
+      )}
+    </div>
+  );
 }
 
 function SessionDialogBody({ setDirty, notify }: DialogBodyProps) {
@@ -2930,40 +4009,141 @@ function SessionDialogBody({ setDirty, notify }: DialogBodyProps) {
 }
 
 function DestructiveDialogBody({ dialog, setDirty }: DialogBodyProps) {
+  // 위험 액션 DLG: 사유 입력 + 영향 요약 + 확인 문구 일치 검증 + 감사 로그 명시
+  const [reason, setReason] = useState("");
+  const [confirmText, setConfirmText] = useState("");
+  const expectedToken = dialog.id; // 확인 문구는 DLG-ID 입력 시 일치
+  const isReasonValid = reason.trim().length >= 5;
+  const isConfirmValid = confirmText.trim() === expectedToken;
+  const blockReason = !isReasonValid || !isConfirmValid;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-destructive-body>
       <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-900">
-        <div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 size-5" /><div><h3 className="font-semibold">복구가 어렵거나 운영 이력이 바뀌는 위험 액션입니다.</h3><p className="mt-1 text-sm leading-6">삭제/탈퇴/병합/취소성 DLG는 대상, 영향 범위, 감사 로그 사유를 분리해서 확인하도록 퍼블리싱했습니다.</p></div></div>
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="mt-0.5 size-5" />
+          <div>
+            <h3 className="font-semibold">복구가 어렵거나 운영 이력이 바뀌는 위험 액션입니다.</h3>
+            <p className="mt-1 text-sm leading-6">삭제·탈퇴·병합·취소성 DLG는 대상·영향 범위·감사 로그 사유·확인 문구 4단계로 보호합니다.</p>
+          </div>
+        </div>
       </div>
+
       <div className="grid gap-3 md:grid-cols-3">
-        {dialog.components.slice(0, 3).map((component, index) => <div key={component} className="rounded-xl border bg-white p-3"><div className="text-xs font-semibold text-content-tertiary">확인 {index + 1}</div><div className="mt-1 font-medium">{component}</div><p className="mt-2 text-xs leading-5 text-content-tertiary">mock 대상: {index === 0 ? "김민준 / S-260528-001" : index === 1 ? "연결 이력·미수·예약 영향" : "권한자 재확인 필요"}</p></div>)}
+        {dialog.components.slice(0, 3).map((component, index) => (
+          <div key={component} className="rounded-xl border bg-white p-3">
+            <div className="text-xs font-semibold text-content-tertiary">확인 {index + 1}</div>
+            <div className="mt-1 font-medium">{component}</div>
+            <p className="mt-2 text-xs leading-5 text-content-tertiary">
+              mock 대상: {index === 0 ? "김민준 / S-260528-001" : index === 1 ? "연결 이력·미수·예약 영향" : "권한자 재확인 필요"}
+            </p>
+          </div>
+        ))}
       </div>
+
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="space-y-2"><Label>처리 사유 / 감사 로그</Label><Textarea defaultValue={`${dialog.title} 사유를 남깁니다.`} onChange={() => setDirty(true)} /></div>
-        <div className="space-y-2"><Label>확인 문구</Label><Input defaultValue={dialog.id} onChange={() => setDirty(true)} /><p className="text-xs text-content-tertiary">실개발 시 service 호출 전 확인 문구 검증을 권장합니다.</p></div>
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            처리 사유 · 감사 로그 <Badge variant={isReasonValid ? "success" : "warning"} className="text-[10px]">필수 5자+</Badge>
+          </Label>
+          <Textarea
+            value={reason}
+            placeholder={`${dialog.title} 사유를 5자 이상 입력`}
+            onChange={(e) => { setReason(e.target.value); setDirty(true); }}
+          />
+          <p className="text-xs text-content-tertiary">
+            사유는 감사 로그에 영구 기록됩니다. {reason.length}/500자
+            {!isReasonValid && reason.length > 0 && (
+              <span className="ml-2 text-rose-600 font-semibold">⚠️ 5자 이상 필요</span>
+            )}
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            확인 문구 · {expectedToken} 입력 <Badge variant={isConfirmValid ? "success" : "destructive"} className="text-[10px]">{isConfirmValid ? "일치" : "불일치"}</Badge>
+          </Label>
+          <Input
+            value={confirmText}
+            placeholder={`정확히 "${expectedToken}" 입력`}
+            onChange={(e) => { setConfirmText(e.target.value); setDirty(true); }}
+            className={cn(
+              confirmText.length > 0 && !isConfirmValid && "border-rose-400 bg-rose-50",
+              isConfirmValid && "border-emerald-400 bg-emerald-50"
+            )}
+          />
+          <p className="text-xs text-content-tertiary">
+            오타 방지를 위해 위험 액션은 확인 문구 일치 검증이 필요합니다.
+            {confirmText.length > 0 && !isConfirmValid && (
+              <span className="ml-2 text-rose-600 font-semibold">⚠️ &quot;{expectedToken}&quot; 정확히 입력</span>
+            )}
+          </p>
+        </div>
       </div>
+
+      {/* 차단 상태 안내 */}
+      {blockReason && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+          <Lock className="mr-2 inline size-3.5" />
+          <b>아직 확인 처리 불가:</b> 사유 5자 이상 + 확인 문구 일치가 모두 충족돼야 합니다.
+        </div>
+      )}
     </div>
   );
 }
 
 function PaymentDialogBody({ dialog, setDirty, contract }: DialogBodyProps) {
-  const totalLabel = /환불/.test(dialog.title) ? "환불 예정액" : /세금/.test(dialog.title) ? "공급가액" : /할부|납입|미수/.test(dialog.title) ? "잔여/납입액" : "최종 결제액";
+  // 결제·환불·할부 DLG: 원거래 + 금액 + 외부 연동 + 승인 상태 + 동적 입력
+  const isRefund = /환불/.test(dialog.title);
+  const isTax = /세금/.test(dialog.title);
+  const isInstallment = /할부|납입|미수/.test(dialog.title);
+  const totalLabel = isRefund ? "환불 예정액" : isTax ? "공급가액" : isInstallment ? "잔여/납입액" : "최종 결제액";
+  const amountValue = isRefund ? "120,000원" : isTax ? "1,090,909원" : isInstallment ? "200,000원" : "1,200,000원";
+  const taxValue = isRefund ? "-12,000원" : isTax ? "109,091원" : null;
+
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-4">
-        {[{ label: "원거래", value: "S-260528-001" }, { label: totalLabel, value: /환불/.test(dialog.title) ? "120,000원" : "1,200,000원" }, { label: "외부 연동", value: dialog.policyPending ? "정책 확인" : "mock" }, { label: "승인 상태", value: dialog.requiredPermission ? "권한 필요" : "조회" }].map((item) => <div key={item.label} className="rounded-xl border bg-white p-3"><div className="text-xs font-semibold text-content-tertiary">{item.label}</div><div className="mt-1 text-lg font-bold text-content">{item.value}</div></div>)}
+        <div className="rounded-xl border bg-white p-3">
+          <div className="text-xs font-semibold text-content-tertiary">원거래</div>
+          <div className="mt-1 text-base font-bold font-mono">S-260528-001</div>
+        </div>
+        <div className="rounded-xl border-2 border-primary/30 bg-primary-light p-3">
+          <div className="text-xs font-semibold text-primary">{totalLabel}</div>
+          <div className={cn("mt-1 text-lg font-bold tabular-nums", isRefund ? "text-rose-600" : "text-primary")}>
+            {amountValue}
+          </div>
+          {taxValue && <div className="text-[10px] text-content-tertiary mt-0.5">VAT {taxValue}</div>}
+        </div>
+        <div className={cn("rounded-xl border p-3", dialog.policyPending ? "border-amber-200 bg-amber-50" : "bg-white")}>
+          <div className="text-xs font-semibold text-content-tertiary">외부 연동</div>
+          <div className={cn("mt-1 text-base font-bold", dialog.policyPending && "text-amber-800")}>
+            {dialog.policyPending ? "정책 확인" : "mock"}
+          </div>
+        </div>
+        <div className={cn("rounded-xl border p-3", dialog.requiredPermission ? "border-violet-200 bg-violet-50" : "bg-white")}>
+          <div className="text-xs font-semibold text-content-tertiary">승인 상태</div>
+          <div className={cn("mt-1 text-base font-bold", dialog.requiredPermission && "text-violet-800")}>
+            {dialog.requiredPermission ? "권한 필요" : "조회"}
+          </div>
+        </div>
       </div>
       <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
         <div className="rounded-2xl border bg-white p-4">
-          <div className="mb-3 flex items-center justify-between"><h3 className="font-semibold">정산 입력</h3><Badge variant={dialog.policyPending ? "warning" : "success"}>{contract.handoffStatus}</Badge></div>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-semibold">정산 입력</h3>
+            <Badge variant={dialog.policyPending ? "warning" : "success"} className="text-[10px]">{contract.handoffStatus}</Badge>
+          </div>
           <DialogDynamicFields contract={contract} setDirty={setDirty} maxFields={4} />
         </div>
         <div className="rounded-2xl border bg-amber-50 p-4 text-sm text-amber-900">
-          <h3 className="font-semibold">개발 인수 포인트</h3>
-          <ul className="mt-3 space-y-2 leading-5">
+          <h3 className="font-semibold flex items-center gap-1.5"><AlertTriangle size={14} /> 개발 인수 포인트</h3>
+          <ul className="mt-3 space-y-2 text-xs leading-5">
             <li>· 실제 카드/PG/세금계산서/환불 처리는 호출하지 않습니다.</li>
-            <li>· 버튼은 contract key 기준으로 개발 service layer에 연결할 수 있게 표시합니다.</li>
+            <li>· 버튼은 contract key 기준으로 개발 service layer에 연결합니다.</li>
             <li>· 정책 미확정 산식은 수기 입력/확인 필요 배지로 남깁니다.</li>
+            {isRefund && <li>· 환불은 원 결제 수단 동일 채널로만 처리 (현금/카드 분리).</li>}
+            {isTax && <li>· 세금계산서 발행은 외부 e-tax 연동 필수 (개발 단계 결정).</li>}
+            {isInstallment && <li>· 할부 회차별 알림 자동 발송 (V2 정책).</li>}
           </ul>
         </div>
       </div>
@@ -2972,39 +4152,178 @@ function PaymentDialogBody({ dialog, setDirty, contract }: DialogBodyProps) {
 }
 
 function SearchDialogBody({ dialog, setDirty, notify, contract }: DialogBodyProps) {
+  // 검색 DLG: 검색어 입력 + 결과 목록 + 단일 선택 + 비회원 처리
+  const isAddress = /주소/.test(dialog.title);
+  const [query, setQuery] = useState(isAddress ? "강남구 테헤란로" : "김민준 / 010");
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+
+  const results = isAddress ? [
+    { primary: "서울 강남구 테헤란로 152", secondary: "역삼동 강남파이낸스센터", postal: "06236" },
+    { primary: "서울 강남구 테헤란로 211", secondary: "역삼동 한국타이어빌딩", postal: "06141" },
+    { primary: "서울 강남구 테헤란로 305", secondary: "역삼동 BS타워", postal: "06151" }
+  ] : [
+    { primary: "김민준 · 010-1234-5678", secondary: "강남점 활성 · PT 20회", postal: "M0142" },
+    { primary: "김민준(가족) · 010-0000-1111", secondary: "서초점 활성 · 회원권 6개월", postal: "M0287" },
+    { primary: "비회원 현장 결제", secondary: "연락처 미확정 · 1회용", postal: "guest" }
+  ];
+
+  const filtered = results.filter((r) =>
+    query.length < 2 ? true : r.primary.includes(query) || r.secondary.includes(query)
+  );
+
   return (
     <div className="grid gap-4 md:grid-cols-[320px_1fr]">
       <div className="space-y-3 rounded-2xl border bg-white p-4">
         <Label>{dialog.components[0] ?? "검색어"}</Label>
-        <div className="relative"><Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-content-tertiary" /><Input className="pl-9" defaultValue="김민준 / 010" onChange={() => setDirty(true)} /></div>
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-content-tertiary" />
+          <Input className="pl-9" value={query} onChange={(e) => { setQuery(e.target.value); setDirty(true); setSelectedIdx(null); }} placeholder={isAddress ? "도로명 또는 지번" : "이름 또는 연락처"} />
+        </div>
         <DialogDynamicFields contract={contract} setDirty={setDirty} maxFields={2} skipFirst />
-        <Button className="w-full" variant="secondary" onClick={() => notify(`${dialog.title} 검색 mock 실행`, "info")}>검색 mock</Button>
+        <Button className="w-full" variant="secondary" onClick={() => notify(`${dialog.title} 검색 mock 실행 — ${filtered.length}건`, "info")}>
+          <Search size={14} className="mr-1.5" /> 검색 mock
+        </Button>
+        {!isAddress && (
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => { setSelectedIdx(2); notify("비회원 현장 결제로 선택", "info"); }}
+          >
+            비회원으로 진행
+          </Button>
+        )}
       </div>
       <div className="rounded-2xl border bg-surface-secondary p-4">
-        <div className="mb-3 flex items-center justify-between"><h3 className="font-semibold">검색 결과</h3><Badge variant="info">3건</Badge></div>
-        <div className="space-y-2">
-          {["김민준 · 010-1234-5678 · 강남점", "김민준(가족) · 010-0000-1111 · 서초점", "비회원 현장 결제 · 연락처 미확정"].map((item) => <button key={item} type="button" onClick={() => { setDirty(true); notify(`${item} 선택 mock`, "info"); }} className="flex w-full items-center justify-between rounded-xl border bg-white p-3 text-left text-sm hover:border-blue-300"><span>{item}</span><Badge variant="outline">선택</Badge></button>)}
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-semibold">검색 결과</h3>
+          <Badge variant="info">{filtered.length}건</Badge>
         </div>
+        <div className="space-y-2">
+          {filtered.length === 0 ? (
+            <div className="rounded-xl border border-dashed bg-white p-6 text-center text-sm text-content-tertiary">
+              검색 결과가 없습니다. 다른 검색어를 시도해주세요.
+            </div>
+          ) : (
+            filtered.map((item, idx) => (
+              <button
+                key={item.postal}
+                type="button"
+                onClick={() => {
+                  setSelectedIdx(idx);
+                  setDirty(true);
+                  notify(`${item.primary} 선택 mock`, "info");
+                }}
+                className={cn(
+                  "flex w-full items-center justify-between rounded-xl border bg-white p-3 text-left text-sm transition",
+                  selectedIdx === idx ? "border-primary ring-2 ring-primary/20 bg-primary-light" : "hover:border-primary/30"
+                )}
+              >
+                <div className="min-w-0">
+                  <div className="font-semibold truncate">{item.primary}</div>
+                  <div className="text-xs text-content-tertiary mt-0.5 truncate">{item.secondary}</div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="font-mono text-[10px] text-content-tertiary">{item.postal}</span>
+                  <Badge variant={selectedIdx === idx ? "default" : "outline"} className="text-[10px]">
+                    {selectedIdx === idx ? "선택됨" : "선택"}
+                  </Badge>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+        {selectedIdx !== null && (
+          <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-2.5 text-xs text-emerald-900">
+            <CheckCircle2 size={12} className="inline mr-1.5" />
+            <b>{filtered[selectedIdx]?.primary}</b> 선택됨 — 확인 버튼 클릭 시 호출 화면에 전달됩니다.
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 function BulkDialogBody({ dialog, setDirty, contract }: DialogBodyProps) {
+  // 일괄 DLG: 대상 N + 처리 가능 N + 충돌/제외 N + 실행 전 체크 + 사유
+  const [excludeShown, setExcludeShown] = useState(false);
+  const totalCount = 128;
+  const conflictCount = 12;
+  const validCount = totalCount - conflictCount;
+
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-4">
-        {[{ label: "대상", value: "128건" }, { label: "처리 가능", value: "116건" }, { label: "충돌/제외", value: "12건" }, { label: "실행 방식", value: "mock" }].map((item) => <div key={item.label} className="rounded-xl border bg-white p-3"><div className="text-xs font-semibold text-content-tertiary">{item.label}</div><div className="mt-1 text-lg font-bold">{item.value}</div></div>)}
+        <div className="rounded-xl border bg-white p-3">
+          <div className="text-xs font-semibold text-content-tertiary">대상 총계</div>
+          <div className="mt-1 text-lg font-bold tabular-nums">{totalCount}건</div>
+        </div>
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+          <div className="text-xs font-semibold text-emerald-700">처리 가능</div>
+          <div className="mt-1 text-lg font-bold text-emerald-700 tabular-nums">{validCount}건</div>
+        </div>
+        <button
+          className={cn("rounded-xl border p-3 text-left transition",
+            excludeShown ? "border-amber-300 bg-amber-100" : "border-amber-200 bg-amber-50 hover:border-amber-300"
+          )}
+          onClick={() => setExcludeShown(!excludeShown)}
+        >
+          <div className="text-xs font-semibold text-amber-800">충돌·제외 {excludeShown ? "▼" : "▶"}</div>
+          <div className="mt-1 text-lg font-bold text-amber-800 tabular-nums">{conflictCount}건</div>
+        </button>
+        <div className="rounded-xl border bg-white p-3">
+          <div className="text-xs font-semibold text-content-tertiary">실행 방식</div>
+          <div className="mt-1 text-lg font-bold">mock</div>
+        </div>
       </div>
+
+      {excludeShown && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs">
+          <b className="text-amber-800">충돌·제외 {conflictCount}건 사유 (mock)</b>
+          <ul className="mt-2 space-y-1 text-amber-900">
+            <li>• 미수금 보유 회원 5건 — 잔액 정리 후 재시도</li>
+            <li>• 이미 처리 완료 4건 — 중복 방지로 자동 제외</li>
+            <li>• 권한 부족 3건 — 본사 승인 필요</li>
+          </ul>
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_320px]">
         <div className="rounded-2xl border bg-white p-4">
-          <h3 className="font-semibold">일괄 처리 미리보기</h3>
-          <Table className="mt-3"><TableHeader><TableRow><TableHead>대상</TableHead><TableHead>변경 전</TableHead><TableHead>변경 후</TableHead><TableHead>상태</TableHead></TableRow></TableHeader><TableBody>{["강남점", "서초점", "잠실점"].map((branch, index) => <TableRow key={branch}><TableCell>{branch}</TableCell><TableCell>기존 설정</TableCell><TableCell>{dialog.title}</TableCell><TableCell><Badge variant={index === 2 ? "warning" : "success"}>{index === 2 ? "충돌 확인" : "가능"}</Badge></TableCell></TableRow>)}</TableBody></Table>
+          <h3 className="font-semibold">일괄 처리 미리보기 (TOP 3 샘플)</h3>
+          <Table className="mt-3">
+            <TableHeader>
+              <TableRow><TableHead>대상</TableHead><TableHead>변경 전</TableHead><TableHead>변경 후</TableHead><TableHead className="w-20 text-center">상태</TableHead></TableRow>
+            </TableHeader>
+            <TableBody>
+              {["강남점", "서초점", "잠실점"].map((branch, index) => (
+                <TableRow key={branch}>
+                  <TableCell className="text-xs">{branch}</TableCell>
+                  <TableCell className="text-xs text-content-tertiary">기존 설정</TableCell>
+                  <TableCell className="text-xs font-semibold">{dialog.title}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={index === 2 ? "warning" : "success"} className="text-[10px]">
+                      {index === 2 ? "충돌 확인" : "가능"}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <p className="mt-3 text-[10px] text-content-tertiary">
+            전체 {validCount}건 처리 가능 · 실행 후 비동기 진행 표시
+          </p>
         </div>
         <div className="space-y-3 rounded-2xl border bg-violet-50 p-4">
           <h3 className="font-semibold text-violet-900">실행 전 체크</h3>
-          {contract.fields.slice(0, 4).map((field) => <label key={field.name} className="flex items-center gap-2 rounded-lg bg-white/70 p-2 text-sm"><input type="checkbox" onChange={() => setDirty(true)} /> {field.label} 확인</label>)}
-          <Textarea defaultValue="일괄 처리 사유" onChange={() => setDirty(true)} />
+          {contract.fields.slice(0, 4).map((field) => (
+            <label key={field.name} className="flex items-center gap-2 rounded-lg bg-white/70 p-2 text-sm">
+              <input type="checkbox" onChange={() => setDirty(true)} /> {field.label} 확인
+            </label>
+          ))}
+          <div>
+            <Label className="text-xs">처리 사유 (감사 로그)</Label>
+            <Textarea defaultValue="일괄 처리 사유" onChange={() => setDirty(true)} className="mt-1" />
+          </div>
         </div>
       </div>
     </div>
@@ -3029,15 +4348,6 @@ function StatusDialogBody({ dialog, setDirty, contract }: DialogBodyProps) {
   );
 }
 
-function FormDialogBody({ setDirty, contract }: DialogBodyProps) {
-  return (
-    <div className="rounded-2xl border bg-white p-4">
-      <div className="mb-3 flex items-center justify-between"><h3 className="font-semibold">입력 항목</h3><Badge variant="secondary">문서 컴포넌트 기반</Badge></div>
-      <DialogDynamicFields contract={contract} setDirty={setDirty} />
-    </div>
-  );
-}
-
 function DialogDynamicFields({ contract, setDirty, maxFields, skipFirst = false }: { contract: NonNullable<ReturnType<typeof getDialogContract>>; setDirty: (dirty: boolean) => void; maxFields?: number; skipFirst?: boolean }) {
   const fields = contract.fields.slice(skipFirst ? 1 : 0, maxFields ? (skipFirst ? maxFields + 1 : maxFields) : undefined);
   return (
@@ -3057,15 +4367,6 @@ function DialogDynamicFields({ contract, setDirty, maxFields, skipFirst = false 
           <p className="text-xs text-content-tertiary">{field.validation}</p>
         </div>
       ))}
-    </div>
-  );
-}
-
-function DialogContractPanel({ contract, dirty }: { contract: NonNullable<ReturnType<typeof getDialogContract>>; dirty: boolean }) {
-  return (
-    <div className="rounded-xl border bg-surface-secondary p-3 text-xs leading-5 text-content-secondary">
-      실제 저장·삭제·승인·발송·결제·환불·외부연동은 수행하지 않습니다. 버튼 클릭 시 로컬 toast 또는 화면 상태만 mock 변경합니다.<br />
-      Contract key: <code>{contract.submitContract.key}</code> · 실제 API 호출 없음 · 상태 {dirty ? "dirty" : "pristine"} · 오류상태 {contract.submitContract.errorStates.join(" / ")}
     </div>
   );
 }
@@ -4242,34 +5543,305 @@ function LockerAssignmentScreen({ screen, role, branch, openDialog, notify }: Sp
 }
 
 function ExerciseRoomScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
+  // admin-pando exercise-rooms 패턴 + 운영자 UX: V2 신규
+  // 룸 카드 그리드 + 시간대 슬롯 보드 + 운영/점검/고장 토글 + 게이트 매핑
+  type RoomStatus = "operating" | "maintenance" | "broken" | "closed";
+  type RoomType = "GX" | "PT" | "GOLF" | "PILATES" | "SPINNING" | "YOGA";
+  type Room = {
+    id: number; name: string; type: RoomType; capacity: number;
+    gate: string; status: RoomStatus; todaySlots: { time: string; occupied: number; class?: string }[];
+  };
+
+  const typeMeta: Record<RoomType, { label: string; color: string }> = {
+    GX: { label: "GX", color: "bg-violet-100 text-violet-700 border-violet-200" },
+    PT: { label: "PT", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+    GOLF: { label: "골프", color: "bg-amber-100 text-amber-700 border-amber-200" },
+    PILATES: { label: "필라테스", color: "bg-pink-100 text-pink-700 border-pink-200" },
+    SPINNING: { label: "스피닝", color: "bg-cyan-100 text-cyan-700 border-cyan-200" },
+    YOGA: { label: "요가", color: "bg-blue-100 text-blue-700 border-blue-200" }
+  };
+
+  const statusMeta: Record<RoomStatus, { label: string; variant: "success" | "warning" | "destructive" | "secondary" }> = {
+    operating: { label: "운영 중", variant: "success" },
+    maintenance: { label: "점검 중", variant: "warning" },
+    broken: { label: "고장", variant: "destructive" },
+    closed: { label: "임시 폐쇄", variant: "secondary" }
+  };
+
+  const initialRooms: Room[] = [
+    { id: 1, name: "A룸 (메인 GX)", type: "GX", capacity: 25, gate: "G-001", status: "operating", todaySlots: [
+      { time: "07:00", occupied: 18, class: "모닝 요가" }, { time: "10:00", occupied: 22, class: "줌바" },
+      { time: "14:00", occupied: 0 }, { time: "19:00", occupied: 25, class: "필라테스" }
+    ]},
+    { id: 2, name: "B룸 (PT 1)", type: "PT", capacity: 4, gate: "G-002", status: "operating", todaySlots: [
+      { time: "08:00", occupied: 2, class: "한트레이너 1:1" }, { time: "11:00", occupied: 4, class: "한트레이너 그룹" },
+      { time: "15:00", occupied: 3, class: "윤트레이너 그룹" }, { time: "20:00", occupied: 1, class: "한트레이너 1:1" }
+    ]},
+    { id: 3, name: "C룸 (PT 2)", type: "PT", capacity: 4, gate: "G-003", status: "maintenance", todaySlots: [
+      { time: "전일", occupied: 0 }
+    ]},
+    { id: 4, name: "골프 시뮬레이터 1", type: "GOLF", capacity: 2, gate: "G-004", status: "operating", todaySlots: [
+      { time: "09:00", occupied: 2, class: "정트레이너 레슨" }, { time: "13:00", occupied: 1 },
+      { time: "17:00", occupied: 2, class: "오프로 레슨" }, { time: "20:00", occupied: 1 }
+    ]},
+    { id: 5, name: "골프 시뮬레이터 2", type: "GOLF", capacity: 2, gate: "G-005", status: "broken", todaySlots: [
+      { time: "수리 중", occupied: 0 }
+    ]},
+    { id: 6, name: "스피닝 룸", type: "SPINNING", capacity: 16, gate: "G-006", status: "operating", todaySlots: [
+      { time: "07:30", occupied: 14, class: "모닝 스피닝" }, { time: "19:30", occupied: 16, class: "이브닝 스피닝" }
+    ]},
+    { id: 7, name: "필라테스 룸", type: "PILATES", capacity: 8, gate: "G-007", status: "operating", todaySlots: [
+      { time: "09:30", occupied: 7, class: "기초 필라테스" }, { time: "14:30", occupied: 8, class: "리포머 필라테스" },
+      { time: "18:30", occupied: 5, class: "고급 필라테스" }
+    ]},
+    { id: 8, name: "요가 룸", type: "YOGA", capacity: 12, gate: "G-008", status: "closed", todaySlots: [
+      { time: "전일", occupied: 0 }
+    ]}
+  ];
+
+  const [rooms, setRooms] = useState<Room[]>(initialRooms);
+  const [filterType, setFilterType] = useState<RoomType | "">("");
+  const [filterStatus, setFilterStatus] = useState<RoomStatus | "">("");
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+
+  const filtered = rooms.filter((r) => {
+    const matchType = !filterType || r.type === filterType;
+    const matchStatus = !filterStatus || r.status === filterStatus;
+    return matchType && matchStatus;
+  });
+
+  const operatingCount = rooms.filter((r) => r.status === "operating").length;
+  const maintenanceCount = rooms.filter((r) => r.status === "maintenance").length;
+  const brokenCount = rooms.filter((r) => r.status === "broken").length;
+  const totalCapacity = rooms.reduce((s, r) => s + r.capacity, 0);
+  const currentOccupied = rooms.reduce((s, r) => s + r.todaySlots.reduce((ss, slot) => ss + slot.occupied, 0), 0);
+
+  const canManage = role === "OWNER" || role === "HQ_ADMIN" || role === "MANAGER";
+
+  const changeStatus = (roomId: number, newStatus: RoomStatus) => {
+    setRooms((curr) => curr.map((r) => r.id === roomId ? { ...r, status: newStatus } : r));
+    notify(`운영 상태 변경: ${statusMeta[newStatus].label}`, newStatus === "operating" ? "success" : "warning");
+  };
+
   return (
     <div className="space-y-5">
-      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="V2 신규 · 운동룸 카드 보드" />
-      <MetricGrid metrics={screen.metrics} />
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="V2 신규 · 운동룸 카드 보드 + 게이트 매핑" />
+
+      {/* 통계 카드 4종 */}
+      <div className="grid grid-cols-4 gap-3">
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-600" /> 운영 중</CardDescription><CardTitle className="text-2xl tabular-nums text-emerald-600">{operatingCount}룸</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">전체 {rooms.length}룸 중</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><Clock size={14} className="text-amber-600" /> 점검 중</CardDescription><CardTitle className="text-2xl tabular-nums text-amber-600">{maintenanceCount}룸</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">일시 정지</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><AlertTriangle size={14} className="text-rose-600" /> 고장/폐쇄</CardDescription><CardTitle className="text-2xl tabular-nums text-rose-600">{brokenCount + rooms.filter((r) => r.status === "closed").length}룸</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">예약 차단</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><UserRound size={14} className="text-blue-600" /> 오늘 이용자</CardDescription><CardTitle className="text-2xl tabular-nums text-blue-600">{currentOccupied}명</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">정원 합 {totalCapacity}명</p></CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5">
         <div className="space-y-4">
           <Card className="shadow-none">
-            <CardHeader><CardTitle>운동룸 현황</CardTitle><CardDescription>유형별 운영 상태·시간대별 예약 슬롯</CardDescription></CardHeader>
-            <CardContent className="space-y-3">
-              <FilterChips filters={screen.filters} notify={notify} />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {screen.rows.map((row, idx) => (
-                  <div key={idx} className="rounded-xl border bg-white p-3">
-                    <div className="flex items-center justify-between"><b>{row["룸명"]}</b>{statusAwareValue(String(row["운영 상태"] ?? "-"))}</div>
-                    <div className="mt-1 text-xs text-content-tertiary">{row["유형"]} · 정원 {row["수용 인원"]} · 게이트 {row["게이트"]}</div>
-                    <div className="mt-2 rounded bg-surface-secondary p-2 text-xs">{row["오늘 시간대별 예약 슬롯"]}</div>
-                  </div>
-                ))}
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>운동룸 현황 ({filtered.length}룸)</CardTitle>
+                <Button size="sm" disabled={!canManage} onClick={() => canManage ? notify("새 룸 등록 모달 mock", "info") : notify("매니저 이상 권한 필요", "warning")}>+ 룸 등록</Button>
               </div>
+              <CardDescription>유형별 운영 상태 · 게이트 매핑 · 시간대별 예약 슬롯</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* 필터 */}
+              <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+                <div>
+                  <Label className="text-[10px] text-content-tertiary mb-1 block">유형</Label>
+                  <Select value={filterType} onValueChange={(v) => setFilterType(v as RoomType | "")}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="전체 유형" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      {(Object.keys(typeMeta) as RoomType[]).map((t) => (<SelectItem key={t} value={t}>{typeMeta[t].label}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[10px] text-content-tertiary mb-1 block">운영 상태</Label>
+                  <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as RoomStatus | "")}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="전체 상태" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      {(Object.keys(statusMeta) as RoomStatus[]).map((s) => (<SelectItem key={s} value={s}>{statusMeta[s].label}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => { setFilterType(""); setFilterStatus(""); }}>초기화</Button>
+              </div>
+
+              {/* 룸 카드 그리드 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {filtered.map((room) => {
+                  const typeCfg = typeMeta[room.type];
+                  const statusCfg = statusMeta[room.status];
+                  const isAvailable = room.status === "operating";
+                  return (
+                    <button
+                      key={room.id}
+                      onClick={() => setSelectedRoom(room)}
+                      className={cn(
+                        "rounded-xl border p-3 text-left transition-all",
+                        isAvailable ? "bg-white hover:border-primary hover:shadow-md" : "bg-surface-secondary opacity-70"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className={cn("inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border", typeCfg.color)}>{typeCfg.label}</span>
+                        <Badge variant={statusCfg.variant} className="text-[10px]">{statusCfg.label}</Badge>
+                      </div>
+                      <h3 className="mt-2 font-semibold text-sm">{room.name}</h3>
+                      <div className="mt-1 flex items-center gap-2 text-[10px] text-content-tertiary">
+                        <span>정원 {room.capacity}</span>
+                        <span>·</span>
+                        <span>게이트 {room.gate}</span>
+                      </div>
+                      <div className="mt-2 space-y-1">
+                        {room.todaySlots.slice(0, 3).map((slot, sidx) => (
+                          <div key={sidx} className="flex items-center justify-between text-[10px]">
+                            <span className="font-mono text-content-tertiary">{slot.time}</span>
+                            <div className="flex items-center gap-1">
+                              <div className="h-1.5 w-12 overflow-hidden rounded-full bg-surface-tertiary">
+                                <div className={cn("h-full",
+                                  slot.occupied === 0 ? "bg-slate-300" :
+                                  slot.occupied >= room.capacity ? "bg-rose-500" :
+                                  slot.occupied >= room.capacity * 0.7 ? "bg-amber-500" : "bg-emerald-500"
+                                )} style={{ width: `${Math.min((slot.occupied / room.capacity) * 100, 100)}%` }} />
+                              </div>
+                              <span className="font-semibold tabular-nums w-12 text-right">{slot.occupied}/{room.capacity}</span>
+                            </div>
+                          </div>
+                        ))}
+                        {room.todaySlots.length > 3 && (
+                          <p className="text-[10px] text-content-tertiary">+{room.todaySlots.length - 3}개 슬롯</p>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              {filtered.length === 0 && (
+                <div className="py-12 text-center text-sm text-content-tertiary">조건에 맞는 룸이 없습니다.</div>
+              )}
             </CardContent>
           </Card>
         </div>
+
         <aside className="space-y-4">
-          <Card className="shadow-none"><CardHeader><CardTitle>룸 액션</CardTitle></CardHeader><CardContent><PrimaryActionRow screen={screen} role={role} openDialog={openDialog} notify={notify} /></CardContent></Card>
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>룸 액션</CardTitle><CardDescription>운영 상태 변경·게이트 매핑</CardDescription></CardHeader>
+            <CardContent className="space-y-2">
+              <Button className="w-full" disabled={!canManage} onClick={() => canManage ? notify("새 룸 등록 mock", "info") : notify("매니저 이상 권한 필요", "warning")}>+ 룸 등록</Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("게이트 매핑 화면 이동 mock", "info")}>게이트 매핑 관리</Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("운영 시간 정책 mock", "info")}>운영 시간 정책</Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("CSV 내보내기 mock", "info")}>CSV 내보내기</Button>
+            </CardContent>
+          </Card>
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>상태 색상 범례</CardTitle></CardHeader>
+            <CardContent className="space-y-1.5 text-xs">
+              {(Object.keys(statusMeta) as RoomStatus[]).map((s) => (
+                <div key={s} className="flex items-center justify-between gap-2 rounded-lg border bg-white px-2 py-1.5">
+                  <Badge variant={statusMeta[s].variant} className="text-[10px]">{statusMeta[s].label}</Badge>
+                  <span className="text-content-tertiary text-[10px]">
+                    {s === "operating" && "예약 가능"}
+                    {s === "maintenance" && "일시 정지 (예약 차단)"}
+                    {s === "broken" && "수리 필요 (예약 차단)"}
+                    {s === "closed" && "임시 폐쇄"}
+                  </span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
           <DialogDock screen={screen} openDialog={openDialog} />
           <HandoffContractCard screen={screen} />
         </aside>
       </div>
+
+      {/* 룸 상세 모달 */}
+      {selectedRoom && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4" onClick={() => setSelectedRoom(null)}>
+          <div className="bg-white rounded-2xl shadow-xl border w-full max-w-[560px] max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className={cn("inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border", typeMeta[selectedRoom.type].color)}>{typeMeta[selectedRoom.type].label}</span>
+                    <Badge variant={statusMeta[selectedRoom.status].variant} className="text-[10px]">{statusMeta[selectedRoom.status].label}</Badge>
+                  </div>
+                  <h3 className="text-base font-bold">{selectedRoom.name}</h3>
+                  <p className="text-xs text-content-tertiary mt-1">정원 {selectedRoom.capacity}명 · 게이트 {selectedRoom.gate}</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedRoom(null)}><X size={16} /></Button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              {/* 운영 상태 토글 */}
+              <div>
+                <Label className="text-xs font-semibold mb-2 block">운영 상태 변경</Label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {(Object.keys(statusMeta) as RoomStatus[]).map((s) => (
+                    <Button
+                      key={s}
+                      size="sm"
+                      variant={selectedRoom.status === s ? "default" : "outline"}
+                      disabled={!canManage}
+                      onClick={() => { changeStatus(selectedRoom.id, s); setSelectedRoom({ ...selectedRoom, status: s }); }}
+                    >
+                      {statusMeta[s].label}
+                    </Button>
+                  ))}
+                </div>
+                {!canManage && (<p className="text-[10px] text-amber-600 mt-1">매니저 이상 권한 필요</p>)}
+              </div>
+
+              {/* 시간대 슬롯 */}
+              <div>
+                <Label className="text-xs font-semibold mb-2 block">오늘 시간대별 예약 슬롯</Label>
+                <div className="space-y-1.5">
+                  {selectedRoom.todaySlots.map((slot, sidx) => {
+                    const ratio = selectedRoom.capacity > 0 ? Math.min((slot.occupied / selectedRoom.capacity) * 100, 100) : 0;
+                    return (
+                      <div key={sidx} className="rounded-lg border p-2.5 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-sm font-semibold w-16">{slot.time}</span>
+                          {slot.class && <span className="text-xs text-content-tertiary">{slot.class}</span>}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-20 overflow-hidden rounded-full bg-surface-tertiary">
+                            <div className={cn("h-full",
+                              slot.occupied === 0 ? "bg-slate-300" :
+                              slot.occupied >= selectedRoom.capacity ? "bg-rose-500" :
+                              slot.occupied >= selectedRoom.capacity * 0.7 ? "bg-amber-500" : "bg-emerald-500"
+                            )} style={{ width: `${ratio}%` }} />
+                          </div>
+                          <span className="text-sm font-bold tabular-nums w-14 text-right">{slot.occupied}/{selectedRoom.capacity}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t flex justify-end gap-2">
+              <Button variant="outline" onClick={() => { notify(`${selectedRoom.name} 예약 캘린더 이동`, "info"); setSelectedRoom(null); }}>예약 캘린더</Button>
+              <Button onClick={() => setSelectedRoom(null)}>닫기</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -5706,31 +7278,332 @@ function CouponManagementScreen({ screen, role, branch, openDialog, notify }: Sp
 }
 
 function ReferralProgramScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
+  // admin-pando referral 패턴 + 운영자 UX: V2 신규 추천 이벤트
+  // 진행 중 이벤트 + 추천인 랭킹 + 혜택 트래킹 + 부정 감지 + 이벤트 생성 모달
+  type EventStatus = "진행" | "예정" | "종료" | "중지";
+  type ReferralEvent = {
+    id: number; name: string; period: string; referrerBenefit: string;
+    refereeBenefit: string; graceDays: number; participants: number;
+    conversions: number; status: EventStatus;
+  };
+
+  const initialEvents: ReferralEvent[] = [
+    { id: 1, name: "친구와 함께 헬스 (1+1)", period: "26.04.01 ~ 26.06.30", referrerBenefit: "마일리지 5,000원", refereeBenefit: "회원권 1개월 추가", graceDays: 30, participants: 84, conversions: 32, status: "진행" },
+    { id: 2, name: "패밀리 가입 할인", period: "26.05.01 ~ 26.05.31", referrerBenefit: "다음 결제 10%", refereeBenefit: "첫 달 20%", graceDays: 14, participants: 26, conversions: 18, status: "진행" },
+    { id: 3, name: "여름맞이 친구 추천", period: "26.06.15 ~ 26.08.15", referrerBenefit: "PT 1회 무료", refereeBenefit: "회원권 15% 할인", graceDays: 30, participants: 0, conversions: 0, status: "예정" },
+    { id: 4, name: "봄 새 회원 이벤트 (종료)", period: "26.03.01 ~ 26.03.31", referrerBenefit: "마일리지 3,000원", refereeBenefit: "첫 달 무료", graceDays: 30, participants: 142, conversions: 68, status: "종료" }
+  ];
+
+  const referrers = [
+    { name: "김민준", count: 8, mileage: 40000, suspicion: false },
+    { name: "박서연", count: 6, mileage: 30000, suspicion: false },
+    { name: "정하준", count: 5, mileage: 25000, suspicion: false },
+    { name: "오지우", count: 4, mileage: 20000, suspicion: true },
+    { name: "최가온", count: 3, mileage: 15000, suspicion: false }
+  ];
+
+  const fraudCases = [
+    { referrer: "오지우", reason: "동일 IP 대량 가입 의심", count: 4, date: "어제" },
+    { referrer: "한선우", reason: "피추천인 첫 결제 후 즉시 환불", count: 2, date: "2일 전" }
+  ];
+
+  const [events, setEvents] = useState<ReferralEvent[]>(initialEvents);
+  const [filterStatus, setFilterStatus] = useState<EventStatus | "">("");
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    name: "", periodStart: "", periodEnd: "",
+    referrerBenefit: "", refereeBenefit: "", graceDays: 30
+  });
+  const [showFraud, setShowFraud] = useState(false);
+
+  const filtered = filterStatus ? events.filter((e) => e.status === filterStatus) : events;
+  const activeCount = events.filter((e) => e.status === "진행").length;
+  const totalParticipants = events.reduce((s, e) => s + e.participants, 0);
+  const totalConversions = events.reduce((s, e) => s + e.conversions, 0);
+  const conversionRate = totalParticipants > 0 ? Math.round((totalConversions / totalParticipants) * 100) : 0;
+  const totalMileage = referrers.reduce((s, r) => s + r.mileage, 0);
+  const fmt = (n: number) => n.toLocaleString("ko-KR");
+
+  const statusVariant: Record<EventStatus, "success" | "info" | "secondary" | "destructive"> = {
+    "진행": "success", "예정": "info", "종료": "secondary", "중지": "destructive"
+  };
+
+  const canManage = role === "OWNER" || role === "HQ_ADMIN" || role === "MANAGER";
+
   return (
     <div className="space-y-5">
-      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="V2 신규 · 추천 이벤트" />
-      <MetricGrid metrics={screen.metrics} />
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="V2 신규 · 추천 이벤트 · 마일리지 적립" />
+
+      {/* 통계 카드 4종 */}
+      <div className="grid grid-cols-4 gap-3">
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-600" /> 진행 이벤트</CardDescription><CardTitle className="text-2xl tabular-nums text-emerald-600">{activeCount}건</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">현재 운영 중</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><UserRound size={14} /> 참여자</CardDescription><CardTitle className="text-2xl tabular-nums">{totalParticipants}명</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">추천인 누계</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><MessageSquare size={14} className="text-primary" /> 전환</CardDescription><CardTitle className="text-2xl tabular-nums text-primary">{totalConversions}명</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">전환율 {conversionRate}%</p></CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5"><AlertTriangle size={14} className="text-amber-600" /> 적립 마일리지</CardDescription><CardTitle className="text-xl tabular-nums text-amber-700">{fmt(totalMileage)}원</CardTitle></CardHeader>
+          <CardContent className="pt-0"><p className="text-xs text-content-tertiary">TOP 5 추천인 합산</p></CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5">
         <div className="space-y-4">
           <Card className="shadow-none">
-            <CardHeader><CardTitle>리퍼럴 이벤트</CardTitle><CardDescription>추천인·피추천인 혜택 · 기간 · 그레이스</CardDescription></CardHeader>
-            <CardContent className="space-y-3">
-              <FilterChips filters={screen.filters} notify={notify} />
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>리퍼럴 이벤트</CardTitle>
+                <div className="flex gap-2">
+                  <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as EventStatus | "")}>
+                    <SelectTrigger className="h-9 w-32"><SelectValue placeholder="전체" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      <SelectItem value="진행">진행</SelectItem>
+                      <SelectItem value="예정">예정</SelectItem>
+                      <SelectItem value="종료">종료</SelectItem>
+                      <SelectItem value="중지">중지</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" disabled={!canManage} onClick={() => canManage ? setShowCreate(true) : notify("매니저 이상 권한 필요", "warning")}>
+                    + 이벤트 만들기
+                  </Button>
+                </div>
+              </div>
+              <CardDescription>{filtered.length}건 · 추천인·피추천인 혜택 · 그레이스 기간 · 전환율</CardDescription>
+            </CardHeader>
+            <CardContent>
               <Table>
-                <TableHeader><TableRow>{screen.tableColumns.map((c) => <TableHead key={c}>{c}</TableHead>)}</TableRow></TableHeader>
-                <TableBody>{screen.rows.map((row, idx) => (
-                  <TableRow key={idx}>{screen.tableColumns.map((c) => <TableCell key={c}>{statusAwareValue(String(row[c] ?? "-"))}</TableCell>)}</TableRow>
-                ))}</TableBody>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>이벤트명</TableHead>
+                    <TableHead className="w-40">운영 기간</TableHead>
+                    <TableHead>추천인 혜택</TableHead>
+                    <TableHead>피추천인 혜택</TableHead>
+                    <TableHead className="w-16 text-center">그레이스</TableHead>
+                    <TableHead className="text-right w-16">참여</TableHead>
+                    <TableHead className="text-right w-16">전환</TableHead>
+                    <TableHead className="w-20 text-center">상태</TableHead>
+                    <TableHead className="w-20 text-center">관리</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((e) => {
+                    const rate = e.participants > 0 ? Math.round((e.conversions / e.participants) * 100) : 0;
+                    return (
+                      <TableRow key={e.id}>
+                        <TableCell className="font-semibold">{e.name}</TableCell>
+                        <TableCell className="text-xs tabular-nums">{e.period}</TableCell>
+                        <TableCell className="text-xs">{e.referrerBenefit}</TableCell>
+                        <TableCell className="text-xs">{e.refereeBenefit}</TableCell>
+                        <TableCell className="text-center text-xs tabular-nums">{e.graceDays}일</TableCell>
+                        <TableCell className="text-right tabular-nums">{e.participants}</TableCell>
+                        <TableCell className="text-right tabular-nums text-primary font-semibold">{e.conversions} <span className="text-[10px] text-content-tertiary">({rate}%)</span></TableCell>
+                        <TableCell className="text-center"><Badge variant={statusVariant[e.status]} className="text-[10px]">{e.status}</Badge></TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex justify-center gap-1">
+                            {e.status === "진행" && canManage && (
+                              <Button size="sm" variant="ghost" onClick={() => {
+                                setEvents((curr) => curr.map((x) => x.id === e.id ? { ...x, status: "중지" as const } : x));
+                                notify(`${e.name} 중지`, "warning");
+                              }}>중지</Button>
+                            )}
+                            <Button size="sm" variant="ghost" onClick={() => notify(`${e.name} 상세`, "info")}>상세</Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
               </Table>
+              {filtered.length === 0 && (
+                <div className="py-12 text-center text-sm text-content-tertiary">조건에 맞는 이벤트가 없습니다.</div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 추천인 랭킹 (운영자 인사이트) */}
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle>추천인 랭킹 (TOP 5)</CardTitle>
+              <CardDescription>이번 달 추천 회원 수 + 마일리지 적립 합계 · 부정 감지 플래그</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {referrers.map((r, idx) => (
+                  <div key={r.name} className={cn(
+                    "flex items-center justify-between rounded-lg border p-2.5",
+                    r.suspicion ? "border-rose-200 bg-rose-50" : "bg-white"
+                  )}>
+                    <div className="flex items-center gap-3">
+                      <span className={cn("size-7 grid place-items-center rounded-full font-bold text-xs",
+                        idx === 0 && "bg-amber-100 text-amber-700",
+                        idx === 1 && "bg-slate-100 text-slate-700",
+                        idx === 2 && "bg-orange-100 text-orange-700",
+                        idx > 2 && "bg-surface-tertiary text-content-tertiary"
+                      )}>{idx + 1}</span>
+                      <div>
+                        <div className="font-semibold text-sm flex items-center gap-1.5">
+                          {r.name}
+                          {r.suspicion && <Badge variant="destructive" className="text-[10px]">부정 의심</Badge>}
+                        </div>
+                        <div className="text-[10px] text-content-tertiary">추천 {r.count}건 · 마일리지 {fmt(r.mileage)}원</div>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      {r.suspicion && <Button size="sm" variant="outline" onClick={() => setShowFraud(true)}>점검</Button>}
+                      <Button size="sm" variant="ghost" onClick={() => notify(`${r.name} 추천 이력 상세`, "info")}>상세</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
+
         <aside className="space-y-4">
-          <Card className="shadow-none"><CardHeader><CardTitle>리퍼럴 액션</CardTitle></CardHeader><CardContent><PrimaryActionRow screen={screen} role={role} openDialog={openDialog} notify={notify} /></CardContent></Card>
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>리퍼럴 액션</CardTitle><CardDescription>운영자 전용</CardDescription></CardHeader>
+            <CardContent className="space-y-2">
+              <Button className="w-full" disabled={!canManage} onClick={() => canManage ? setShowCreate(true) : notify("매니저 이상 권한 필요", "warning")}>+ 이벤트 만들기</Button>
+              <Button variant="outline" className="w-full" onClick={() => setShowFraud(true)}>
+                <AlertTriangle size={14} className="mr-1.5 text-amber-600" /> 부정 감지 ({fraudCases.length})
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("추천 코드 일괄 발급 mock", "info")}>추천 코드 일괄 발급</Button>
+              <Button variant="outline" className="w-full" onClick={() => notify("CSV 내보내기 mock", "info")}>CSV 내보내기</Button>
+            </CardContent>
+          </Card>
+          <Card className="shadow-none">
+            <CardHeader><CardTitle>혜택 정책 (V2)</CardTitle></CardHeader>
+            <CardContent className="space-y-1 text-xs text-content-secondary">
+              <div>• 추천인: 마일리지 자동 적립 (피추천인 첫 결제 시)</div>
+              <div>• 피추천인: 첫 결제 즉시 할인 또는 추가 기간</div>
+              <div>• 그레이스: 추천일 후 N일 내 가입만 인정</div>
+              <div>• 중복 방지: 동일 회원 2회 이상 추천 불가</div>
+              <div>• 환불 시: 마일리지 회수 자동</div>
+              <div>• 부정 감지: 동일 IP/환불 패턴 모니터링</div>
+            </CardContent>
+          </Card>
+          {!canManage && (
+            <Card className="shadow-none border-amber-200 bg-amber-50">
+              <CardContent className="p-3 text-xs">
+                <AlertTriangle size={14} className="inline text-amber-600 mr-1.5" />
+                <b>권한 안내:</b> 이벤트 생성/중지는 매니저 이상 권한 필요
+              </CardContent>
+            </Card>
+          )}
           <DialogDock screen={screen} openDialog={openDialog} />
           <HandoffContractCard screen={screen} />
         </aside>
       </div>
+
+      {/* 이벤트 만들기 모달 */}
+      {showCreate && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4" onClick={() => setShowCreate(false)}>
+          <div className="bg-white rounded-2xl shadow-xl border w-full max-w-[520px]" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <h3 className="text-base font-bold">새 추천 이벤트 만들기</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowCreate(false)}><X size={16} /></Button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block">이벤트명 *</Label>
+                <Input placeholder="예: 친구와 함께 헬스" value={createForm.name} onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })} />
+                {createForm.name && createForm.name.length < 3 && (<p className="text-[10px] text-rose-600 mt-1">3자 이상 입력해주세요.</p>)}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs font-semibold mb-1.5 block">시작일 *</Label>
+                  <Input type="date" value={createForm.periodStart} onChange={(e) => setCreateForm({ ...createForm, periodStart: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold mb-1.5 block">종료일 *</Label>
+                  <Input type="date" value={createForm.periodEnd} onChange={(e) => setCreateForm({ ...createForm, periodEnd: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block">추천인 혜택 *</Label>
+                <Input placeholder="예: 마일리지 5,000원, PT 1회" value={createForm.referrerBenefit} onChange={(e) => setCreateForm({ ...createForm, referrerBenefit: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block">피추천인 혜택 *</Label>
+                <Input placeholder="예: 첫 달 무료, 회원권 1개월 추가" value={createForm.refereeBenefit} onChange={(e) => setCreateForm({ ...createForm, refereeBenefit: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold mb-1.5 block">그레이스 기간 (일)</Label>
+                <Input type="number" value={createForm.graceDays} onChange={(e) => setCreateForm({ ...createForm, graceDays: Number(e.target.value) || 0 })} />
+                <p className="text-[10px] text-content-tertiary mt-1">추천일 후 N일 내 피추천인이 가입해야 혜택 적용 (기본 30일)</p>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowCreate(false)}>취소</Button>
+              <Button className="flex-1" onClick={() => {
+                if (createForm.name.length < 3) { notify("이벤트명 3자 이상", "warning"); return; }
+                if (!createForm.periodStart || !createForm.periodEnd) { notify("기간 선택 필요", "warning"); return; }
+                if (!createForm.referrerBenefit || !createForm.refereeBenefit) { notify("양측 혜택 입력 필요", "warning"); return; }
+                if (createForm.graceDays < 1 || createForm.graceDays > 90) { notify("그레이스 기간 1~90일", "warning"); return; }
+                const newEvent: ReferralEvent = {
+                  id: Math.max(...events.map((e) => e.id)) + 1,
+                  name: createForm.name,
+                  period: `${createForm.periodStart.slice(2).replace(/-/g, ".")} ~ ${createForm.periodEnd.slice(2).replace(/-/g, ".")}`,
+                  referrerBenefit: createForm.referrerBenefit,
+                  refereeBenefit: createForm.refereeBenefit,
+                  graceDays: createForm.graceDays,
+                  participants: 0, conversions: 0, status: "예정"
+                };
+                setEvents([newEvent, ...events]);
+                setShowCreate(false);
+                setCreateForm({ name: "", periodStart: "", periodEnd: "", referrerBenefit: "", refereeBenefit: "", graceDays: 30 });
+                notify(`${newEvent.name} 이벤트 생성 완료 (예정 상태)`);
+              }}>만들기</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 부정 감지 점검 모달 */}
+      {showFraud && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4" onClick={() => setShowFraud(false)}>
+          <div className="bg-white rounded-2xl shadow-xl border w-full max-w-[520px]" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <h3 className="text-base font-bold flex items-center gap-2">
+                <AlertTriangle size={16} className="text-rose-600" /> 부정 감지 의심 사례 ({fraudCases.length}건)
+              </h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowFraud(false)}><X size={16} /></Button>
+            </div>
+            <div className="p-6 space-y-3">
+              <div className="rounded-lg bg-rose-50 border border-rose-200 p-3 text-xs">
+                <AlertTriangle size={14} className="inline text-rose-600 mr-1.5" />
+                <b>감지 규칙:</b> 동일 IP/디바이스 연속 가입, 첫 결제 후 즉시 환불, 추천 후 30일 내 환불 등.
+              </div>
+              <div className="space-y-2">
+                {fraudCases.map((c, idx) => (
+                  <div key={idx} className="rounded-lg border p-3 flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="font-semibold text-sm">{c.referrer}</div>
+                      <div className="text-xs text-content-tertiary mt-0.5">{c.reason}</div>
+                      <div className="text-[10px] text-content-tertiary mt-1">의심 건수: {c.count} · {c.date}</div>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <Button size="sm" variant="outline" onClick={() => notify(`${c.referrer} 마일리지 회수`, "warning")}>회수</Button>
+                      <Button size="sm" variant="ghost" onClick={() => notify(`${c.referrer} 정상 처리`, "info")}>정상</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t flex justify-end">
+              <Button onClick={() => setShowFraud(false)}>닫기</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
