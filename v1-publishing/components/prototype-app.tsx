@@ -91,7 +91,7 @@ export function PrototypeApp({ initialRoute }: { initialRoute: string }) {
       <div className="grid min-h-screen grid-cols-[280px_1fr]">
         <Sidebar currentRoute={screen.route} role={role} />
         <div className="min-w-0">
-          <Topbar role={role} branch={branch} setRole={setRole} setBranch={setBranch} openDialog={openDialog} notify={notify} />
+          <Topbar screen={screen} role={role} branch={branch} setRole={setRole} setBranch={setBranch} openDialog={openDialog} notify={notify} />
           <main className="p-6">
             <AdminScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />
           </main>
@@ -201,11 +201,19 @@ function Sidebar({ currentRoute, role }: { currentRoute: string; role: RoleId })
   );
 }
 
-function Topbar({ role, branch, setRole, setBranch, openDialog, notify }: { role: RoleId; branch: string; setRole: (role: RoleId) => void; setBranch: (branch: string) => void; openDialog: (id: string) => void; notify: (message: string, tone?: "success" | "warning" | "info") => void }) {
+function Topbar({ screen, role, branch, setRole, setBranch, openDialog, notify }: { screen: ScreenDefinition; role: RoleId; branch: string; setRole: (role: RoleId) => void; setBranch: (branch: string) => void; openDialog: (id: string) => void; notify: (message: string, tone?: "success" | "warning" | "info") => void }) {
+  const [quickSearch, setQuickSearch] = useState("");
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-white/95 px-6 backdrop-blur">
-      <div className="flex items-center gap-3 text-sm text-slate-600"><Menu className="size-5" /><span>V1 정적 Admin 프로토타입</span><ChevronRight className="size-4" /><b className="text-slate-950">API/DB/외부연동 없음</b></div>
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-white/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+      <div className="flex min-w-0 items-center gap-3 text-sm text-slate-600">
+        <Menu className="size-5 shrink-0" />
+        <Badge variant="outline">{screen.domain}</Badge>
+        <Badge variant="info">{screen.id}</Badge>
+        <ChevronRight className="size-4 shrink-0" />
+        <div className="min-w-0"><div className="truncate font-semibold text-slate-950">{screen.title}</div><div className="truncate text-xs text-slate-500">{screen.id} · {screen.route} · API/DB/외부연동 없음</div></div>
+      </div>
       <div className="flex items-center gap-2">
+        <div className="relative hidden xl:block"><Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" /><Input value={quickSearch} onChange={(event) => setQuickSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") notify(`${quickSearch || screen.title} 화면/문서 검색 mock`, "info"); }} placeholder="화면·문서 빠른 검색" className="w-56 bg-white pl-9" /></div>
         <BranchSelect branch={branch} setBranch={setBranch} compact />
         <RoleSelect role={role} setRole={setRole} compact />
         <Button variant="outline" size="sm" onClick={() => openDialog("DLG-000")}><Lock className="size-4" /> 세션</Button>
