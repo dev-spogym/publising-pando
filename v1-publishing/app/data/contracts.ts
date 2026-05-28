@@ -105,8 +105,12 @@ function makeField(label: string, index: number, required = index < 2): FieldCon
   };
 }
 
-function endpointFor(screenOrDialog: Pick<ScreenDefinition | DialogDefinition, "domain" | "id">) {
-  return `/api/admin/${domainSlugs[screenOrDialog.domain] ?? "v1"}/${slug(screenOrDialog.id)}`;
+function endpointFor(item: Pick<ScreenDefinition | DialogDefinition, "domain" | "id"> & Partial<Pick<ScreenDefinition, "route">>) {
+  if (item.route) {
+    const routePath = item.route === "/" ? "" : item.route.replace(/\/detail$/, "/:id").replace(/\/edit$/, "/:id");
+    return `/api/admin${routePath}`;
+  }
+  return `/api/admin/${domainSlugs[item.domain] ?? "v1"}/dialogs/${slug(item.id)}`;
 }
 
 export function getHandoffStatus(item: Pick<ScreenDefinition | DialogDefinition, "domain" | "id" | "policyPending">): HandoffStatus {

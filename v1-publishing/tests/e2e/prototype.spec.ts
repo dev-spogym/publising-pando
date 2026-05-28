@@ -41,7 +41,7 @@ test("protected owner action is permission-gated for staff", async ({ page }) =>
 test("publishing controls provide mock feedback for filters, rows, metrics, and handoff contracts", async ({ page }) => {
   await page.goto("/members");
   await expect(page.getByText("개발 핸드오프 계약")).toBeVisible();
-  await expect(page.getByText(/GET \/api\/admin\/members\/m001/)).toBeVisible();
+  await expect(page.getByText(/GET \/api\/admin\/members/)).toBeVisible();
 
   await page.getByRole("button", { name: /활성 회원/ }).click();
   await expect(page.getByText(/활성 회원 지표 필터 mock 적용/)).toBeVisible();
@@ -63,7 +63,7 @@ test("publishing controls provide mock feedback for filters, rows, metrics, and 
 test("dialog form edits surface dirty close and submit contract feedback", async ({ page }) => {
   await page.goto("/members");
   await page.locator('[data-dialog-id="DLG-M001"]').first().click();
-  await expect(page.getByText(/Contract: POST \/api\/admin\/members\/m001/)).toBeVisible();
+  await expect(page.getByText(/Contract: POST \/api\/admin\/members\/dialogs\/m001/)).toBeVisible();
   await page.locator("textarea").first().fill("검수용 변경");
   await expect(page.getByText(/상태 dirty/)).toBeVisible();
   await page.getByRole("button", { name: "닫기" }).click();
