@@ -1389,7 +1389,7 @@ function AdminScreen({
                 {(screen.tabs.length ? screen.tabs.slice(0, 1) : ["기본"]).map(
                   (tab) => (
                     <TabsContent key={tab} value={tab}>
-                      <DataPanel screen={screen} notify={notify} />
+                      <DataPanel screen={screen} />
                     </TabsContent>
                   ),
                 )}
@@ -9742,7 +9742,6 @@ function DomainOperationsScreen({
   role,
   branch,
   openDialog,
-  notify,
 }: SpecializedScreenProps) {
   const config = domainPublishing[screen.domain] ?? domainPublishing.D09;
   const accent = accentClasses[config.accent] ?? accentClasses.slate;
@@ -9766,6 +9765,49 @@ function DomainOperationsScreen({
   const queueItems = buildOperationalQueueItems(screen, config);
   const [selectedQueue, setSelectedQueue] =
     useState<OperationalQueueItem | null>(null);
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [queueAssignments, setQueueAssignments] = useState<
+    Record<string, string>
+  >({});
+  const [selectedRow, setSelectedRow] = useState<{
+    title: string;
+    rows: Record<string, string>;
+    source: "metric" | "lane" | "filter" | "table" | "action" | "queue";
+  } | null>(null);
+  const openStatePanel = (
+    title: string,
+    rowsForPanel: Record<string, string>,
+    source: "metric" | "lane" | "filter" | "table" | "action" | "queue",
+  ) => setSelectedRow({ title, rows: rowsForPanel, source });
+  const toggleFilter = (filter: string) => {
+    setActiveFilters((current) =>
+      current.includes(filter)
+        ? current.filter((item) => item !== filter)
+        : [...current, filter],
+    );
+    openStatePanel(
+      `${filter} 필터`,
+      {
+        "선택 lane": activeLane,
+        "필터 상태": activeFilters.includes(filter) ? "해제됨" : "적용됨",
+        "연결 보드": config.boardTitle,
+        "검수 기준": "버튼 클릭 즉시 선택 chip/상태바/테이블 컨텍스트가 변경됨",
+      },
+      "filter",
+    );
+  };
+  const openActionPanel = (label: string, tone = "일반") =>
+    openStatePanel(
+      label,
+      {
+        "액션 유형": tone,
+        "선택 lane": activeLane,
+        "적용 필터": activeFilters.length ? activeFilters.join(" · ") : "없음",
+        "처리 방식": "퍼블리싱 mock/local state 패널로 연결",
+        "개발 연결점": `${screen.id}.action.${label}`,
+      },
+      "action",
+    );
   return (
     <div className="space-y-5">
       <DeliveryHeader
@@ -9794,7 +9836,16 @@ function DomainOperationsScreen({
               )}
               onClick={() => {
                 setActiveLane(metric.label);
-                notify(`${metric.label} 지표 기준으로 보드 필터 적용`, "info");
+                openStatePanel(
+                  `${metric.label} 지표`,
+                  {
+                    값: metric.value,
+                    설명: metric.hint,
+                    "선택 lane": metric.label,
+                    "연결 보드": config.boardTitle,
+                  },
+                  "metric",
+                );
               }}
             >
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
@@ -9830,7 +9881,16 @@ function DomainOperationsScreen({
                     )}
                     onClick={() => {
                       setActiveLane(lane);
-                      notify(`${lane} 운영 lane 선택`, "info");
+                      openStatePanel(
+                        `${lane} 운영 lane`,
+                        {
+                          "선택 lane": lane,
+                          "연결 보드": config.boardTitle,
+                          "표시 row": `${filteredRows.length}건`,
+                          "개발 연결점": `${screen.id}.lane.${lane}`,
+                        },
+                        "lane",
+                      );
                     }}
                   >
                     <div className="font-semibold">{lane}</div>
@@ -9840,17 +9900,31 @@ function DomainOperationsScreen({
                   </button>
                 ))}
               </div>
+              <div
+                data-testid={`${screen.id.toLowerCase()}-active-state`}
+                className="rounded-xl border border-dashed border-primary/30 bg-primary-light/25 px-3 py-2 text-xs text-content-secondary"
+              >
+                <b className="text-content">선택 lane:</b> {activeLane}
+                <span className="mx-2 text-content-tertiary">·</span>
+                <b className="text-content">적용 필터:</b>{" "}
+                {activeFilters.length ? activeFilters.join(" · ") : "없음"}
+              </div>
               <div className="flex flex-wrap gap-2">
-                {screen.filters.slice(0, 7).map((filter) => (
-                  <Button
-                    key={filter}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => notify(`${filter} 필터 적용`, "info")}
-                  >
-                    {filter}
-                  </Button>
-                ))}
+                {screen.filters.slice(0, 7).map((filter) => {
+                  const selected = activeFilters.includes(filter);
+                  return (
+                    <Button
+                      key={filter}
+                      variant={selected ? "default" : "outline"}
+                      size="sm"
+                      aria-pressed={selected}
+                      onClick={() => toggleFilter(filter)}
+                    >
+                      {selected ? "✓ " : ""}
+                      {filter}
+                    </Button>
+                  );
+                })}
                 {role === "HQ_ADMIN" && (
                   <Badge className={accent.chip}>전 지점 통합</Badge>
                 )}
@@ -9862,7 +9936,7 @@ function DomainOperationsScreen({
             <CardHeader>
               <CardTitle>{config.boardTitle}</CardTitle>
               <CardDescription>
-                검색·탭·상태 배지·행 액션이 모두 mock feedback을 제공합니다.
+                검색·탭·상태 배지·행 액션이 테이블/상세 패널 상태로 연결됩니다.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -9877,7 +9951,9 @@ function DomainOperationsScreen({
                   variant="outline"
                   onClick={() => {
                     setQuery("");
-                    notify("검색/필터 초기화", "info");
+                    setActiveFilters([]);
+                    setActiveLane(config.lanes[0]);
+                    setSelectedRow(null);
                   }}
                 >
                   전체 해제
@@ -9887,7 +9963,7 @@ function DomainOperationsScreen({
                   onClick={() =>
                     primaryDialog
                       ? openDialog(primaryDialog)
-                      : notify(`${config.primaryCta} mock 실행`)
+                      : openActionPanel(config.primaryCta, "primary")
                   }
                 >
                   {config.primaryCta}
@@ -9898,7 +9974,7 @@ function DomainOperationsScreen({
                   onClick={() =>
                     secondaryDialog
                       ? openDialog(secondaryDialog)
-                      : notify(`${config.secondaryCta} mock 실행`, "info")
+                      : openActionPanel(config.secondaryCta, "secondary")
                   }
                 >
                   {config.secondaryCta}
@@ -9941,9 +10017,21 @@ function DomainOperationsScreen({
                             size="sm"
                             variant="ghost"
                             onClick={() =>
-                              notify(
-                                `${screen.id} ${index + 1}번 행 상세 패널 mock`,
-                                "info",
+                              openStatePanel(
+                                String(
+                                  row[visibleColumns[0]] ??
+                                    row[Object.keys(row)[0]] ??
+                                    `${screen.title} ${index + 1}`,
+                                ),
+                                {
+                                  ...row,
+                                  "선택 lane": activeLane,
+                                  "적용 필터": activeFilters.length
+                                    ? activeFilters.join(" · ")
+                                    : "없음",
+                                  "개발 연결점": `${screen.id}.row.${index + 1}`,
+                                },
+                                "table",
                               )
                             }
                           >
@@ -9960,7 +10048,10 @@ function DomainOperationsScreen({
                   {filteredRows.length
                     ? `1-${Math.min(visibleRowLimit, filteredRows.length)} of ${filteredRows.length}`
                     : "검색 결과 없음"}{" "}
-                  · active lane {activeLane}
+                  · 선택 lane {activeLane}
+                  {activeFilters.length
+                    ? ` · 필터 ${activeFilters.length}개 적용`
+                    : ""}
                 </span>
                 <span>
                   페이지네이션 · 스켈레톤 · empty/error 상태 연결 대상
@@ -10018,7 +10109,9 @@ function DomainOperationsScreen({
                   </p>
                   <div className="mt-3 flex items-center justify-between gap-2 text-[11px] font-semibold text-content-tertiary">
                     <span>담당 {item.owner}</span>
-                    <span>상세 패널 열기 →</span>
+                    <span>
+                      {queueAssignments[item.id] ?? "상세 패널 열기 →"}
+                    </span>
                   </div>
                 </button>
               ))}
@@ -10041,9 +10134,23 @@ function DomainOperationsScreen({
             <>
               <Button
                 variant="outline"
-                onClick={() =>
-                  notify(`${selectedQueue.title} 담당자 배정 mock`, "info")
-                }
+                onClick={() => {
+                  setQueueAssignments((current) => ({
+                    ...current,
+                    [selectedQueue.id]: "담당 배정 완료",
+                  }));
+                  setSelectedQueue(null);
+                  openStatePanel(
+                    `${selectedQueue.title} 담당 배정`,
+                    {
+                      대상: selectedQueue.target,
+                      담당: selectedQueue.owner,
+                      상태: "담당 배정 완료",
+                      마감: selectedQueue.deadline,
+                    },
+                    "queue",
+                  );
+                }}
               >
                 담당자 배정
               </Button>
@@ -10053,7 +10160,17 @@ function DomainOperationsScreen({
                     openDialog(selectedQueue.dialogId);
                     return;
                   }
-                  notify(`${selectedQueue.cta} mock 실행`, "success");
+                  setSelectedQueue(null);
+                  openStatePanel(
+                    selectedQueue.cta,
+                    {
+                      대상: selectedQueue.target,
+                      사유: selectedQueue.reason,
+                      "선택 lane": activeLane,
+                      상태: "큐 CTA 실행 준비",
+                    },
+                    "queue",
+                  );
                 }}
               >
                 {selectedQueue.cta}
@@ -10124,9 +10241,94 @@ function DomainOperationsScreen({
                 <ul className="space-y-2 text-xs leading-5">
                   <li>• API 호출 없음 · mock/local state만 실행</li>
                   <li>• 클릭 시 상세 사이드 패널 → 필요한 경우 DLG 연결</li>
-                  <li>• 처리/배정/CTA는 toast 또는 dialog로 검수 가능</li>
+                  <li>• 처리/배정/CTA는 사이드 패널 또는 dialog로 검수 가능</li>
                   <li>• 권한 차단·empty/loading/error 상태는 화면 계약에 포함</li>
                 </ul>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </AdminSlidePanel>
+
+      <AdminSlidePanel
+        open={Boolean(selectedRow)}
+        onClose={() => setSelectedRow(null)}
+        eyebrow={`${screen.id} ${selectedRow?.source.toUpperCase() ?? "DETAIL"}`}
+        title={selectedRow?.title ?? "상세"}
+        size="md"
+        testId={`${screen.id.toLowerCase()}-row-detail-panel`}
+        footer={
+          selectedRow ? (
+            <>
+              <Button variant="outline" onClick={() => setSelectedRow(null)}>
+                닫기
+              </Button>
+              {primaryDialog ? (
+                <Button onClick={() => openDialog(primaryDialog)}>
+                  관련 DLG 열기
+                </Button>
+              ) : (
+                <Button
+                  onClick={() =>
+                    openStatePanel(
+                      `${selectedRow.title} 저장 검수`,
+                      {
+                        ...selectedRow.rows,
+                        상태: "local state 저장 완료",
+                        "저장 범위": "퍼블리싱 mock only",
+                      },
+                      "action",
+                    )
+                  }
+                >
+                  저장 상태 반영
+                </Button>
+              )}
+            </>
+          ) : undefined
+        }
+      >
+        {selectedRow && (
+          <div className="space-y-4">
+            <Card className="shadow-none">
+              <CardHeader>
+                <CardTitle>상세 정보</CardTitle>
+                <CardDescription>
+                  클릭한 버튼/row가 이 패널의 local state로 연결됩니다.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3 sm:grid-cols-2">
+                {Object.entries(selectedRow.rows).map(([key, value]) => (
+                  <div key={key} className="rounded-xl border bg-white p-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-content-tertiary">
+                      {key}
+                    </p>
+                    <p className="mt-1 break-words text-sm font-semibold text-content">
+                      {statusAwareValue(value)}
+                    </p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+            <Card className="shadow-none">
+              <CardHeader>
+                <CardTitle>개발 핸드오프</CardTitle>
+                <CardDescription>
+                  실제 API가 아니라 화면 연결·상태 변화·DLG 연결 기준을 명확히 보여줍니다.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 text-xs leading-5 text-content-secondary">
+                <p>
+                  <b className="text-content">문서:</b> {getScreenSourceLabel(screen)}
+                </p>
+                <p>
+                  <b className="text-content">범위:</b> API 호출 없음 · mock/local
+                  state · 사이드 패널/필터/테이블 연결만 구현
+                </p>
+                <p>
+                  <b className="text-content">검수:</b> 클릭 → 화면 상태 변화 → 상세 패널
+                  또는 DLG 연결까지 확인
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -10136,16 +10338,14 @@ function DomainOperationsScreen({
   );
 }
 
-function DataPanel({
-  screen,
-  notify,
-}: {
-  screen: ScreenDefinition;
-  notify: (message: string, tone?: "success" | "warning" | "info") => void;
-}) {
+function DataPanel({ screen }: { screen: ScreenDefinition }) {
   const [query, setQuery] = useState("");
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [page, setPage] = useState(1);
+  const [detail, setDetail] = useState<{
+    title: string;
+    rows: Record<string, string>;
+  } | null>(null);
   const filteredRows = screen.rows.filter((row) =>
     Object.values(row).join(" ").toLowerCase().includes(query.toLowerCase()),
   );
@@ -10178,7 +10378,7 @@ function DataPanel({
             setQuery("");
             setSelectedRows([]);
             setPage(1);
-            notify("필터와 선택 행을 초기화했습니다.", "info");
+            setDetail(null);
           }}
         >
           전체 해제
@@ -10187,10 +10387,16 @@ function DataPanel({
           variant="outline"
           size="sm"
           onClick={() =>
-            notify(
-              `${selectedRows.length}개 행으로 일괄 작업 bar mock 표시`,
-              "info",
-            )
+            setDetail({
+              title: "선택 작업",
+              rows: {
+                "선택 행": `${selectedRows.length}개`,
+                "작업 상태": selectedRows.length
+                  ? "일괄 작업 bar 표시"
+                  : "선택된 행 없음",
+                "개발 연결점": `${screen.id}.bulkAction`,
+              },
+            })
           }
         >
           선택 작업
@@ -10242,10 +10448,17 @@ function DataPanel({
                     variant="ghost"
                     size="sm"
                     onClick={() =>
-                      notify(
-                        `${screen.id} ${absoluteIndex + 1}번 행 상세 mock`,
-                        "info",
-                      )
+                      setDetail({
+                        title: String(
+                          row[screen.tableColumns[0]] ??
+                            `${screen.title} ${absoluteIndex + 1}`,
+                        ),
+                        rows: {
+                          ...row,
+                          "선택 상태": selected ? "선택됨" : "미선택",
+                          "개발 연결점": `${screen.id}.row.${absoluteIndex + 1}`,
+                        },
+                      })
                     }
                   >
                     상세
@@ -10283,6 +10496,61 @@ function DataPanel({
           </Button>
         </div>
       </div>
+      <AdminSlidePanel
+        open={Boolean(detail)}
+        onClose={() => setDetail(null)}
+        eyebrow={`${screen.id} TABLE DETAIL`}
+        title={detail?.title ?? "상세"}
+        size="md"
+        testId={`${screen.id.toLowerCase()}-data-detail-panel`}
+        footer={
+          detail ? (
+            <>
+              <Button variant="outline" onClick={() => setDetail(null)}>
+                닫기
+              </Button>
+              <Button
+                onClick={() =>
+                  setDetail({
+                    title: `${detail.title} 저장 검수`,
+                    rows: {
+                      ...detail.rows,
+                      상태: "local state 저장 완료",
+                    },
+                  })
+                }
+              >
+                저장 상태 반영
+              </Button>
+            </>
+          ) : undefined
+        }
+      >
+        {detail && (
+          <div className="space-y-4">
+            <Card className="shadow-none">
+              <CardHeader>
+                <CardTitle>테이블 상세</CardTitle>
+                <CardDescription>
+                  행 액션과 일괄 작업이 toast가 아니라 상세 패널 상태로 연결됩니다.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3 sm:grid-cols-2">
+                {Object.entries(detail.rows).map(([key, value]) => (
+                  <div key={key} className="rounded-xl border bg-white p-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-content-tertiary">
+                      {key}
+                    </p>
+                    <p className="mt-1 break-words text-sm font-semibold text-content">
+                      {statusAwareValue(value)}
+                    </p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </AdminSlidePanel>
     </div>
   );
 }
