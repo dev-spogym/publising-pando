@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test.describe("publishing review mode", () => {
   test("토글 클릭 시 aria-pressed가 양방향 전환된다", async ({ page }) => {
     await page.goto("/members");
-    const toggle = page.getByRole("button", { name: "퍼블리싱 검수 모드" });
+    const toggle = page.getByRole("button", { name: "문서 검수 모드" });
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-pressed", "true");
@@ -13,7 +13,7 @@ test.describe("publishing review mode", () => {
 
   test("토글 상태가 localStorage에 저장된다", async ({ page }) => {
     await page.goto("/members");
-    const toggle = page.getByRole("button", { name: "퍼블리싱 검수 모드" });
+    const toggle = page.getByRole("button", { name: "문서 검수 모드" });
     await toggle.click();
     const stored = await page.evaluate(() => localStorage.getItem("pando-publishing-review-mode"));
     expect(stored).toBe("1");
@@ -21,9 +21,9 @@ test.describe("publishing review mode", () => {
 
   test("토글 상태는 페이지 이동 후에도 유지된다", async ({ page }) => {
     await page.goto("/members");
-    await page.getByRole("button", { name: "퍼블리싱 검수 모드" }).click();
+    await page.getByRole("button", { name: "문서 검수 모드" }).click();
     await page.goto("/sales");
-    const toggle = page.getByRole("button", { name: "퍼블리싱 검수 모드" });
+    const toggle = page.getByRole("button", { name: "문서 검수 모드" });
     await expect(toggle).toHaveAttribute("aria-pressed", "true");
   });
 });

@@ -19,7 +19,7 @@ export function PublishingReviewToggle({ className }: PublishingReviewToggleProp
         size="sm"
         variant={enabled ? "default" : "outline"}
         aria-pressed={enabled}
-        aria-label="퍼블리싱 검수 모드"
+        aria-label="문서 검수 모드"
         onClick={togglePublishingReviewMode}
         className={cn(
           "gap-2",
@@ -30,7 +30,7 @@ export function PublishingReviewToggle({ className }: PublishingReviewToggleProp
         <span className="hidden lg:inline">검수 모드</span>
       </Button>
       <span className="pointer-events-none absolute -bottom-8 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded bg-slate-900 px-2 py-1 text-[11px] text-white opacity-0 transition-opacity group-hover:opacity-100">
-        퍼블리싱 검수 모드
+        문서 검수 모드
       </span>
     </div>
   );

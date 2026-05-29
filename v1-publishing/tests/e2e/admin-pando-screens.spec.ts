@@ -3,19 +3,19 @@ import { expect, test } from "@playwright/test";
 // admin-pando 1:1 이식 + docs4 V1+V2 컨텐츠 + 모든 mock 인터랙션 동작 검증.
 // 작업한 7개 화면(POS/공지/직원/급여/KPI/출석/리드/메시지)의 핵심 인터랙션 검증.
 
-test.describe("퍼블리싱 UX 산출물 기준", () => {
+test.describe("운영 UX 산출물 기준", () => {
   test("설명/DLG/핸드오프 정보는 본문이 아니라 닫히는 문서/계약 사이드바에만 노출된다", async ({ page }) => {
     await page.goto("/members/edit");
 
     const main = page.getByRole("main");
     await expect(main.getByText("문서 연결 DLG")).not.toBeVisible();
-    await expect(main.getByText("퍼블리싱 인수 기준")).not.toBeVisible();
+    await expect(main.getByText("화면 인수 기준")).not.toBeVisible();
     await expect(main.getByText("변경 감지 / 동시 편집")).not.toBeVisible();
 
     await page.getByRole("button", { name: "문서/계약" }).click();
     await expect(page.getByTestId("screen-support-drawer")).toBeVisible();
     await expect(page.getByText("문서 연결 DLG")).toBeVisible();
-    await expect(page.getByTestId("screen-support-drawer")).toContainText("퍼블리싱 인수 기준");
+    await expect(page.getByTestId("screen-support-drawer")).toContainText("화면 인수 기준");
     await expect(page.getByText("변경 감지 / 동시 편집")).toBeVisible();
     await page.getByRole("button", { name: "닫기", exact: true }).click();
     await expect(page.getByTestId("screen-support-drawer")).not.toBeVisible();
@@ -26,7 +26,7 @@ test.describe("퍼블리싱 UX 산출물 기준", () => {
 });
 
 test.describe("SCR-S002 POS 판매", () => {
-  test("카테고리 탭 4종 + 상품 그리드 + 장바구니 추가 mock 동작", async ({ page }) => {
+  test("카테고리 탭 4종 + 상품 그리드 + 장바구니 추가 동작", async ({ page }) => {
     await page.goto("/sales/pos");
     await expect(page.getByText("SCR-S002").first()).toBeVisible();
     // 카테고리 탭 4종
@@ -215,7 +215,7 @@ test.describe("문서/계약 사이드바와 운영 큐", () => {
     await page.getByRole("button", { name: /KPI 예외 검토/ }).click();
     await expect(page.getByTestId("scr-h1002-queue-detail-panel")).toBeVisible();
     await expect(page.getByText("처리 근거")).toBeVisible();
-    await expect(page.getByText("docs4 근거 / 퍼블리싱 계약")).toBeVisible();
+    await expect(page.getByText("docs4 근거 / 화면 계약")).toBeVisible();
     await expect(page.getByTestId("scr-h1002-queue-detail-panel").getByText("커스텀 대시보드 지표 임계값 초과")).toBeVisible();
     await expect(page.getByRole("button", { name: "KPI 상세" })).toBeVisible();
   });

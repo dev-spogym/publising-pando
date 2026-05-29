@@ -122,6 +122,20 @@ function shouldOpenMockActionPanel(message: string, tone: ToastTone) {
   return actionLikeToastPatterns.some((pattern) => message.includes(pattern));
 }
 
+function normalizeOperationCopy(message: string) {
+  return message
+    .replace(/\(\s*mock\s*\)/gi, "")
+    .replace(/mock\/local state/gi, "화면 상태")
+    .replace(/local state/gi, "화면 상태")
+    .replace(/\bmock\b/gi, "")
+    .replace(/API 호출 없이\s*/g, "")
+    .replace(/API 호출 없음\s*·?\s*/g, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.·—])/g, "$1")
+    .replace(/\(\s*\)/g, "")
+    .trim();
+}
+
 const preferencesEvent = "pando-preferences-change";
 
 function subscribePreferences(callback: () => void) {
@@ -185,10 +199,14 @@ export function PrototypeApp({ initialRoute }: { initialRoute: string }) {
 
   const openDialog = (dialogId: string) => setActiveDialog(dialogId);
   const notify = (message: string, tone: ToastTone = "success") => {
-    setToast({ message, tone });
-    if (screen.id !== "SCR-100" && shouldOpenMockActionPanel(message, tone)) {
+    const normalizedMessage = normalizeOperationCopy(message);
+    setToast({ message: normalizedMessage || message, tone });
+    if (
+      screen.id !== "SCR-100" &&
+      shouldOpenMockActionPanel(normalizedMessage || message, tone)
+    ) {
       setMockActionPanel({
-        message,
+        message: normalizedMessage || message,
         tone,
         screenId: screen.id,
         screenTitle: screen.title,
@@ -322,7 +340,7 @@ function LoginScreen({
       return;
     }
     notify(
-      `mock 로그인 완료: ${remember ? "로그인 유지" : "세션 로그인"}로 회원 목록 이동`,
+      `로그인 완료: ${remember ? "로그인 유지" : "세션 로그인"}로 회원 목록 이동`,
     );
     router.push("/members");
   };
@@ -345,16 +363,16 @@ function LoginScreen({
                 Pando CRM Admin V1
               </h1>
               <p className="mt-1 text-[13px] font-semibold text-content-tertiary">
-                Publishing Workspace · FitGenie 톤
+                Admin Workspace · FitGenie 톤
               </p>
             </div>
           </div>
           <p className="mt-5 max-w-2xl text-[17px] leading-8 text-content-secondary">
-            운영자가 매일 쓰는 고밀도 Admin 퍼블리싱입니다. 역할·지점·보안
+            운영자가 매일 쓰는 고밀도 Admin 목업입니다. 역할·지점·보안
             상태에 따라 진입 후 보이는 메뉴와 액션이 달라집니다.
           </p>
           <div className="mt-8 grid max-w-3xl grid-cols-3 gap-3">
-            {["Next + shadcn", "docs4/V1 기준", "API 없는 mock"].map((item) => (
+            {["Next + shadcn", "docs4/V1 기준", "목데이터 화면"].map((item) => (
               <div
                 key={item}
                 className="app-panel rounded-2xl p-4 text-[13px] font-semibold text-content"
@@ -381,7 +399,7 @@ function LoginScreen({
           <CardHeader>
             <CardTitle className="text-2xl">직원 로그인</CardTitle>
             <CardDescription>
-              문서의 지점 선택, 보안 상태, 2FA, 임시 비밀번호 플로우를 mock으로
+              문서의 지점 선택, 보안 상태, 2FA, 임시 비밀번호 플로우를 목데이터로
               확인합니다.
             </CardDescription>
           </CardHeader>
@@ -439,7 +457,7 @@ function LoginScreen({
               />{" "}
               로그인 상태 유지{" "}
               <span className="ml-auto text-xs text-content-tertiary">
-                refresh token mock
+                refresh token 예시
               </span>
             </label>
             {step === "twoFactor" && (
@@ -474,7 +492,7 @@ function LoginScreen({
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
-                onClick={() => notify("비밀번호 재설정 메일 발송 mock", "info")}
+                onClick={() => notify("비밀번호 재설정 메일 발송", "info")}
               >
                 비밀번호 재설정
               </Button>
@@ -852,7 +870,7 @@ function Sidebar({
               FitGenie CRM
             </span>
             <span className="text-[10.5px] font-medium text-content-tertiary">
-              Publishing Workspace
+              Admin Workspace
             </span>
           </div>
         </div>
@@ -1106,7 +1124,7 @@ function Topbar({
               {screen.title}
             </div>
             <div className="truncate text-[11px] text-content-tertiary">
-              {screen.route} · mock only
+              {screen.route} · 목데이터 운영 화면
             </div>
           </div>
         </div>
@@ -1128,7 +1146,7 @@ function Topbar({
             onKeyDown={(event) => {
               if (event.key === "Enter")
                 notify(
-                  `${quickSearch || screen.title} 화면/문서 검색 mock`,
+                  `${quickSearch || screen.title} 화면/문서 검색`,
                   "info",
                 );
             }}
@@ -1756,7 +1774,7 @@ function AdminScreen({
               type="button"
               onClick={() => {
                 setSelectedMetric(metric.label);
-                notify(`${metric.label} 지표 필터 mock 적용`, "info");
+                notify(`${metric.label} 지표 필터 적용`, "info");
               }}
               className={cn(
                 "rounded-2xl border bg-gradient-to-br p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md",
@@ -1802,7 +1820,7 @@ function AdminScreen({
                     variant="outline"
                     size="sm"
                     onClick={() =>
-                      notify(`${filter} 필터 chip mock 적용`, "info")
+                      notify(`${filter} 필터 chip 적용`, "info")
                     }
                   >
                     {filter}
@@ -1872,7 +1890,7 @@ function AdminScreen({
                       if (action.dialogId) {
                         openDialog(action.dialogId);
                       } else {
-                        notify(`${action.label} mock 처리 완료`);
+                        notify(`${action.label} 처리 완료`);
                       }
                     }}
                   >
@@ -2456,7 +2474,7 @@ function ScreenSupportDrawer({
                   docs4 V1/V2 출처
                 </h3>
                 <p className="mt-1 text-xs text-content-tertiary">
-                  퍼블리싱 구현은 V1 확정 범위를 우선하고, V2는 정책/보강 참조로
+                  화면 구현은 V1 확정 범위를 우선하고, V2는 정책/보강 참조로
                   표시합니다.
                 </p>
                 <div className="mt-3 grid gap-3">
@@ -2561,12 +2579,12 @@ function ScreenSupportDrawer({
 
               <section className="mt-4 rounded-2xl border border-line bg-white p-4 shadow-sm">
                 <h3 className="text-base font-black text-content">
-                  퍼블리싱 인수 기준
+                  화면 인수 기준
                 </h3>
                 <div className="mt-3 space-y-2 text-sm leading-6 text-content-secondary">
                   <div>
-                    <b className="text-content">퍼블리싱 범위</b>: API 호출 없음
-                    · 버튼은 dialog/toast/local state만 실행
+                    <b className="text-content">화면 계약 범위</b>: 목데이터 화면 상태
+                    · 버튼은 dialog/toast/route/side panel로 실행
                   </div>
                   <div>
                     <b className="text-content">후속 연결 참고</b>:{" "}
@@ -2603,10 +2621,10 @@ function ScreenSupportDrawer({
               <section className="mt-4 rounded-2xl border border-line bg-white p-4 shadow-sm">
                 <h3 className="text-base font-black text-content">검수 기준</h3>
                 <div className="mt-3 space-y-2 text-sm text-content-secondary">
-                  <CheckLine label="API 호출 없이 mock/local state로만 동작" />
+                  <CheckLine label="목데이터와 화면 상태로 동작" />
                   <CheckLine label="운영 화면 본문에는 기획 설명 카드 미노출" />
                   <CheckLine label="필요 시 이 사이드바를 닫고 다시 열 수 있음" />
-                  <CheckLine label="DLG 버튼은 실제 모달 open 또는 mock toast로 연결" />
+                  <CheckLine label="DLG 버튼은 실제 모달 또는 화면 상태로 연결" />
                 </div>
               </section>
             </div>
@@ -2641,7 +2659,7 @@ function DeliveryHeader({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
             <span className="rounded-full bg-slate-900 px-2.5 py-0.5 font-semibold text-white">
-              Screen Publishing
+              Screen
             </span>
             <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono font-semibold text-slate-600">
               {sourceLabel}
@@ -2678,7 +2696,7 @@ function DeliveryHeader({
               <Badge variant="warning">정책 확인 필요</Badge>
             )}
             <Badge variant="outline">DLG 컴포넌트화</Badge>
-            <Badge variant="outline">API 호출 없음</Badge>
+            <Badge variant="outline">목데이터 동작</Badge>
             <Button
               asChild
               variant="link"
@@ -2763,7 +2781,7 @@ function NotificationCenterScreen({
                   <Button
                     key={item}
                     variant="outline"
-                    onClick={() => notify(`${item} 바로가기 mock 이동`, "info")}
+                    onClick={() => notify(`${item} 바로가기 이동`, "info")}
                   >
                     {item}
                   </Button>
@@ -2778,7 +2796,7 @@ function NotificationCenterScreen({
                   className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-surface-secondary"
                   onClick={() =>
                     notify(
-                      `${item.type} 알림 읽음 처리 + ${item.target} 이동 mock`,
+                      `${item.type} 알림 읽음 처리 + ${item.target} 이동`,
                       "info",
                     )
                   }
@@ -2818,7 +2836,7 @@ function NotificationCenterScreen({
                 onClick={() =>
                   notify(
                     canDeleteAll
-                      ? "전체 삭제 mock 완료"
+                      ? "전체 삭제 완료"
                       : "현재 역할은 전체 삭제 권한이 없습니다.",
                     canDeleteAll ? "success" : "warning",
                   )
@@ -2829,7 +2847,7 @@ function NotificationCenterScreen({
               <Button
                 className="w-full"
                 variant="outline"
-                onClick={() => notify("알림 설정 화면 이동 mock", "info")}
+                onClick={() => notify("알림 설정 화면 이동", "info")}
               >
                 알림 설정
               </Button>
@@ -2916,7 +2934,7 @@ function DialogGalleryScreen({
             <CardTitle>DLG 컴포넌트 목록</CardTitle>
             <CardDescription>
               문자열 팝업이 아니라 실제 모달 UI, 필드, 권한, 정책 상태, 버튼
-              mock 동작을 가진 컴포넌트입니다.
+              동작을 가진 컴포넌트입니다.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -2979,17 +2997,17 @@ function DialogGalleryScreen({
         <aside className="min-w-0 space-y-5">
           <Card className="shadow-none">
             <CardHeader>
-              <CardTitle>퍼블리싱 인수 기준</CardTitle>
+              <CardTitle>화면 인수 기준</CardTitle>
               <CardDescription>
-                계약 범위 안에서 납품/검수할 퍼블리싱 기준입니다.
+                계약 범위 안에서 납품/검수할 화면 기준입니다.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-content-secondary">
               {[
                 "모든 DLG는 id/source/권한/정책 상태를 가진다",
-                "버튼은 실제 API 없이 toast/local state로만 동작한다",
+                "버튼은 목데이터와 화면 상태로 동작한다",
                 "정책 미확정은 임의 확정하지 않고 배지와 안내문으로 남긴다",
-                "퍼블리싱은 handler 연결 지점만 표시하고 실제 service/API는 구현하지 않는다",
+                "화면은 handler 연결 지점만 표시하고 실제 service/API는 구현하지 않는다",
               ].map((item) => (
                 <div key={item} className="flex gap-2">
                   <CheckCircle2 className="mt-0.5 size-4 text-emerald-600" />
@@ -3186,7 +3204,7 @@ function MemberListScreen({
               openMemberAction(
                 "export",
                 "회원 목록 Excel 다운로드 준비",
-                "현재 필터·저장뷰·선택 상태를 기준으로 내보내기 요청 payload를 구성합니다. 실제 파일 생성/API 호출은 개발사 연결 영역입니다.",
+                "현재 필터·저장뷰·선택 상태를 기준으로 내보내기 대상을 확인합니다.",
                 filtered,
               )
             }
@@ -4094,7 +4112,7 @@ function MemberListScreen({
                   ["선택 회원", `${actionPanel.rows.length}명`],
                   [
                     "연결 정책",
-                    "API 호출 없음 · local state/route/dialog만 표시",
+                    "목데이터 상태 · route/dialog로 표시",
                   ],
                 ].map(([label, value]) => (
                   <div
@@ -4113,7 +4131,7 @@ function MemberListScreen({
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">대상 회원</CardTitle>
                 <CardDescription>
-                  구현사 연동 시 memberIds preselect payload로 넘길 목록입니다.
+                  선택한 회원 목록을 화면에서 확인합니다.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -4653,7 +4671,9 @@ function MemberDetailScreen({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => openDialog("DLG-M023")}
+              onClick={() =>
+                router.push(`/members/transfer?memberId=${member.no}`)
+              }
             >
               <ArrowRightLeft className="size-3.5" />
               지점이관
@@ -5341,6 +5361,7 @@ function MemberEditScreen({
   openDialog,
   notify,
 }: SpecializedScreenProps) {
+  const router = useRouter();
   const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState("김민준");
   const [phone, setPhone] = useState("010-1234-5678");
@@ -5594,6 +5615,7 @@ function MemberEditScreen({
                       notify(
                         "회원 정보가 수정되었습니다. 회원 상세로 이동합니다.",
                       );
+                      router.push("/members/detail?memberId=10291&saved=1");
                     }}
                   >
                     저장
@@ -5900,7 +5922,7 @@ function MemberTransferScreen({
               <div className="flex justify-end gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => notify("이관 취소 mock", "info")}
+                  onClick={() => notify("이관 취소", "info")}
                 >
                   취소
                 </Button>
@@ -6135,7 +6157,7 @@ function BodyCompositionScreen({
                     ]);
                   }}
                 >
-                  수동 측정 반영
+                  장비 수신값 반영
                 </Button>
               </div>
             </div>
@@ -6156,7 +6178,7 @@ function BodyCompositionScreen({
                 {hasGraph ? (
                   <div className="rounded-xl border bg-surface-secondary p-4">
                     <p className="mb-2 text-xs font-semibold text-content-secondary">
-                      최근 3회 측정 시각화 (mock SVG)
+                      최근 3회 측정 시각화
                     </p>
                     <svg viewBox="0 0 320 120" className="w-full">
                       {toggles.체중 && (
@@ -6362,16 +6384,16 @@ function BodyCompositionScreen({
           />
           <InfoCell label="측정 이력" value={`${rows.length}건`} />
           <InfoCell
-            label="구현 연결"
+            label="내보내기 상태"
             value={
               bodyActionPanel === "csv"
-                ? "GET /body-composition/export?memberId="
-                : "POST /inbody/manual-match"
+                ? "선택 회원·기간·표시 지표 기준으로 파일 준비"
+                : "미매칭 측정값을 선택 회원에게 연결 대기"
             }
           />
           <div className="rounded-xl border border-line bg-white p-4 text-content-secondary">
             {bodyActionPanel === "csv"
-              ? "현재 선택 회원, 기간, 표시 지표 토글을 내보내기 payload로 넘깁니다. 파일 생성은 퍼블리싱 범위 밖입니다."
+              ? "현재 선택 회원, 기간, 표시 지표 토글 기준으로 CSV 파일을 준비합니다. 완료 후 다운로드 상태로 표시됩니다."
               : "장비에서 넘어온 미매칭 측정값을 회원/측정일 기준으로 수동 연결하는 운영 큐입니다."}
           </div>
         </div>
@@ -7085,10 +7107,7 @@ function MemberSegmentsScreen({
       `${next.세그먼트} 저장 완료 · 사용자 정의 탭 반영 · 수정/삭제는 DLG-M010 확인 후 가능`,
     );
     setTab("사용자");
-    notify(
-      "사용자 정의 세그먼트가 mock/local state에 저장되었습니다.",
-      "success",
-    );
+    notify("사용자 정의 세그먼트가 화면 상태에 저장되었습니다.", "success");
   };
 
   return (
@@ -7118,7 +7137,7 @@ function MemberSegmentsScreen({
             <CardTitle>세그먼트 목록</CardTitle>
             <CardDescription>
               자동 7종은 시스템 정의라 수정/삭제가 hidden이고, 사용자 정의는
-              mock/local state로 생성·미리보기·저장 흐름을 완성합니다.
+              목데이터 화면 상태로 생성·미리보기·저장 흐름을 완성합니다.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -7469,7 +7488,7 @@ function MemberSegmentsScreen({
               </div>
               <div>충성은 보조 라벨 (기본 라벨과 중복 표시 가능)</div>
               <div>FC는 메시지 발송만 가능, 샘플 명단 PII 마스킹</div>
-              <div>저장/삭제는 실제 API 없이 local state와 DLG-M010만 수행</div>
+              <div>저장/삭제는 화면 상태와 DLG-M010로만 수행</div>
             </CardContent>
           </Card>
           <DialogDock screen={screen} openDialog={openDialog} />
@@ -7540,7 +7559,7 @@ function SalesOverviewScreen({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => notify("엑셀 다운로드 mock", "info")}
+            onClick={() => notify("엑셀 다운로드", "info")}
           >
             Excel
           </Button>
@@ -8812,7 +8831,7 @@ function PaymentProcessingScreen({
 
             {/* 후속 액션 */}
             <div className="mt-6 flex flex-wrap gap-2 justify-center">
-              <Button onClick={() => notify("영수증 파일 보기 mock", "info")}>
+              <Button onClick={() => notify("영수증 파일 보기", "info")}>
                 <ClipboardCheck size={14} className="mr-1.5" /> 영수증 파일 보기
               </Button>
               <Button
@@ -9094,7 +9113,7 @@ function PaymentProcessingScreen({
                             size="sm"
                             variant="ghost"
                             onClick={() =>
-                              notify("영수증 미리보기 mock", "info")
+                              notify("영수증 미리보기", "info")
                             }
                           >
                             미리보기
@@ -9338,7 +9357,7 @@ function SalesAnalyticsScreen({
               />
               <Button
                 size="sm"
-                onClick={() => notify("기간 조회 mock", "info")}
+                onClick={() => notify("기간 조회", "info")}
               >
                 조회
               </Button>
@@ -9367,7 +9386,7 @@ function SalesAnalyticsScreen({
             )}
             <div className="rounded-xl border bg-surface-secondary p-4">
               <p className="mb-2 text-xs font-semibold text-content-secondary">
-                {topTab} · {topTab === "전체 통계" ? subTab : "-"} 차트 (mock
+                {topTab} · {topTab === "전체 통계" ? subTab : "-"} 차트 (목데이터
                 가로 막대)
               </p>
               {topTab === "전체 통계" && subTab === "GX종목별" ? (
@@ -9478,7 +9497,7 @@ function SalesAnalyticsScreen({
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("CSV 내보내기 mock", "info")}
+                onClick={() => notify("CSV 내보내기", "info")}
               >
                 CSV 내보내기
               </Button>
@@ -9772,7 +9791,7 @@ function RefundManagementScreen({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => notify("엑셀 내보내기 mock", "info")}
+                onClick={() => notify("엑셀 내보내기", "info")}
               >
                 엑셀
               </Button>
@@ -10017,7 +10036,7 @@ function ReceivablesScreen({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => notify("엑셀 내보내기 mock", "info")}
+                onClick={() => notify("엑셀 내보내기", "info")}
               >
                 엑셀
               </Button>
@@ -10280,7 +10299,7 @@ function InstallmentsScreen({
               </Table>
             </div>
             <div className="rounded-lg border bg-surface-secondary p-3 text-xs text-content-secondary">
-              <b>회차별 펼침 (mock)</b>: 계약 행 클릭 시 1회·2회·3회 등 회차별
+              <b>회차별 펼침</b>: 계약 행 클릭 시 1회·2회·3회 등 회차별
               예정일·납입 완료일·금액·상태 상세 확인. 미납 회차에 경고
               색상/아이콘 표시.
             </div>
@@ -10381,7 +10400,7 @@ function TaxInvoiceScreen({
         </div>
         <p className="mt-1 text-xs text-rose-800">
           공급 품목 자동 채움 + PDF 자동 생성 + 이메일 전송 + 홈택스 발행 연동은
-          정책 확정 전 mock 상태. CFO 월별 보고서·발행 한도(일별 1,000건)·사업자
+          정책 확정 전 시뮬레이션 상태. CFO 월별 보고서·발행 한도(일별 1,000건)·사업자
           위/휴/폐업 검증은 외부 연동 완료 후 활성화.
         </p>
       </div>
@@ -10522,7 +10541,7 @@ function TaxInvoiceScreen({
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("이메일 재전송 mock", "info")}
+                onClick={() => notify("이메일 재전송", "info")}
               >
                 이메일 전송
               </Button>
@@ -10530,7 +10549,7 @@ function TaxInvoiceScreen({
                 variant="outline"
                 className="w-full"
                 onClick={() =>
-                  notify("엑셀 내보내기 mock (30,000건+ 백그라운드)", "info")
+                  notify("엑셀 내보내기 (30,000건+ 백그라운드)", "info")
                 }
               >
                 엑셀 내보내기
@@ -10827,7 +10846,7 @@ function CancelRefundScreen({
           </Card>
           <Card className="shadow-none">
             <CardHeader>
-              <CardTitle>처리 이력 (mock)</CardTitle>
+              <CardTitle>처리 이력</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-xs text-content-secondary">
               <div className="rounded-lg border p-2">
@@ -11406,7 +11425,7 @@ function mockCellValue(
       "상세 / 수정"
     );
   if (/메모|사유|내용|설명/.test(column))
-    return `${screen.title} 운영 기준 ${index + 1}번 mock 기록`;
+    return `${screen.title} 운영 기준 ${index + 1}번 목데이터 기록`;
   if (/출처|문서/.test(column)) return getScreenSourceLabel(screen);
   if (/브랜치|귀속/.test(column)) return branchInfo.name;
   return `${branch === "본사 통합" ? branchInfo.name : branch} ${screen.title} ${index + 1}`;
@@ -11452,7 +11471,7 @@ function buildDenseMockMetrics(
   rows: Record<string, string>[],
 ) {
   const fallbackMetrics = [
-    { label: "전체", value: String(rows.length), hint: "표시 가능한 mock row" },
+    { label: "전체", value: String(rows.length), hint: "표시 가능한 목데이터 행" },
     { label: "정상", value: "6", hint: "운영 가능 상태" },
     { label: "확인 필요", value: "2", hint: "검수/승인 필요" },
     { label: "오늘 처리", value: "4", hint: "운영 큐 연결" },
@@ -11536,7 +11555,7 @@ function DomainOperationsScreen({
         "액션 유형": tone,
         "선택 lane": activeLane,
         "적용 필터": activeFilters.length ? activeFilters.join(" · ") : "없음",
-        "처리 방식": "퍼블리싱 mock/local state 패널로 연결",
+        "처리 방식": "화면 상태 패널로 연결",
         "구현 연결점": `${screen.id}.action.${label}`,
       },
       "action",
@@ -11616,7 +11635,7 @@ function DomainOperationsScreen({
             <CardHeader>
               <CardTitle>{config.title}</CardTitle>
               <CardDescription>
-                도메인 문서의 실제 운영 동선을 반영한 전용 퍼블리싱 섹션입니다.
+                도메인 문서의 실제 운영 동선을 반영한 전용 운영 섹션입니다.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -11972,7 +11991,7 @@ function DomainOperationsScreen({
 
             <Card className="shadow-none">
               <CardHeader>
-                <CardTitle>docs4 근거 / 퍼블리싱 계약</CardTitle>
+                <CardTitle>docs4 근거 / 화면 계약</CardTitle>
                 <CardDescription>
                   큐 카드도 화면 문서와 동일한 출처·상태·권한 기준을 따릅니다.
                 </CardDescription>
@@ -11985,7 +12004,7 @@ function DomainOperationsScreen({
                   <p className="mt-1 break-words text-xs">{screen.source}</p>
                 </div>
                 <ul className="space-y-2 text-xs leading-5">
-                  <li>• API 호출 없음 · mock/local state만 실행</li>
+                  <li>• 목데이터와 화면 상태만으로 동작 확인</li>
                   <li>• 클릭 시 상세 사이드 패널 → 필요한 경우 DLG 연결</li>
                   <li>• 처리/배정/CTA는 사이드 패널 또는 dialog로 검수 가능</li>
                   <li>
@@ -12022,8 +12041,8 @@ function DomainOperationsScreen({
                       `${selectedRow.title} 저장 검수`,
                       {
                         ...selectedRow.rows,
-                        상태: "local state 저장 완료",
-                        "저장 범위": "퍼블리싱 mock only",
+                        상태: "화면 상태 저장 완료",
+                        "저장 범위": "목데이터 화면 상태",
                       },
                       "action",
                     )
@@ -12042,7 +12061,7 @@ function DomainOperationsScreen({
               <CardHeader>
                 <CardTitle>상세 정보</CardTitle>
                 <CardDescription>
-                  클릭한 버튼/row가 이 패널의 local state로 연결됩니다.
+                  클릭한 버튼/row가 이 패널의 화면 상태로 연결됩니다.
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-3 sm:grid-cols-2">
@@ -12060,7 +12079,7 @@ function DomainOperationsScreen({
             </Card>
             <Card className="shadow-none">
               <CardHeader>
-                <CardTitle>퍼블리싱 인계</CardTitle>
+                <CardTitle>운영 연결 기준</CardTitle>
                 <CardDescription>
                   실제 API가 아니라 화면 연결·상태 변화·DLG 연결 기준을 명확히
                   보여줍니다.
@@ -12072,8 +12091,8 @@ function DomainOperationsScreen({
                   {getScreenSourceLabel(screen)}
                 </p>
                 <p>
-                  <b className="text-content">범위:</b> API 호출 없음 ·
-                  mock/local state · 사이드 패널/필터/테이블 연결만 구현
+                  <b className="text-content">범위:</b> 목데이터 화면 상태 ·
+                  사이드 패널/필터/테이블 연결
                 </p>
                 <p>
                   <b className="text-content">검수:</b> 클릭 → 화면 상태 변화 →
@@ -12120,7 +12139,7 @@ function DataPanel({ screen }: { screen: ScreenDefinition }) {
     return (
       <div className="rounded-lg border bg-surface-secondary p-5 text-sm text-content-secondary">
         테이블 없는 화면입니다. 이 화면의 주요 액션은 우측 DLG 또는 상단 액션
-        큐에서 mock 동작합니다.
+        큐에서 목데이터로 동작합니다.
       </div>
     );
   return (
@@ -12270,7 +12289,7 @@ function DataPanel({ screen }: { screen: ScreenDefinition }) {
                     title: `${detail.title} 저장 검수`,
                     rows: {
                       ...detail.rows,
-                      상태: "local state 저장 완료",
+                      상태: "화면 상태 저장 완료",
                     },
                   })
                 }
@@ -12580,10 +12599,7 @@ function RuntimeDialog({
       );
       return;
     }
-    notify(
-      `${dialog.title} mock 처리 완료`,
-      dialog.policyPending ? "warning" : "success",
-    );
+    notify(`${dialog.title} 처리 완료`, dialog.policyPending ? "warning" : "success");
     setDirty(false);
     onClose();
   };
@@ -14258,7 +14274,7 @@ function ComponentDrivenForm({ dialog, setDirty }: DialogBodyProps) {
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
           <AlertTriangle size={13} className="inline mr-1.5" />
           <b>정책 확인 필요:</b> 본 DLG는 외부 연동·산식·승인 정책이 확정되지
-          않아 mock 처리만 진행합니다.
+          않아 화면 상태 처리만 진행합니다.
         </div>
       )}
     </div>
@@ -14300,7 +14316,7 @@ function SessionDialogBody({ setDirty, notify }: DialogBodyProps) {
         />
         <Button
           className="w-full"
-          onClick={() => notify("재로그인 화면 이동 mock", "info")}
+          onClick={() => notify("재로그인 화면으로 이동합니다.", "info")}
         >
           재로그인 화면으로 이동
         </Button>
@@ -14343,7 +14359,7 @@ function DestructiveDialogBody({ dialog, setDirty }: DialogBodyProps) {
             </div>
             <div className="mt-1 font-medium">{component}</div>
             <p className="mt-2 text-xs leading-5 text-content-tertiary">
-              mock 대상:{" "}
+              대상 예시:{" "}
               {index === 0
                 ? "김민준 / S-260528-001"
                 : index === 1
@@ -14490,7 +14506,7 @@ function PaymentDialogBody({ dialog, setDirty, contract }: DialogBodyProps) {
               dialog.policyPending && "text-amber-800",
             )}
           >
-            {dialog.policyPending ? "정책 확인" : "mock"}
+            {dialog.policyPending ? "정책 확인" : "예시"}
           </div>
         </div>
         <div
@@ -14533,13 +14549,13 @@ function PaymentDialogBody({ dialog, setDirty, contract }: DialogBodyProps) {
         </div>
         <div className="rounded-2xl border bg-amber-50 p-4 text-sm text-amber-900">
           <h3 className="font-semibold flex items-center gap-1.5">
-            <AlertTriangle size={14} /> 퍼블리싱 인수 포인트
+            <AlertTriangle size={14} /> 운영 인수 포인트
           </h3>
           <ul className="mt-3 space-y-2 text-xs leading-5">
             <li>· 실제 카드/PG/세금계산서/환불 처리는 호출하지 않습니다.</li>
             <li>
-              · 버튼은 contract key 기준으로 mock 동작만 표시합니다. 실제
-              service/API 연결은 퍼블리싱 범위 밖입니다.
+              · 버튼은 contract key 기준으로 화면 상태를 표시합니다. 실제
+              service/API 연결은 문서/계약 기준에서 확인합니다.
             </li>
             <li>· 정책 미확정 산식은 수기 입력/확인 필요 배지로 남깁니다.</li>
             {isRefund && (
@@ -14549,7 +14565,7 @@ function PaymentDialogBody({ dialog, setDirty, contract }: DialogBodyProps) {
             )}
             {isTax && (
               <li>
-                · 세금계산서 발행은 외부 e-tax 연동 필수 (퍼블리싱 범위 밖).
+                · 세금계산서 발행은 외부 e-tax 연동 필수 (개발 연동 범위).
               </li>
             )}
             {isInstallment && <li>· 할부 회차별 알림 자동 발송 (V2 정책).</li>}
@@ -14642,13 +14658,10 @@ function SearchDialogBody({
           className="w-full"
           variant="secondary"
           onClick={() =>
-            notify(
-              `${dialog.title} 검색 mock 실행 — ${filtered.length}건`,
-              "info",
-            )
+            notify(`${dialog.title} 검색 결과 ${filtered.length}건`, "info")
           }
         >
-          <Search size={14} className="mr-1.5" /> 검색 mock
+          <Search size={14} className="mr-1.5" /> 검색
         </Button>
         {!isAddress && (
           <Button
@@ -14681,7 +14694,7 @@ function SearchDialogBody({
                 onClick={() => {
                   setSelectedIdx(idx);
                   setDirty(true);
-                  notify(`${item.primary} 선택 mock`, "info");
+                  notify(`${item.primary} 선택`, "info");
                 }}
                 className={cn(
                   "flex w-full items-center justify-between rounded-xl border bg-white p-3 text-left text-sm transition",
@@ -14769,14 +14782,14 @@ function BulkDialogBody({ dialog, setDirty, contract }: DialogBodyProps) {
           <div className="text-xs font-semibold text-content-tertiary">
             실행 방식
           </div>
-          <div className="mt-1 text-lg font-bold">mock</div>
+          <div className="mt-1 text-lg font-bold">예시</div>
         </div>
       </div>
 
       {excludeShown && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs">
           <b className="text-amber-800">
-            충돌·제외 {conflictCount}건 사유 (mock)
+            충돌·제외 {conflictCount}건 사유
           </b>
           <ul className="mt-2 space-y-1 text-amber-900">
             <li>• 미수금 보유 회원 5건 — 잔액 정리 후 재시도</li>
@@ -14866,7 +14879,7 @@ function StatusDialogBody({ dialog, setDirty, contract }: DialogBodyProps) {
             "목록 상태 배지 변경",
             "상세 이력 타임라인 추가",
             "권한/정책 toast 표시",
-            "감사 로그 payload 준비",
+            "감사 로그 입력값 준비",
           ].map((item) => (
             <div
               key={item}
@@ -14916,7 +14929,7 @@ function DialogDynamicFields({
           </Label>
           {field.type === "textarea" ? (
             <Textarea
-              defaultValue={`${field.label} mock 입력`}
+              defaultValue={`${field.label} 예시 입력`}
               onChange={() => setDirty(true)}
             />
           ) : field.type === "select" ? (
@@ -14952,7 +14965,7 @@ function DialogDynamicFields({
                   ? "2026-05-28"
                   : field.type === "number"
                     ? `${(index + 1) * 10}`
-                    : `${field.label} mock`
+                    : `${field.label} 예시`
               }
               onChange={() => setDirty(true)}
             />
@@ -15083,7 +15096,7 @@ function MockActionPanel({
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">화면 연결 결과</CardTitle>
             <CardDescription>
-              toast 문구만 남기지 않고 현재 액션이 어느 화면·문서·local state로
+              toast 문구만 남기지 않고 현재 액션이 어느 화면·문서·상태로
               이어지는지 사이드패널에서 확인합니다.
             </CardDescription>
           </CardHeader>
@@ -15110,12 +15123,12 @@ function MockActionPanel({
         </Card>
         <Card className="shadow-none">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">퍼블리싱 핸드오프</CardTitle>
+            <CardTitle className="text-sm">운영 연결 기준</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-content-secondary">
             <p>
               실제 API 호출은 없고, 개발사가 연결해야 할 버튼·필터·상세·내보내기
-              액션의 화면 반응을 mock/local state로 보여주는 기준입니다.
+              액션의 화면 반응을 목데이터 화면 상태로 보여주는 기준입니다.
             </p>
             <div className="rounded-xl bg-primary-light/40 p-3 text-xs font-semibold text-primary">
               구현 연결점: {panel.screenId}.interaction.
@@ -15229,6 +15242,10 @@ function PrimaryActionRow({
 }) {
   const roleInfo = roleById.get(role)!;
   const router = useRouter();
+  const [operationPanel, setOperationPanel] = useState<null | {
+    label: string;
+    danger?: boolean;
+  }>(null);
   const routeForAction = (label: string) => {
     if (label.includes("회원 상세")) return "/members/detail";
     if (label.includes("수업 상세")) return "/lessons";
@@ -15239,43 +15256,112 @@ function PrimaryActionRow({
     return null;
   };
   return (
-    <div className="flex flex-wrap gap-2">
-      {screen.primaryActions.map((action) => {
-        const allowed = hasPermission(role, action.permission);
-        return (
-          <Button
-            key={action.label}
-            data-dialog-id={action.dialogId}
-            variant={
-              action.danger ? "destructive" : allowed ? "default" : "outline"
-            }
-            data-blocked={!allowed}
-            size="sm"
-            className="h-auto min-h-8 min-w-0 max-w-full whitespace-normal py-2 text-left leading-snug"
-            onClick={() => {
-              if (!allowed) {
-                notify(
-                  `${action.label}: ${roleInfo.label} 권한으로는 실행할 수 없습니다.`,
-                  "warning",
-                );
-                return;
+    <>
+      <div className="flex flex-wrap gap-2">
+        {screen.primaryActions.map((action) => {
+          const allowed = hasPermission(role, action.permission);
+          return (
+            <Button
+              key={action.label}
+              data-dialog-id={action.dialogId}
+              variant={
+                action.danger ? "destructive" : allowed ? "default" : "outline"
               }
-              if (action.dialogId) openDialog(action.dialogId);
-              else {
-                const route = routeForAction(action.label);
-                if (route) {
-                  router.push(`${route}?from=${screen.id}`);
+              data-blocked={!allowed}
+              size="sm"
+              className="h-auto min-h-8 min-w-0 max-w-full whitespace-normal py-2 text-left leading-snug"
+              onClick={() => {
+                if (!allowed) {
+                  notify(
+                    `${action.label}: ${roleInfo.label} 권한으로는 실행할 수 없습니다.`,
+                    "warning",
+                  );
                   return;
                 }
-                notify(`${action.label} 완료`, "success");
-              }
-            }}
-          >
-            {!allowed && <Lock className="size-3.5" />} {action.label}
-          </Button>
-        );
-      })}
-    </div>
+                if (action.dialogId) openDialog(action.dialogId);
+                else {
+                  const route = routeForAction(action.label);
+                  if (route) {
+                    router.push(`${route}?from=${screen.id}`);
+                    return;
+                  }
+                  setOperationPanel({
+                    label: action.label,
+                    danger: action.danger,
+                  });
+                }
+              }}
+            >
+              {!allowed && <Lock className="size-3.5" />} {action.label}
+            </Button>
+          );
+        })}
+      </div>
+      <AdminSlidePanel
+        open={Boolean(operationPanel)}
+        onClose={() => setOperationPanel(null)}
+        eyebrow={`${screen.id} OPERATION`}
+        title={operationPanel?.label ?? "운영 액션"}
+        size="md"
+        testId={`${screen.id.toLowerCase()}-primary-action-panel`}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setOperationPanel(null)}>
+              닫기
+            </Button>
+            {screen.dialogs[0] ? (
+              <Button
+                onClick={() => {
+                  setOperationPanel(null);
+                  openDialog(screen.dialogs[0]);
+                }}
+              >
+                관련 확인 열기
+              </Button>
+            ) : (
+              <Button onClick={() => setOperationPanel(null)}>확인</Button>
+            )}
+          </>
+        }
+      >
+        {operationPanel && (
+          <div className="space-y-4 text-sm">
+            <Card className="shadow-none">
+              <CardHeader>
+                <CardTitle className="text-base">처리 흐름</CardTitle>
+                <CardDescription>
+                  버튼 클릭 후 운영자가 확인해야 할 상태와 다음 액션입니다.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-2 text-xs">
+                <InfoCell label="화면" value={`${screen.title} (${screen.id})`} />
+                <InfoCell label="현재 역할" value={roleInfo.label} />
+                <InfoCell
+                  label="처리 상태"
+                  value={
+                    operationPanel.danger
+                      ? "확인 필요 · 사유 입력 후 처리"
+                      : "준비 완료 · 화면 상태에 반영"
+                  }
+                />
+                <InfoCell
+                  label="다음 단계"
+                  value={
+                    screen.dialogs[0]
+                      ? `${screen.dialogs[0]} 확인을 열어 세부 조건을 점검`
+                      : "필터/목록/상세 패널 상태를 확인"
+                  }
+                />
+              </CardContent>
+            </Card>
+            <div className="rounded-xl border border-line bg-surface-secondary p-3 text-xs leading-5 text-content-secondary">
+              실제 운영 흐름처럼 화면 안에서 상태·확인·다음 액션을 보여주며,
+              문서 설명은 우측 하단 문서/계약 버튼에서만 확인합니다.
+            </div>
+          </div>
+        )}
+      </AdminSlidePanel>
+    </>
   );
 }
 
@@ -15297,7 +15383,7 @@ const salesOperationConfigs: Record<string, SalesOperationConfig> = {
       "오류/정책 보류 행 선택",
       "환불 차감·미수 회수·선수익 인식 기준 검토",
       "DLG-S012에서 목표/기준값을 조정",
-      "집계 재실행은 mock/local state 결과로만 표시",
+      "집계 재실행은 화면 상태 결과로 표시",
     ],
     policy: [
       "환불 차감 산식은 정책 확인 전 임의 확정 금지",
@@ -15313,7 +15399,7 @@ const salesOperationConfigs: Record<string, SalesOperationConfig> = {
     ],
     queue: [
       { title: "환불 차감 산식", amount: "정책 보류 5건", status: "검토", action: "목표 기준 설정", dialogId: "DLG-S012" },
-      { title: "미수 회수 집계", amount: "오류 2건", status: "오류", action: "재집계 mock" },
+      { title: "미수 회수 집계", amount: "오류 2건", status: "오류", action: "재집계" },
       { title: "선수익 월 배치", amount: "06:00 완료", status: "정상", action: "원장 이동" },
     ],
   },
@@ -15323,7 +15409,7 @@ const salesOperationConfigs: Record<string, SalesOperationConfig> = {
       "매출/목표/달성률 행 확인",
       "낙관·기본·보수 시나리오 비교",
       "DLG-S012에서 월 목표 조정",
-      "예측 산식은 mock으로 표시하고 확정값처럼 쓰지 않음",
+      "예측 산식은 시뮬레이션으로 표시하고 확정값처럼 쓰지 않음",
     ],
     policy: [
       "예측 산식은 정책 보류이며 실제 정산 기준 아님",
@@ -15349,8 +15435,8 @@ function getSalesConfig(screen: ScreenDefinition): SalesOperationConfig {
   return (
     salesOperationConfigs[screen.id] ?? {
       flow: ["행 선택", "정책 확인", "DLG/액션 실행", "결과 상태 확인"],
-      policy: ["mock/local state만 수행", "권한별 버튼 노출", "결과는 화면에 남김"],
-      result: `${screen.title} mock 운영 결과 대기`,
+      policy: ["화면 상태만 수행", "권한별 버튼 노출", "결과는 화면에 남김"],
+      result: `${screen.title} 운영 결과 대기`,
       routes: [{ label: "매출 현황", href: "/sales" }],
       queue: [],
     }
@@ -15393,7 +15479,7 @@ function SalesOperationsScreen({
     setLastFilter(filter);
     setDetailOpen(true);
     setOperationResult(
-      `${filter} 기준으로 ${screen.title} 결과를 local state에서 재정렬했습니다.`,
+      `${filter} 기준으로 ${screen.title} 결과를 화면에서 재정렬했습니다.`,
     );
   };
 
@@ -15405,10 +15491,10 @@ function SalesOperationsScreen({
     setLastFilter(label);
     setDetailOpen(true);
     setOperationResult(
-      `${label.replace(/\s*\([^)]*\)/g, "")} 준비 완료 · ${selectedTitle} · API 호출 없이 mock/local state만 갱신`,
+      `${label.replace(/\s*\([^)]*\)/g, "")} 준비 완료 · ${selectedTitle} · 화면 상태 갱신`,
     );
     if (dialogId) openDialog(dialogId);
-    else notify(`${label} mock/local state 반영`, "info");
+    else notify(`${label} 화면 상태 반영`, "info");
   };
 
   return (
@@ -15546,7 +15632,7 @@ function SalesOperationsScreen({
             <CardHeader>
               <CardTitle>단계별 액션</CardTitle>
               <CardDescription>
-                버튼은 실제 API 없이 DLG/local state/route/side panel 상태로 동작합니다.
+                버튼은 DLG/화면 상태/route/side panel로 동작합니다.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
@@ -15808,7 +15894,7 @@ function ClassCalendarScreen({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => notify("스케줄 일괄 변경 mock", "info")}
+            onClick={() => notify("스케줄 일괄 변경", "info")}
           >
             스케줄 일괄 변경
           </Button>
@@ -16226,7 +16312,7 @@ function ClassCalendarScreen({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => notify("일자별 통계 mock", "info")}
+                  onClick={() => notify("일자별 통계", "info")}
                 >
                   일별 통계
                 </Button>
@@ -16293,7 +16379,7 @@ function ClassCalendarScreen({
           <CardHeader>
             <CardTitle>페널티 관리</CardTitle>
             <CardDescription>
-              노쇼·취소 페널티 정책 mock (docs4 V1 SCR-C008)
+              노쇼·취소 페널티 정책 (docs4 V1 SCR-C008)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -16518,7 +16604,7 @@ const classOperationConfigs: Record<string, ClassOperationConfig> = {
       "만료 자동 비공개·90일 후 삭제 정책 표시",
     ],
     policy: [
-      "최대 5GB 업로드 mock, 실제 저장 없음",
+      "최대 5GB 업로드, 화면 상태로 파일 목록 확인",
       "회원별 워터마크와 공개 기간 필요",
       "기간 만료는 자동 비공개 후 삭제 대기",
       "트레이너는 본인 수업 파일만 관리",
@@ -16537,10 +16623,10 @@ function getClassConfig(screen: ScreenDefinition): ClassOperationConfig {
       flow: ["행 선택", "정책 확인", "DLG/액션 실행", "결과 상태 확인"],
       policy: [
         "권한별 버튼 노출",
-        "mock/local state만 수행",
+        "화면 상태만 수행",
         "결과는 화면에 남김",
       ],
-      result: `${screen.title} mock 운영 결과 대기`,
+      result: `${screen.title} 운영 결과 대기`,
       routes: [{ label: "수업 캘린더", href: "/classes/c001" }],
     }
   );
@@ -16591,7 +16677,7 @@ function ClassOperationsScreen({
     setLastFilter(filter);
     setDetailOpen(true);
     setOperationResult(
-      `${filter} 조건을 적용했습니다. ${selectedTitle} 기준으로 목록/패널이 local state에서 동기화됩니다.`,
+      `${filter} 조건을 적용했습니다. ${selectedTitle} 기준으로 목록/패널이 화면에서 동기화됩니다.`,
     );
   };
 
@@ -16604,9 +16690,9 @@ function ClassOperationsScreen({
     setLastFilter(label);
     setDetailOpen(true);
     setOperationResult(
-      `${label.replace(/\s*\([^)]*\)/g, "")} 준비 완료 · ${selectedTitle} · ${acknowledged ? "정책 확인됨" : "정책 확인 필요"} · local state만 갱신`,
+      `${label.replace(/\s*\([^)]*\)/g, "")} 준비 완료 · ${selectedTitle} · ${acknowledged ? "정책 확인됨" : "정책 확인 필요"} · 화면 상태 갱신`,
     );
-    if (!dialogId) notify(`${label} mock/local state 반영`, "info");
+    if (!dialogId) notify(`${label} 화면 상태 반영`, "info");
   };
 
   return (
@@ -16751,7 +16837,7 @@ function ClassOperationsScreen({
             <CardHeader>
               <CardTitle>단계별 액션</CardTitle>
               <CardDescription>
-                버튼은 실제 API 없이 DLG/local state/route/side panel 상태로
+                버튼은 DLG/화면 상태/route/side panel로
                 동작합니다.
               </CardDescription>
             </CardHeader>
@@ -17093,7 +17179,7 @@ function ExerciseProgramsScreen({
             <CardHeader>
               <CardTitle>프로그램 카드 그리드</CardTitle>
               <CardDescription>
-                동작 순서 드래그&드롭·회원 배정 mock
+                동작 순서 드래그&드롭·회원 배정
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -17128,7 +17214,7 @@ function ExerciseProgramsScreen({
                         variant="outline"
                         onClick={() =>
                           notify(
-                            `${row["프로그램명"]} 동작 순서 편집 mock`,
+                            `${row["프로그램명"]} 동작 순서 편집`,
                             "info",
                           )
                         }
@@ -17139,7 +17225,7 @@ function ExerciseProgramsScreen({
                         size="sm"
                         variant="outline"
                         onClick={() =>
-                          notify(`${row["프로그램명"]} 회원 배정 mock`, "info")
+                          notify(`${row["프로그램명"]} 회원 배정`, "info")
                         }
                       >
                         회원 배정
@@ -17159,7 +17245,7 @@ function ExerciseProgramsScreen({
             <CardContent className="space-y-2 text-xs text-content-secondary">
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800">
                 <AlertTriangle className="mr-2 inline size-4" />
-                v1 자동 추천·자동 생성 미지원. 수동 등록·수정·배정만 mock 처리.
+                v1 자동 추천·자동 생성 미지원. 수동 등록·수정·배정만 화면 상태로 처리.
               </div>
               <PrimaryActionRow
                 screen={screen}
@@ -17200,7 +17286,7 @@ function LessonAttendanceScreen({
             <CardHeader>
               <CardTitle>수업별 출석/완료 현황</CardTitle>
               <CardDescription>
-                출석 처리·노쇼 정정·서명 요청 Push mock
+                출석 처리·노쇼 정정·서명 요청 Push
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -17227,7 +17313,7 @@ function LessonAttendanceScreen({
                           size="sm"
                           variant="outline"
                           onClick={() =>
-                            notify(`${row["수업명"]} 출석 처리 mock`, "info")
+                            notify(`${row["수업명"]} 출석 처리`, "info")
                           }
                         >
                           처리
@@ -17260,7 +17346,7 @@ function LessonAttendanceScreen({
                     {item.icon}
                   </div>
                   <div className="mt-1 font-medium">{item.label}</div>
-                  <div className="text-content-tertiary">mock 미리보기</div>
+                  <div className="text-content-tertiary">미리보기</div>
                 </div>
               ))}
             </CardContent>
@@ -17703,7 +17789,7 @@ function ProductManagementScreen({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => notify("Excel 다운로드 mock", "info")}
+            onClick={() => notify("Excel 다운로드", "info")}
           >
             Excel
           </Button>
@@ -18104,7 +18190,7 @@ function ProductManagementScreen({
                           <div className="rounded-sm border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] text-amber-900">
                             docs4/V1 SCR-P003 + docs4/V2 PRD-EXT-01/02 기준:
                             신규 등록과 기존 수정은 동일 상품 패널 UI를
-                            공유합니다. 실제 API 호출 없음.
+                            공유합니다. 화면 상태로 공유합니다.
                           </div>
 
                           <div className="flex items-center gap-2 border-b border-[#d7dbe2] bg-white px-1.5 py-1">
@@ -18408,8 +18494,8 @@ function ProductManagementScreen({
                             onClick={() => {
                               notify(
                                 isNewPanel
-                                  ? "상품이 등록되었습니다. (mock)"
-                                  : "상품이 저장되었습니다. (mock)",
+                                  ? "상품이 등록되었습니다."
+                                  : "상품이 저장되었습니다.",
                                 "success",
                               );
                               setPanelDirty(false);
@@ -18498,7 +18584,7 @@ function ProductManagementScreen({
                     <Badge variant="info">{c.count}</Badge>
                   </div>
                   <p className="mt-1 text-[11px] text-content-tertiary">
-                    정렬 순서 · 표시 여부 · 색상 mock
+                    정렬 순서 · 표시 여부 · 색상
                   </p>
                   <div className="mt-3 flex gap-2">
                     <Button
@@ -18997,7 +19083,7 @@ function ProductRegistrationScreen({
                 onClick={() =>
                   dirty
                     ? openDialog("DLG-P003-작업취소확인")
-                    : notify("취소 mock", "info")
+                    : notify("취소", "info")
                 }
               >
                 취소
@@ -19009,7 +19095,7 @@ function ProductRegistrationScreen({
                     notify("권한이 없습니다", "warning");
                     return;
                   }
-                  notify(`${productName} 상품 등록 완료 (mock)`, "success");
+                  notify(`${productName} 상품 등록 완료`, "success");
                   setDirty(false);
                 }}
               >
@@ -19091,7 +19177,7 @@ function ProductDetailPanelScreen({
             onClick={() =>
               dirty
                 ? openDialog("DLG-P003-작업취소확인")
-                : notify("패널 닫기 mock", "info")
+                : notify("패널 닫기", "info")
             }
             aria-label="닫기"
           >
@@ -19383,7 +19469,7 @@ function ProductDetailPanelScreen({
                 className="w-full"
                 disabled={!allowed}
                 onClick={() => {
-                  notify("저장 완료 (mock)", "success");
+                  notify("저장 완료", "success");
                   setDirty(false);
                 }}
               >
@@ -19428,7 +19514,7 @@ function ProductDetailPanelScreen({
                 onClick={() =>
                   dirty
                     ? openDialog("DLG-P003-작업취소확인")
-                    : notify("취소 mock", "info")
+                    : notify("취소", "info")
                 }
               >
                 취소
@@ -19559,7 +19645,7 @@ function ProductCatalogScreen({
                     key={t}
                     size="sm"
                     variant="outline"
-                    onClick={() => notify(`${t} 카탈로그 mock`, "info")}
+                    onClick={() => notify(`${t} 카탈로그`, "info")}
                   >
                     {t}
                   </Button>
@@ -19629,7 +19715,7 @@ function LockerManagementScreen({
   notify,
 }: SpecializedScreenProps) {
   const [view, setView] = useState<"박스" | "리스트">("박스");
-  // 락커 박스 맵 mock
+  // 락커 박스 맵 예시 데이터
   const lockerBoxes = Array.from({ length: 24 }).map((_, i) => {
     const num = `A-${100 + i}`;
     const states = [
@@ -19693,7 +19779,7 @@ function LockerManagementScreen({
                       <button
                         key={box.락커}
                         type="button"
-                        onClick={() => notify(`${box.락커} 상세 mock`, "info")}
+                        onClick={() => notify(`${box.락커} 상세`, "info")}
                         className={cn(
                           "aspect-square rounded-lg border p-2 text-center text-xs font-semibold transition hover:-translate-y-0.5",
                           tone,
@@ -19824,7 +19910,7 @@ function LockerAssignmentScreen({
                     key={t}
                     size="sm"
                     variant="outline"
-                    onClick={() => notify(`${t} mock`, "info")}
+                    onClick={() => notify(`${t}`, "info")}
                   >
                     {t}
                   </Button>
@@ -20146,7 +20232,7 @@ function ExerciseRoomScreen({
                   disabled={!canManage}
                   onClick={() =>
                     canManage
-                      ? notify("새 룸 등록 모달 mock", "info")
+                      ? notify("새 룸 등록 모달", "info")
                       : notify("매니저 이상 권한 필요", "warning")
                   }
                 >
@@ -20319,7 +20405,7 @@ function ExerciseRoomScreen({
                 disabled={!canManage}
                 onClick={() =>
                   canManage
-                    ? notify("새 룸 등록 mock", "info")
+                    ? notify("새 룸 등록", "info")
                     : notify("매니저 이상 권한 필요", "warning")
                 }
               >
@@ -20328,21 +20414,21 @@ function ExerciseRoomScreen({
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("게이트 매핑 화면 이동 mock", "info")}
+                onClick={() => notify("게이트 매핑 화면 이동", "info")}
               >
                 게이트 매핑 관리
               </Button>
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("운영 시간 정책 mock", "info")}
+                onClick={() => notify("운영 시간 정책", "info")}
               >
                 운영 시간 정책
               </Button>
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("CSV 내보내기 mock", "info")}
+                onClick={() => notify("CSV 내보내기", "info")}
               >
                 CSV 내보내기
               </Button>
@@ -20802,7 +20888,7 @@ function StaffListScreen({
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => notify("엑셀 내보내기 mock", "info")}
+                    onClick={() => notify("엑셀 내보내기", "info")}
                   >
                     내보내기
                   </Button>
@@ -21533,7 +21619,7 @@ function StaffResignationScreen({
 
           {/* 액션 바 */}
           <div className="flex items-center justify-between rounded-2xl border-2 border-slate-300 bg-white p-4 shadow-md">
-            <Button variant="ghost" onClick={() => notify("취소 mock", "info")}>
+            <Button variant="ghost" onClick={() => notify("취소", "info")}>
               취소
             </Button>
             <div className="flex gap-2">
@@ -21620,7 +21706,7 @@ function StaffResignationScreen({
               <div>
                 <b>MANAGER/FC/TRAINER/STAFF:</b> 접근 불가
               </div>
-              <div>본 마법사는 검수용 mock으로만 동작합니다.</div>
+              <div>본 마법사는 목데이터 기준으로만 동작합니다.</div>
             </CardContent>
           </Card>
 
@@ -21638,7 +21724,7 @@ function StaffAttendanceScreen({
   openDialog,
   notify,
 }: SpecializedScreenProps) {
-  // 근태 통계 카드 + 출근 캘린더 mock
+  // 근태 통계 카드 + 출근 캘린더 예시
   return (
     <div className="space-y-5">
       <DeliveryHeader
@@ -21763,7 +21849,7 @@ function PayrollManagementScreen({
 
   function getRecentMonths() {
     const months: { value: string; label: string }[] = [];
-    const now = new Date(2026, 4, 29); // 고정 mock 기준 (2026-05)
+    const now = new Date(2026, 4, 29); // 고정 목데이터 기준 (2026-05)
     for (let i = 0; i < 12; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -21946,7 +22032,7 @@ function PayrollManagementScreen({
             <Button
               variant="outline"
               onClick={() =>
-                notify(`${selectedMonth} 엑셀 내보내기 mock`, "info")
+                notify(`${selectedMonth} 엑셀 내보내기`, "info")
               }
             >
               내보내기
@@ -22252,7 +22338,7 @@ function PayrollManagementScreen({
               </div>
               <Button
                 size="sm"
-                onClick={() => notify("명세서 페이지 이동 mock", "info")}
+                onClick={() => notify("명세서 페이지 이동", "info")}
               >
                 명세서 바로가기
               </Button>
@@ -22765,21 +22851,21 @@ function LeadManagementScreen({
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("일괄 SMS 발송 mock", "info")}
+                onClick={() => notify("일괄 SMS 발송", "info")}
               >
                 일괄 SMS 발송
               </Button>
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("자동 follow-up mock", "info")}
+                onClick={() => notify("자동 follow-up", "info")}
               >
                 자동 follow-up 정책
               </Button>
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("CSV 내보내기 mock", "info")}
+                onClick={() => notify("CSV 내보내기", "info")}
               >
                 CSV 내보내기
               </Button>
@@ -23024,7 +23110,7 @@ function LeadManagementScreen({
                 variant="outline"
                 onClick={() => {
                   setDetailLead(null);
-                  notify("회원 등록 화면 이동 mock", "info");
+                  notify("회원 등록 화면 이동", "info");
                 }}
               >
                 회원 등록 연결
@@ -23033,7 +23119,7 @@ function LeadManagementScreen({
                 variant="outline"
                 onClick={() => {
                   setDetailLead(null);
-                  notify("SMS 발송 mock", "info");
+                  notify("SMS 발송", "info");
                 }}
               >
                 SMS 발송
@@ -23486,21 +23572,21 @@ function MessageDispatchScreen({
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("자동 알림 정책 화면 이동 mock", "info")}
+                onClick={() => notify("자동 알림 정책 화면 이동", "info")}
               >
                 자동 알림 정책
               </Button>
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("템플릿 라이브러리 mock", "info")}
+                onClick={() => notify("템플릿 라이브러리", "info")}
               >
                 템플릿 라이브러리
               </Button>
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("CSV 내보내기 mock", "info")}
+                onClick={() => notify("CSV 내보내기", "info")}
               >
                 CSV 내보내기
               </Button>
@@ -23671,7 +23757,7 @@ function MessageDispatchScreen({
               {previewMode && composeForm.message && (
                 <div className="rounded-xl border-2 border-dashed border-primary/40 bg-primary-light/30 p-4">
                   <div className="text-[10px] text-content-tertiary mb-2">
-                    📱 미리보기 (실제 발송 화면 mock)
+                    📱 미리보기 (실제 발송 화면 예시)
                   </div>
                   <div className="bg-white rounded-lg p-3 border shadow-sm">
                     <div className="text-xs font-bold text-primary mb-1">
@@ -24161,14 +24247,14 @@ function CouponManagementScreen({
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("일괄 발급 (세그먼트 연결) mock", "info")}
+                onClick={() => notify("일괄 발급 (세그먼트 연결)", "info")}
               >
                 일괄 발급
               </Button>
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("CSV 내보내기 mock", "info")}
+                onClick={() => notify("CSV 내보내기", "info")}
               >
                 CSV 내보내기
               </Button>
@@ -24815,14 +24901,14 @@ function ReferralProgramScreen({
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("추천 코드 일괄 발급 mock", "info")}
+                onClick={() => notify("추천 코드 일괄 발급", "info")}
               >
                 추천 코드 일괄 발급
               </Button>
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("CSV 내보내기 mock", "info")}
+                onClick={() => notify("CSV 내보내기", "info")}
               >
                 CSV 내보내기
               </Button>
@@ -25471,7 +25557,7 @@ function NoticesScreen({
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("전체 읽음 처리 mock", "info")}
+                onClick={() => notify("전체 읽음 처리", "info")}
               >
                 전체 읽음 처리
               </Button>
@@ -25647,7 +25733,7 @@ function NoticesScreen({
               <Button
                 variant="outline"
                 onClick={() => {
-                  notify(`${detailNotice.title} 수정 mock`, "info");
+                  notify(`${detailNotice.title} 수정`, "info");
                   setDetailNotice(null);
                 }}
               >
@@ -25894,7 +25980,7 @@ function BranchDashboardScreen({
             <Button
               variant="default"
               size="sm"
-              onClick={() => notify("기능 보기 mock", "info")}
+              onClick={() => notify("기능 보기", "info")}
             >
               기능 보기
             </Button>
@@ -25927,7 +26013,7 @@ function BranchDashboardScreen({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => notify("새로고침 mock", "info")}
+              onClick={() => notify("새로고침", "info")}
             >
               새로고침
             </Button>
@@ -25971,7 +26057,7 @@ function BranchDashboardScreen({
                   item.tone === "sky" &&
                     "border-sky-200 bg-sky-50 hover:bg-sky-100/80",
                 )}
-                onClick={() => notify(`${item.label} mock 이동`, "info")}
+                onClick={() => notify(`${item.label} 이동`, "info")}
               >
                 <p className="text-[12px] font-semibold text-content">
                   {item.label}
@@ -26038,7 +26124,7 @@ function BranchDashboardScreen({
           <button
             key={stat.label}
             type="button"
-            onClick={() => notify(`${stat.label} 상세 mock`, "info")}
+            onClick={() => notify(`${stat.label} 상세`, "info")}
             className={cn(
               "relative overflow-hidden rounded-2xl border bg-white p-4 text-left shadow-card transition-all hover:-translate-y-0.5 hover:shadow-md",
               stat.tone === "peach" && "border-amber-200 bg-amber-50/60",
@@ -26080,7 +26166,7 @@ function BranchDashboardScreen({
             variant="info"
             className="border-primary/30 bg-primary-light text-primary"
           >
-            실시간 mock
+            실시간
           </Badge>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -26509,7 +26595,7 @@ function BranchDashboardScreen({
                         <button
                           className="rounded-md bg-primary-light px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary hover:text-white transition-all"
                           onClick={() =>
-                            notify(`${m.name} 재등록 상담 mock`, "info")
+                            notify(`${m.name} 재등록 상담`, "info")
                           }
                         >
                           재등록 상담
@@ -26554,7 +26640,7 @@ function BranchDashboardScreen({
         </button>
         <button
           className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-content to-content-secondary p-6 text-left text-white transition-transform hover:scale-[1.005]"
-          onClick={() => notify("자동 알림 설정 mock", "info")}
+          onClick={() => notify("자동 알림 설정", "info")}
         >
           <div className="relative z-10">
             <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold backdrop-blur-sm">
@@ -26825,14 +26911,14 @@ function KpiDashboardScreen({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => notify("CSV 내보내기 mock", "info")}
+              onClick={() => notify("CSV 내보내기", "info")}
             >
               CSV 내보내기
             </Button>
             <Button
               size="sm"
               variant="outline"
-              onClick={() => notify("PDF 리포트 생성 mock", "info")}
+              onClick={() => notify("PDF 리포트 생성", "info")}
             >
               PDF 리포트
             </Button>
@@ -26952,7 +27038,7 @@ function KpiDashboardScreen({
                         size="sm"
                         variant="ghost"
                         onClick={() =>
-                          notify(`${b.지점} 상세 보기 mock`, "info")
+                          notify(`${b.지점} 상세 보기`, "info")
                         }
                       >
                         상세 →
@@ -27009,14 +27095,14 @@ function KpiDashboardScreen({
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("자동 리포트 발송 예약 mock", "info")}
+                onClick={() => notify("자동 리포트 발송 예약", "info")}
               >
                 자동 리포트 발송 예약
               </Button>
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("벤치마크 비교 화면 이동 mock", "info")}
+                onClick={() => notify("벤치마크 비교 화면 이동", "info")}
               >
                 벤치마크 비교
               </Button>
@@ -27138,7 +27224,7 @@ function KpiDashboardScreen({
               </Button>
               <Button
                 onClick={() => {
-                  notify(`${selectedKpi} 상세 리포트 보기 mock`, "info");
+                  notify(`${selectedKpi} 상세 리포트 보기`, "info");
                   setSelectedKpi(null);
                 }}
               >
@@ -27747,7 +27833,7 @@ function UnifiedAttendanceScreen({
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => notify("출석 CSV 내보내기 mock", "info")}
+                onClick={() => notify("출석 CSV 내보내기", "info")}
               >
                 CSV 내보내기
               </Button>
@@ -27906,7 +27992,7 @@ function ClothingLockerScreen({
   openDialog,
   notify,
 }: SpecializedScreenProps) {
-  // 옷 락커 그리드 mock
+  // 옷 락커 그리드 예시 데이터
   const lockers = Array.from({ length: 30 }).map((_, i) => {
     const num = String(i + 1).padStart(3, "0");
     const states = [

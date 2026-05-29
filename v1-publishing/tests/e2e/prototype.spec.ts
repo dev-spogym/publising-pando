@@ -65,19 +65,19 @@ test("protected owner action is permission-gated for staff", async ({ page }) =>
   }
 });
 
-test("publishing controls provide mock feedback for filters, rows, metrics, and handoff contracts", async ({ page }) => {
+test("operation controls provide real mock-frontend feedback for filters, rows, metrics, and contracts", async ({ page }) => {
   // MemberListScreen은 admin-pando 1:1 specialized. generic DomainOperationsScreen 가정 대신
-  // specialized 화면의 검색·상태 필터 탭·일괄 액션 mock 동작을 검증한다.
+  // specialized 화면의 검색·상태 필터 탭·일괄 액션 동작을 검증한다.
   await page.goto("/members");
   await page.getByRole("button", { name: "문서/계약" }).click();
-  await expect(page.getByTestId("screen-support-drawer")).toContainText("퍼블리싱 인수 기준");
-  await expect(page.getByText(/API 호출 없음/).first()).toBeVisible();
+  await expect(page.getByTestId("screen-support-drawer")).toContainText("화면 인수 기준");
+  await expect(page.getByText(/목데이터 동작/).first()).toBeVisible();
   await page.getByTestId("screen-support-drawer").getByRole("button", { name: "닫기", exact: true }).click();
 
-  // Daily Focus — 재등록 집중 보기 클릭 mock (admin-pando MemberListScreen 패턴)
+  // Daily Focus — 재등록 집중 보기 클릭 (admin-pando MemberListScreen 패턴)
   await page.getByRole("button", { name: /재등록 집중 보기/ }).first().click();
   // 상태 필터 탭 8개 중 "활성" 클릭 (specialized MemberListScreen)
-  await page.getByRole("button", { name: /^활성/ }).first().click();
+  await page.getByRole("button", { name: /^임박/ }).first().click();
   // 회원명 검색 — admin-pando placeholder "회원명, 연락처 검색..."
   await page.getByPlaceholder(/회원명, 연락처 검색/).first().fill("박서연");
   await expect(page.getByText("박서연").first()).toBeVisible();

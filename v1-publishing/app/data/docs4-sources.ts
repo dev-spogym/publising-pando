@@ -291,7 +291,7 @@ export const publishingDialogs: Record<string, PublishingSource> = {
 
 const baseDialogBlueprint = (source: PublishingSource): DialogBlueprint => ({
   source,
-  purpose: `${source.label} 흐름을 화면에서 끊기지 않게 확인하고, 저장/삭제/승인 등 실제 처리는 mock 토스트 또는 로컬 상태로만 표현합니다.`,
+  purpose: `${source.label} 흐름을 화면에서 끊기지 않게 확인하고, 저장/삭제/승인 흐름은 목데이터와 화면 상태로 표현합니다.`,
   entryRoute: source.id.startsWith("DLG-M") ? "/members" : source.id.startsWith("DLG-S") ? "/sales" : "/login",
   sections: [
     {
@@ -309,7 +309,7 @@ const baseDialogBlueprint = (source: PublishingSource): DialogBlueprint => ({
     { label: "닫기", variant: "outline" },
     { label: source.status ? "정책 확인 필요로 저장" : "확인", variant: source.status === "policy-pending" ? "secondary" : "primary" },
   ],
-  backendPolicy: "퍼블리싱 범위: API/DB/외부 연동 호출 없음. 이벤트 핸들러 식별자와 mock 피드백만 제공하며 실제 service/API 구현은 범위 밖입니다.",
+  backendPolicy: "화면 계약 범위: API/DB/외부 연동 호출 없이 화면 상태와 이벤트 연결 기준만 제공합니다.",
 });
 
 export const dialogBlueprints: Record<string, DialogBlueprint> = Object.fromEntries(
@@ -398,10 +398,10 @@ Object.assign(dialogBlueprints, {
           { label: "미수", value: "100,000원", type: "money" },
         ],
       },
-      { title: "외부 연동 제외", items: ["카드 승인/현금영수증/알림 발송은 퍼블리싱에서 실행하지 않음", "영수증 첨부 여부는 UI 상태만 표시"], tone: "info" },
+      { title: "외부 연동 제외", items: ["카드 승인/현금영수증/알림 발송은 화면에서 실행하지 않음", "영수증 첨부 여부는 UI 상태만 표시"], tone: "info" },
     ],
     actions: [{ label: "이전", variant: "outline" }, { label: "결제 확정", variant: "primary" }],
-    backendPolicy: "실제 승인/영수증/알림 연동은 퍼블리싱 범위 밖이며, 이 화면은 결제 서비스 연결 전 mock 상태만 제공합니다.",
+    backendPolicy: "승인/영수증/알림 연동 전 화면 상태와 운영 흐름을 제공합니다.",
   },
   "DLG-S013": {
     source: publishingDialogs["DLG-S013"],

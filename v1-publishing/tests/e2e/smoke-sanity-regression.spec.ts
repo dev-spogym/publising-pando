@@ -8,7 +8,7 @@ test.describe("Smoke Test — publishing shell basics", () => {
     await expect(page).toHaveURL(/\/members\/?$/);
     await expect(page.getByRole("button", { name: "문서/계약" })).toBeVisible();
     await page.getByRole("button", { name: "문서/계약" }).click();
-    await expect(page.getByTestId("screen-support-drawer")).toContainText("퍼블리싱 인수 기준");
+    await expect(page.getByTestId("screen-support-drawer")).toContainText("화면 인수 기준");
   });
 });
 

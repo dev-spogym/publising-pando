@@ -22,7 +22,7 @@ test.describe("전체 페이지 전수 검수", () => {
       await expect(drawer, `${screen.id} support drawer`).toBeVisible();
       await expect(drawer.getByText("docs4 V1/V2 출처"), `${screen.id} docs4 source`).toBeVisible();
       await expect(drawer.getByText("화면 구현 기준"), `${screen.id} implementation criteria`).toBeVisible();
-      await expect(drawer, `${screen.id} handoff`).toContainText("퍼블리싱 인수 기준");
+      await expect(drawer, `${screen.id} handoff`).toContainText("화면 인수 기준");
       await expect(drawer.getByText("검수 기준"), `${screen.id} review criteria`).toBeVisible();
       await drawer.getByRole("button", { name: "닫기", exact: true }).click();
       await expect(drawer, `${screen.id} support drawer close`).not.toBeVisible();

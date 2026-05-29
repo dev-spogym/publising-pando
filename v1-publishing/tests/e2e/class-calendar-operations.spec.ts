@@ -47,7 +47,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe("D04 수업/캘린더 고급 운영 플로우", () => {
-  test("SCR-C001 calendar changes visible state, opens DLG-C002, and records the route-bound mock result", async ({
+  test("SCR-C001 calendar changes visible state, opens DLG-C002, and records the route-bound result", async ({
     page,
   }) => {
     await gotoScreen(page, "/classes/c001", "SCR-C001");
@@ -71,7 +71,7 @@ test.describe("D04 수업/캘린더 고급 운영 플로우", () => {
     await expect(dialog).toContainText("예약 회원 목록");
 
     await confirmRuntimeDialog(page, "확인");
-    await expect(page.getByText("일정 상세 mock 처리 완료")).toBeVisible();
+    await expect(page.getByText("일정 상세 처리 완료")).toBeVisible();
     const panel = await expectMockActionPanel(page, "SCR-C001", "/classes/c001");
     await expect(panel).toContainText("수업 캘린더");
   });
@@ -99,11 +99,11 @@ test.describe("D04 수업/캘린더 고급 운영 플로우", () => {
     await expect(dialog).toContainText("충돌·제외 12건 사유");
 
     await confirmRuntimeDialog(page, "일괄 실행");
-    await expect(page.getByText("일괄 생성 확인 mock 처리 완료")).toBeVisible();
+    await expect(page.getByText("일괄 생성 확인 처리 완료")).toBeVisible();
     await expectMockActionPanel(page, "SCR-C003", "/class-schedule");
   });
 
-  test("SCR-C004 template registration opens DLG-C009 and persists a screen-scoped mock result", async ({
+  test("SCR-C004 template registration opens DLG-C009 and persists a screen-scoped result", async ({
     page,
   }) => {
     await gotoScreen(page, "/class-templates", "SCR-C004");
@@ -121,7 +121,7 @@ test.describe("D04 수업/캘린더 고급 운영 플로우", () => {
     await dialog.locator("input").first().fill("토요일 체형교정 GX");
 
     await confirmRuntimeDialog(page, "등록");
-    await expect(page.getByText("템플릿 등록/수정 mock 처리 완료")).toBeVisible();
+    await expect(page.getByText("템플릿 등록/수정 처리 완료")).toBeVisible();
     await expectMockActionPanel(page, "SCR-C004", "/class-templates");
   });
 
@@ -182,7 +182,7 @@ test.describe("D04 수업/캘린더 고급 운영 플로우", () => {
     await gotoScreen(page, "/attendance/lesson-completion", "SCR-C014");
     await expect(page.getByRole("row", { name: /PT 정하준.*1\(Push 가능\)/ })).toBeVisible();
     await page.getByRole("row", { name: /필라테스 그룹.*정GX/ }).getByRole("button", { name: "처리" }).click();
-    await expect(page.getByText("필라테스 그룹 출석 처리 mock")).toBeVisible();
+    await expect(page.getByText("필라테스 그룹 출석 처리")).toBeVisible();
     const panel = await expectMockActionPanel(
       page,
       "SCR-C014",
@@ -191,7 +191,7 @@ test.describe("D04 수업/캘린더 고급 운영 플로우", () => {
     await expect(panel).toContainText("수업 출석/완료 확인");
   });
 
-  test("SCR-C016 reservation list validates row actions and route-scoped local mock output", async ({
+  test("SCR-C016 reservation list validates row actions and route-scoped local output", async ({
     page,
   }) => {
     await gotoScreen(page, "/class-reservations", "SCR-C016");
@@ -204,7 +204,7 @@ test.describe("D04 수업/캘린더 고급 운영 플로우", () => {
 
     await page.getByRole("row", { name: /김민준.*010-1234-5678/ }).click();
     await expect(page.getByTestId("scr-c016-row-detail-panel")).toContainText("PT 박트레이너");
-    await expect(page.getByTestId("scr-c016-row-detail-panel")).toContainText("회원 상세/출석/취소");
+    await expect(page.getByTestId("scr-c016-row-detail-panel")).toContainText("회원 상세 이동 · 출석 확정");
   });
 
   test("SCR-C001~C016 D04 routes render the expected screen contracts", async ({

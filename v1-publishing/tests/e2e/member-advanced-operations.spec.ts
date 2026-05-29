@@ -87,7 +87,7 @@ test.describe("회원관리 고급 하위 카테고리 E2E", () => {
         "김민준 → 잠실점 이관 검증 완료 · DLG-M023 최종 확인 대기",
       ),
     ).toBeVisible();
-    await expect(page.getByText("이관 확인 mock 처리 완료")).toBeVisible();
+    await expect(page.getByText("이관 확인 처리 완료")).toBeVisible();
   });
 
   test("/body-composition switches member and graph filters, then records DLG-M015 body values with calculated state", async ({
@@ -127,7 +127,7 @@ test.describe("회원관리 고급 하위 카테고리 E2E", () => {
       dialog.locator("text=BMI 자동").locator("xpath=.."),
     ).toContainText("23.0");
     await confirmRuntimeDialog(page, /^측정 등록$/);
-    await expect(page.getByText("체성분 등록 mock 처리 완료")).toBeVisible();
+    await expect(page.getByText("체성분 등록 처리 완료")).toBeVisible();
   });
 
   test("/members/merge enables destructive merge only after distinct primary and secondary selections and DLG-M028 confirmation", async ({
@@ -159,7 +159,7 @@ test.describe("회원관리 고급 하위 카테고리 E2E", () => {
     await expect(dialog).toContainText("마일리지");
     await dialog.getByPlaceholder("병합확인").fill("병합확인");
     await confirmRuntimeDialog(page, /^병합 확정$/);
-    await expect(page.getByText("회원 병합 확인 mock 처리 완료")).toBeVisible();
+    await expect(page.getByText("회원 병합 확인 처리 완료")).toBeVisible();
   });
 
   test("/members/family changes active family group and runs DLG-M029 member-link search plus removal result state", async ({
@@ -175,15 +175,15 @@ test.describe("회원관리 고급 하위 카테고리 E2E", () => {
     await page.getByRole("button", { name: /가족 연결/ }).click();
     const dialog = await expectRuntimeDialog(page, "DLG-M029");
     await dialog.getByPlaceholder("이름 또는 연락처").fill("김민준");
-    await dialog.getByRole("button", { name: /검색 mock/ }).click();
-    await expect(page.getByText("가족 연결 검색 mock 실행")).toBeVisible();
+    await dialog.getByRole("button", { name: /검색/ }).click();
+    await expect(page.getByText("가족 연결 검색 결과")).toBeVisible();
     await dialog
       .locator("button")
       .filter({ hasText: /김민준\(가족\).*010-0000-1111/ })
       .click();
     await expect(dialog).toContainText("선택됨");
     await confirmRuntimeDialog(page, /^선택 적용$/);
-    await expect(page.getByText("가족 연결 mock 처리 완료")).toBeVisible();
+    await expect(page.getByText("가족 연결 처리 완료")).toBeVisible();
     await expect(page.getByTestId("mock-action-panel")).toHaveCount(0);
   });
 
@@ -205,7 +205,7 @@ test.describe("회원관리 고급 하위 카테고리 E2E", () => {
     await page.getByRole("button", { name: "저장" }).click();
     await expect(
       page.getByText(
-        "사용자 정의 세그먼트가 mock/local state에 저장되었습니다.",
+        "사용자 정의 세그먼트가 화면 상태에 저장되었습니다.",
       ),
     ).toBeVisible();
     await expect(
@@ -224,7 +224,7 @@ test.describe("회원관리 고급 하위 카테고리 E2E", () => {
       .getByPlaceholder("메모 내용 입력")
       .fill("30일 미방문 자동 세그먼트 우선 상담 필요");
     await confirmRuntimeDialog(page, /^추가$/);
-    await expect(page.getByText("메모 추가 mock 처리 완료")).toBeVisible();
+    await expect(page.getByText("메모 추가 처리 완료")).toBeVisible();
   });
 
   test("/members/edit invalidates phone changes, uses duplicate/address DLGs, blocks unsafe memo, and reports save states", async ({
@@ -243,7 +243,7 @@ test.describe("회원관리 고급 하위 카테고리 E2E", () => {
     await expectRuntimeDialog(page, "DLG-M006");
     await confirmRuntimeDialog(page, /^강제 등록$/);
     await expect(
-      page.getByText("전화번호 중복 안내 mock 처리 완료"),
+      page.getByText("전화번호 중복 안내 처리 완료"),
     ).toBeVisible();
     await expect(page.getByTestId("mock-action-panel")).toHaveCount(0);
     await page.getByRole("button", { name: "다음" }).click();
@@ -279,15 +279,9 @@ test.describe("회원관리 고급 하위 카테고리 E2E", () => {
 
     await page.getByLabel("저장 충돌(409) 시뮬레이션").uncheck();
     await page.getByRole("button", { name: "저장" }).click();
+    await expect(page).toHaveURL(/\/members\/detail\/?\?memberId=10291&saved=1/);
     await expect(
-      page.getByText(
-        "회원 정보 수정 완료 · 감사로그 ADM-260529-004 기록 · 회원 상세 반영 대기",
-      ),
-    ).toBeVisible();
-    await expect(
-      page
-        .getByText("회원 정보가 수정되었습니다. 회원 상세로 이동합니다.")
-        .last(),
+      page.getByText("회원 상세", { exact: true }).first(),
     ).toBeVisible();
   });
 });

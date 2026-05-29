@@ -35,7 +35,7 @@ function actionVariant(variant: DialogActionSpec["variant"]): React.ComponentPro
 export function DialogShell({ blueprint, open, onOpenChange, onMockAction }: DialogShellProps) {
   const { source } = blueprint;
   const handleAction = (label: string) => {
-    onMockAction?.(`${source.id} · ${label} mock 처리`);
+    onMockAction?.(`${source.id} · ${label} 처리`);
     if (!["이전", "기존 회원 이동", "강제 등록"].includes(label)) {
       onOpenChange(false);
     }
@@ -67,7 +67,7 @@ export function DialogShell({ blueprint, open, onOpenChange, onMockAction }: Dia
             </DialogPolicyBanner>
           )}
           {blueprint.backendPolicy && (
-            <DialogPolicyBanner title="퍼블리싱 범위" tone={source.status === "policy-pending" ? "warning" : "info"}>
+            <DialogPolicyBanner title="화면 계약 범위" tone={source.status === "policy-pending" ? "warning" : "info"}>
               {blueprint.backendPolicy}
             </DialogPolicyBanner>
           )}
@@ -118,7 +118,7 @@ export function DialogShell({ blueprint, open, onOpenChange, onMockAction }: Dia
         </div>
 
         <DialogFooter className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-[11px] text-slate-500">API 호출 없음 · 버튼은 mock 상태/토스트 검증용</div>
+          <div className="text-[11px] text-slate-500">목데이터 상태 · 버튼/토스트 동작 확인용</div>
           <div className="flex flex-wrap justify-end gap-2">
             {blueprint.actions.map((action) => (
               <Button

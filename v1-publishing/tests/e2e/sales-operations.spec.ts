@@ -54,13 +54,13 @@ test.describe("D03 매출관리 SCR-S001~S012 라우트 계약", () => {
   });
 
   for (const contract of salesRouteContracts) {
-    test(`${contract.id} ${contract.title} 라우트는 계약 ID와 mock-only 라우트를 노출한다`, async ({
+    test(`${contract.id} ${contract.title} 라우트는 계약 ID와 목데이터 운영 라우트를 노출한다`, async ({
       page,
     }) => {
       await openSalesRoute(page, contract.route, contract.id);
       await expect(page.getByText(contract.title).first()).toBeVisible();
       await expect(page.locator("body")).toContainText(
-        `${contract.route} · mock only`,
+        `${contract.route} · 목데이터 운영 화면`,
       );
       await expect(page.getByText("D03").first()).toBeVisible();
     });
@@ -73,7 +73,7 @@ test.describe("D03 POS 장바구니/결제 DLG", () => {
     await openSalesRoute(page, "/sales/pos", "SCR-S002");
   });
 
-  test("상품을 장바구니에 추가하면 금액 local state가 갱신된다", async ({
+  test("상품을 장바구니에 추가하면 금액 화면 상태가 갱신된다", async ({
     page,
   }) => {
     await page.getByRole("button", { name: /회원권 3개월/ }).click();
@@ -134,7 +134,7 @@ test.describe("D03 결제 처리 주요 flow", () => {
     await openSalesRoute(page, "/sales/payment", "SCR-S003");
   });
 
-  test("영수증 첨부 전에는 결제 등록이 차단되고 첨부 후 결제 완료 local state로 전환된다", async ({
+  test("영수증 첨부 전에는 결제 등록이 차단되고 첨부 후 결제 완료 화면 상태로 전환된다", async ({
     page,
   }) => {
     await expect(
@@ -150,7 +150,7 @@ test.describe("D03 결제 처리 주요 flow", () => {
     await expect(page.getByText("매출 현황").last()).toBeVisible();
   });
 
-  test("잔액 등록 선택과 금액 초과 입력은 경고 local state를 노출한다", async ({
+  test("잔액 등록 선택과 금액 초과 입력은 경고 화면 상태를 노출한다", async ({
     page,
   }) => {
     await page.getByRole("button", { name: /잔액 등록/ }).click();
@@ -192,7 +192,7 @@ test.describe("D03 환불/부분환불 flow", () => {
     }
   });
 
-  test("결제 취소/부분 환불은 5단계 요구 중 검색→수기 입력→귀속 영향 흐름을 local state로 전환한다", async ({
+  test("결제 취소/부분 환불은 5단계 요구 중 검색→수기 입력→귀속 영향 흐름을 화면 상태로 전환한다", async ({
     page,
   }) => {
     await openSalesRoute(page, "/sales/refund-partial", "SCR-S012");

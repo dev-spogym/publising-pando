@@ -129,7 +129,7 @@ export function getActionContract(screen: ScreenDefinition, action: ScreenDefini
     allowedRoles,
     blockedReason: action.permission ? `${action.permission} 권한 필요` : "모든 역할 실행 가능",
     payloadShape: action.dialogId ? `{ dialogId: "${action.dialogId}", sourceScreenId: "${screen.id}", formValues }` : `{ sourceScreenId: "${screen.id}", selectedRows, filters }`,
-    successToast: `${action.label} mock 처리 완료`,
+    successToast: `${action.label} 처리 완료`,
     failureState: "권한 부족, 필수값 누락, 정책 확인 필요, 외부 연동 실패 상태 표시",
     auditRequired: Boolean(action.danger || /삭제|환불|승인|이관|퇴사|권한/.test(action.label)),
     mockBehavior: action.dialogId ? "open-dialog" : "toast"
@@ -142,7 +142,7 @@ export function getScreenContract(screen: ScreenDefinition): ScreenContract {
     handoffStatus: getHandoffStatus(screen),
     queryParams: screen.filters.slice(0, 8).map((filter, index) => makeField(filter, index, false)),
     tableSchema: screen.tableColumns.map((column, index) => makeField(column, index, index < 1)),
-    stateMatrix: ["loading skeleton", "empty state", "filtered result", "validation error", "permission blocked", "policy pending", "mock success toast"],
+    stateMatrix: ["loading skeleton", "empty state", "filtered result", "validation error", "permission blocked", "policy pending", "success toast"],
     apiContracts: [
       {
         key: `${screen.id}.list`,
@@ -168,7 +168,7 @@ export function getScreenContract(screen: ScreenDefinition): ScreenContract {
     actionContracts,
     developerNotes: [
       `${screen.source} 기준 화면 ID/목적/연결 DLG 유지`,
-      "퍼블리싱 범위에서는 API 호출 대신 mock toast/local state로 처리",
+      "화면 계약 범위에서는 목데이터와 화면 상태로 처리",
       "실개발 시 apiContracts.endpoint를 실제 backend route로 치환"
     ]
   };
