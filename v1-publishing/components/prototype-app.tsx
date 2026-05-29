@@ -1437,6 +1437,29 @@ function AdminScreen({
         notify={notify}
       />
     );
+  if (
+    [
+      "SCR-C003",
+      "SCR-C004",
+      "SCR-C006",
+      "SCR-C007",
+      "SCR-C008",
+      "SCR-C009",
+      "SCR-C011",
+      "SCR-C012",
+      "SCR-C013",
+      "SCR-C015",
+    ].includes(screen.id)
+  )
+    return (
+      <ClassOperationsScreen
+        screen={screen}
+        role={role}
+        branch={branch}
+        openDialog={openDialog}
+        notify={notify}
+      />
+    );
   if (screen.id === "SCR-C005")
     return (
       <GroupClassStatusScreen
@@ -15895,6 +15918,561 @@ function ClassCalendarScreen({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <HandoffContractCard screen={screen} />
         <DialogDock screen={screen} openDialog={openDialog} />
+      </div>
+    </div>
+  );
+}
+
+type ClassOperationConfig = {
+  flow: string[];
+  policy: string[];
+  result: string;
+  routes: { label: string; href: string }[];
+};
+
+const classOperationConfigs: Record<string, ClassOperationConfig> = {
+  "SCR-C003": {
+    flow: [
+      "기간/요일/시간을 먼저 고정",
+      "템플릿·강사·장소 선택",
+      "충돌 일정 미리보기",
+      "DLG-C008에서 생성 범위 확정",
+      "30분 이내 전체 취소/롤백 상태 노출",
+    ],
+    policy: [
+      "최대 12개월·100건 초과 비동기 처리",
+      "강사/룸 충돌 행은 생성 제외 선택 필요",
+      "트레이너는 본인 일정만 일괄 등록",
+      "공휴일·휴무일 제외 날짜는 생성 전 고정",
+    ],
+    result:
+      "미리보기 84건 · 충돌 3건 · 제외 날짜 2일 · DLG-C008 확정 전 생성 없음",
+    routes: [
+      { label: "템플릿 관리", href: "/class-templates" },
+      { label: "캘린더 확인", href: "/classes/c001" },
+    ],
+  },
+  "SCR-C004": {
+    flow: [
+      "템플릿 목록에서 활성/비활성 확인",
+      "DLG-C009로 등록/수정",
+      "사용 일정 수가 0일 때만 삭제 허용",
+      "시간표/개별 등록 선택 목록 반영",
+    ],
+    policy: [
+      "사용 중 템플릿 삭제 차단",
+      "비활성 템플릿은 신규 일정 선택 목록 hidden",
+      "기본 정원/장소/시간은 일정 생성 시 자동 완성",
+      "색상은 캘린더 분류와 충돌하지 않게 관리",
+    ],
+    result: "템플릿 선택 시 사용 일정·삭제 가능 여부·연결 화면을 우측에 표시",
+    routes: [
+      { label: "시간표 등록", href: "/class-schedule" },
+      { label: "수업 캘린더", href: "/classes/c001" },
+    ],
+  },
+  "SCR-C006": {
+    flow: [
+      "기간과 강사 역할 선택",
+      "강사 행 클릭으로 담당 수업·OT 요약 확인",
+      "DLG-C010에서 상세 근무/수업 목록 확인",
+      "업무 편중 강사는 재배정 후보로 표시",
+    ],
+    policy: [
+      "급여 정산 참고용 근무 시간과 수업 수 분리",
+      "OT 1차/2차 완료율은 신규 회원 관리와 연결",
+      "트레이너는 본인 상세 우선, 관리자는 전체 조회",
+      "과배정·휴무 충돌은 캘린더 이동 전 경고",
+    ],
+    result: "박트레이너 24건 · 30시간 · OT 1차 6건 · 편중 주의",
+    routes: [
+      { label: "캘린더 재배정", href: "/classes/c001" },
+      { label: "직원 근태", href: "/staff/attendance" },
+    ],
+  },
+  "SCR-C007": {
+    flow: [
+      "회원/수업권 행 선택",
+      "DLG-C013 차감 이력 확인",
+      "DLG-C012 조정 유형·횟수·사유 입력",
+      "조정 후 잔여 횟수와 감사 로그 결과 확인",
+    ],
+    policy: [
+      "환불/오류 정정/보상은 사유 필수",
+      "잔여 횟수 음수 차감 차단",
+      "진행 중 환불건은 조정 전 확인 필요",
+      "회원 이관 시 잔여 횟수 유지 여부 표시",
+    ],
+    result: "잔여 8/20 · 최근 차감 정상 · 수동 조정은 DLG-C012 사유 필요",
+    routes: [
+      { label: "예약 원장", href: "/class-reservations" },
+      { label: "결제/환불", href: "/sales/refunds" },
+    ],
+  },
+  "SCR-C008": {
+    flow: [
+      "노쇼/취소 페널티 행 선택",
+      "DLG-C015 자동 정책 확인",
+      "DLG-C014 수동 페널티 등록",
+      "첫 노쇼 면제/HQ 정책 예외 반영",
+    ],
+    policy: [
+      "늦은 취소는 페널티 대상 아님",
+      "첫 노쇼 면제는 본사 HQ-09 정책 기준",
+      "수동 부과는 대상 수업·회원·사유 필수",
+      "정정 시 자동 페널티 해제 결과 표시",
+    ],
+    result: "자동 정책 ON · 첫 노쇼 면제 대상 1건 · 수동 부과 대기 2건",
+    routes: [
+      { label: "출석/완료", href: "/attendance/lesson-completion" },
+      { label: "Today Tasks", href: "/today-tasks" },
+    ],
+  },
+  "SCR-C009": {
+    flow: [
+      "회원 요청 유형/상태/SLA 필터",
+      "요청 행 클릭으로 원 수업·희망 일정 확인",
+      "수락/거절/대안 일정 제시",
+      "DLG-C016에서 대안 일정 발송",
+    ],
+    policy: [
+      "24시간 초과 요청은 SLA 빨강 배지",
+      "담당 트레이너는 담당 수업 요청만 처리",
+      "거절은 사유 필수, 대안 제시는 원 수업 보존",
+      "취소 요청은 페널티/횟수 차감 영향 함께 표시",
+    ],
+    result: "미처리 12건 · SLA 초과 3건 · 대안 일정 제시 후 응답 대기",
+    routes: [
+      { label: "캘린더", href: "/classes/c001" },
+      { label: "예약 목록", href: "/class-reservations" },
+    ],
+  },
+  "SCR-C011": {
+    flow: [
+      "오늘/이번 주 유효 수업만 조회",
+      "예약 회원 출석 상태 확인",
+      "서명 누락은 DLG-C006 Push 요청",
+      "기록 상세은 DLG-C005로 근거 확인",
+    ],
+    policy: [
+      "만료/취소 수업은 목록 제외",
+      "FC/Staff는 출석 보조만 가능",
+      "PT 서명 누락은 완료 처리와 분리",
+      "QR은 참고값이고 수업 출석 인증 아님",
+    ],
+    result: "오늘 18건 · 출석 미처리 4건 · 서명 누락 2건 · 노쇼 1건",
+    routes: [
+      { label: "출석/완료", href: "/attendance/lesson-completion" },
+      { label: "수업 기록", href: "/lessons" },
+    ],
+  },
+  "SCR-C012": {
+    flow: [
+      "만석 수업 선택",
+      "대기 순번·이용권 유효성 확인",
+      "자동 배정 동의자 우선 처리",
+      "수동 배정/대기 취소/자리 알림 발송",
+    ],
+    policy: [
+      "D10 자동 배정 정책 ON이면 동의자 자동 처리",
+      "이용권 만료자는 자동 스킵",
+      "순번 변경은 감사 로그 대상",
+      "자리 발생 알림은 중복 발송 throttle 적용",
+    ],
+    result: "대기 32명 · 자동 배정 ON · 만료자 1명 스킵 · 수동 배정 후보 2명",
+    routes: [
+      { label: "자동화 정책", href: "/hq/automation-policies" },
+      { label: "예약 목록", href: "/class-reservations" },
+    ],
+  },
+  "SCR-C013": {
+    flow: [
+      "낮은 평점/기간/강사 필터",
+      "후기 행 클릭으로 전문/처리 메모 확인",
+      "불만 후기는 응답 캠페인/운영 메모 연결",
+      "신고 N건 이상 자동 숨김 상태 표시",
+    ],
+    policy: [
+      "트레이너는 본인 수업 피드백만 조회",
+      "FC/Staff 접근 제한",
+      "낮은 평점은 즉시 알림/Today Task 후보",
+      "NPS 자동 집계는 D10 지표로 연결",
+    ],
+    result: "평균 4.6 · 낮은 평점 4건 · 응답률 62% · 불만 후속 처리 필요",
+    routes: [
+      { label: "메시지 발송", href: "/message" },
+      { label: "NPS", href: "/nps" },
+    ],
+  },
+  "SCR-C015": {
+    flow: [
+      "수업 녹화 행 선택",
+      "파일 업로드/공유 대상/공개 기간 설정",
+      "공유 중 삭제 시 회원 안내 상태 확인",
+      "만료 자동 비공개·90일 후 삭제 정책 표시",
+    ],
+    policy: [
+      "최대 5GB 업로드 mock, 실제 저장 없음",
+      "회원별 워터마크와 공개 기간 필요",
+      "기간 만료는 자동 비공개 후 삭제 대기",
+      "트레이너는 본인 수업 파일만 관리",
+    ],
+    result: "공유 중 48개 · 기간 만료 8개 · 삭제 전 대상 회원 안내 필요",
+    routes: [
+      { label: "수업 기록", href: "/lessons" },
+      { label: "회원 메시지", href: "/message" },
+    ],
+  },
+};
+
+function getClassConfig(screen: ScreenDefinition): ClassOperationConfig {
+  return (
+    classOperationConfigs[screen.id] ?? {
+      flow: ["행 선택", "정책 확인", "DLG/액션 실행", "결과 상태 확인"],
+      policy: [
+        "권한별 버튼 노출",
+        "mock/local state만 수행",
+        "결과는 화면에 남김",
+      ],
+      result: `${screen.title} mock 운영 결과 대기`,
+      routes: [{ label: "수업 캘린더", href: "/classes/c001" }],
+    }
+  );
+}
+
+function ClassOperationsScreen({
+  screen,
+  role,
+  branch,
+  openDialog,
+  notify,
+}: SpecializedScreenProps) {
+  const config = getClassConfig(screen);
+  const [tab, setTab] = useState(screen.tabs[0] ?? "전체");
+  const [selectedRow, setSelectedRow] = useState(0);
+  const [activeMetric, setActiveMetric] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [operationResult, setOperationResult] = useState(config.result);
+  const [acknowledged, setAcknowledged] = useState(false);
+  const [lastFilter, setLastFilter] = useState("없음");
+  const [detailOpen, setDetailOpen] = useState(true);
+  const selected = screen.rows[selectedRow] ?? screen.rows[0] ?? {};
+  const allowed = [
+    "HQ_ADMIN",
+    "OWNER",
+    "MANAGER",
+    "TRAINER",
+    "FC",
+    "STAFF",
+  ].includes(role);
+  const visibleRows = screen.rows.filter((row) => {
+    if (!search.trim()) return true;
+    return Object.values(row).some((value) =>
+      String(value).toLowerCase().includes(search.toLowerCase()),
+    );
+  });
+  const selectedTitle =
+    String(
+      selected["수업명"] ??
+        selected["회원명"] ??
+        selected["강사명"] ??
+        selected["프로그램명"] ??
+        selected["파일 이름"] ??
+        screen.title,
+    ) || screen.title;
+
+  const applyLocalFilter = (filter: string) => {
+    setLastFilter(filter);
+    setDetailOpen(true);
+    setOperationResult(
+      `${filter} 조건을 적용했습니다. ${selectedTitle} 기준으로 목록/패널이 local state에서 동기화됩니다.`,
+    );
+  };
+
+  const runAction = (label: string, dialogId?: string) => {
+    if (!allowed) {
+      notify(`${label}: 현재 역할로는 처리할 수 없습니다.`, "warning");
+      return;
+    }
+    if (dialogId) openDialog(dialogId);
+    setLastFilter(label);
+    setDetailOpen(true);
+    setOperationResult(
+      `${label.replace(/\s*\([^)]*\)/g, "")} 준비 완료 · ${selectedTitle} · ${acknowledged ? "정책 확인됨" : "정책 확인 필요"} · local state만 갱신`,
+    );
+    if (!dialogId) notify(`${label} mock/local state 반영`, "info");
+  };
+
+  return (
+    <div className="space-y-5">
+      <DeliveryHeader
+        screen={screen}
+        role={role}
+        branch={branch}
+        titleSuffix="수업 운영 플로우 강화"
+      />
+      <MetricGrid
+        metrics={screen.metrics}
+        active={activeMetric}
+        onSelect={(label) => {
+          setActiveMetric(label);
+          setOperationResult(
+            `${label} 지표 기준으로 ${screen.title} 목록을 재검토합니다.`,
+          );
+        }}
+      />
+      <div className="grid grid-cols-[minmax(0,1fr)_360px] gap-5">
+        <div className="space-y-4">
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle>{screen.title} 작업대</CardTitle>
+              <CardDescription>{screen.purpose}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {screen.tabs.map((item) => (
+                  <Button
+                    key={item}
+                    size="sm"
+                    variant={tab === item ? "default" : "outline"}
+                    onClick={() => {
+                      setTab(item);
+                      setOperationResult(
+                        `${item} 탭 기준으로 상태를 전환했습니다.`,
+                      );
+                    }}
+                  >
+                    {item}
+                  </Button>
+                ))}
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="수업명·회원·강사 검색"
+                  className="ml-auto h-9 w-56"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {screen.filters.map((filter) => (
+                  <Button
+                    key={filter}
+                    type="button"
+                    size="sm"
+                    variant={lastFilter === filter ? "default" : "outline"}
+                    onClick={() => applyLocalFilter(filter)}
+                  >
+                    {filter}
+                  </Button>
+                ))}
+              </div>
+              <div
+                data-testid={`${screen.id.toLowerCase()}-active-state`}
+                className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs font-medium text-blue-800"
+              >
+                선택 lane: 오전 PT · 적용 필터: {lastFilter} · 선택 행: {selectedTitle}
+              </div>
+              <div className="grid gap-2 md:grid-cols-4">
+                {config.flow.map((step, index) => (
+                  <button
+                    key={step}
+                    type="button"
+                    onClick={() =>
+                      setOperationResult(
+                        `Step ${index + 1}: ${step} 상태를 화면에 반영했습니다.`,
+                      )
+                    }
+                    className="rounded-xl border border-line bg-surface-secondary p-3 text-left text-xs text-content-secondary transition hover:border-primary hover:text-primary"
+                  >
+                    <b className="mb-1 block text-content">Step {index + 1}</b>
+                    {step}
+                  </button>
+                ))}
+              </div>
+              <div className="overflow-x-auto rounded-xl border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {screen.tableColumns.map((c) => (
+                        <TableHead key={c}>{c}</TableHead>
+                      ))}
+                      <TableHead>운영 액션</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {visibleRows.map((row, index) => (
+                      <TableRow
+                        key={index}
+                        className={cn(
+                          "cursor-pointer",
+                          selectedRow === index && "bg-blue-50",
+                        )}
+                        onClick={() => {
+                          setSelectedRow(index);
+                          setDetailOpen(true);
+                          setOperationResult(
+                            `${String(row[screen.tableColumns[0]] ?? screen.title)} 행을 선택했습니다. 우측 정책을 확인하세요.`,
+                          );
+                        }}
+                      >
+                        {screen.tableColumns.map((c) => (
+                          <TableCell key={c}>
+                            {statusAwareValue(String(row[c] ?? "-"))}
+                          </TableCell>
+                        ))}
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              runAction(
+                                screen.primaryActions[0]?.label ?? "상세 보기",
+                                screen.primaryActions[0]?.dialogId,
+                              );
+                            }}
+                          >
+                            처리
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle>단계별 액션</CardTitle>
+              <CardDescription>
+                버튼은 실제 API 없이 DLG/local state/route/side panel 상태로
+                동작합니다.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              {screen.primaryActions.map((action) => (
+                <Button
+                  key={action.label}
+                  size="sm"
+                  variant={
+                    action.danger
+                      ? "destructive"
+                      : action.dialogId
+                        ? "default"
+                        : "outline"
+                  }
+                  data-dialog-id={action.dialogId}
+                  onClick={() => runAction(action.label, action.dialogId)}
+                >
+                  {action.label}
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+        <aside className="min-w-0 space-y-4">
+          {detailOpen && (
+            <Card
+              className="shadow-none"
+              data-testid={`${screen.id.toLowerCase()}-row-detail-panel`}
+            >
+              <CardHeader>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <CardTitle>선택 항목 운영 패널</CardTitle>
+                    <CardDescription>
+                      선택 행, 정책, 처리 결과를 한 곳에 남깁니다.
+                    </CardDescription>
+                  </div>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    aria-label="닫기"
+                    onClick={() => setDetailOpen(false)}
+                  >
+                    <X size={16} />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <InfoCell label="선택" value={selectedTitle} />
+                <InfoCell label="화면" value={`${screen.id} · ${screen.title}`} />
+                <InfoCell
+                  label="지점/역할"
+                  value={`${branch} · ${roleById.get(role)?.label ?? role}`}
+                />
+                <label className="flex items-center gap-2 rounded-xl border border-line bg-surface-secondary p-3 text-xs text-content-secondary">
+                  <input
+                    type="checkbox"
+                    checked={acknowledged}
+                    onChange={(event) => setAcknowledged(event.target.checked)}
+                  />
+                  <span>권한·충돌·차감·알림 정책 확인</span>
+                </label>
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
+                  {operationResult}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {screen.id === "SCR-C006" && (
+            <Card
+              className="border-amber-200 bg-amber-50 shadow-none"
+              data-testid="scr-c006-queue-detail-panel"
+            >
+              <CardHeader>
+                <CardTitle>강사 일정 충돌 조정 큐</CardTitle>
+                <CardDescription>
+                  강사 휴무/과배정과 예약 변경 요청을 같은 패널에서 처리합니다.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <InfoCell label="충돌 유형" value="강사 일정 충돌 · 같은 시간 PT/GX 중복" />
+                <InfoCell label="대상" value={`${selectedTitle} · 예약 변경 요청 3건`} />
+                <InfoCell label="처리 기준" value="회원 잔여권/대기열/강사 권한 확인 후 DLG-C010에서 조정" />
+                <Button className="w-full" onClick={() => runAction("예약 조정", "DLG-C010")}>
+                  예약 조정
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle>정책 체크</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-xs text-content-secondary">
+              {config.policy.map((item) => (
+                <div
+                  key={item}
+                  className="flex gap-2 rounded-lg border border-line bg-white p-2"
+                >
+                  <CheckCircle2 className="mt-0.5 size-3.5 text-emerald-600" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle>연결 화면</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {config.routes.map((route) => (
+                <Button
+                  key={route.href}
+                  asChild
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Link href={route.href}>{route.label}</Link>
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+          <DialogDock screen={screen} openDialog={openDialog} />
+          <HandoffContractCard screen={screen} />
+        </aside>
       </div>
     </div>
   );
