@@ -37,10 +37,16 @@ function extractIds(kind: "SCR" | "DLG") {
   return [...ids].sort();
 }
 
+// v1-publishing 측 ID도 docs4 추출 측과 동일한 규칙으로 정규화한다.
+// 예: v1-publishing의 `DLG-P001-상품등록모달`도 비교 시 `DLG-P001`로 압축.
+function normalizeDialogId(id: string): string {
+  return /^DLG-P\d+-[^\x00-\x7F]/.test(id) ? id.replace(/^(DLG-P\d+)-[^\x00-\x7F].*$/, "$1") : id;
+}
+
 const expectedScreens = extractIds("SCR");
 const expectedDialogs = extractIds("DLG");
 const actualScreens = screens.map((screen) => screen.id).sort();
-const actualDialogs = dialogs.map((dialog) => dialog.id).sort();
+const actualDialogs = [...new Set(dialogs.map((dialog) => normalizeDialogId(dialog.id)))].sort();
 
 function diff(expected: string[], actual: string[]) {
   return {
@@ -52,7 +58,11 @@ function diff(expected: string[], actual: string[]) {
 const screenDiff = diff(expectedScreens, actualScreens);
 const dialogDiff = diff(expectedDialogs, actualDialogs);
 const routeIssues = screens.filter((screen) => !screen.route.startsWith("/")).map((screen) => `${screen.id}:${screen.route}`);
-const unlinkedDialogs = actualDialogs.filter((id) => !screens.some((screen) => screen.dialogs.includes(id)));
+const linkedDialogIds = new Set<string>();
+for (const screen of screens) {
+  for (const did of screen.dialogs) linkedDialogIds.add(normalizeDialogId(did));
+}
+const unlinkedDialogs = actualDialogs.filter((id) => !linkedDialogIds.has(id));
 
 const report = `# V1 D01~D11 Coverage Report\n\n- Generated: ${new Date().toISOString()}\n- 기준 문서: docs4/V1 D01~D11 화면설계 문서\n- 화면 구현: ${actualScreens.length}/${expectedScreens.length}\n- 다이얼로그 구현: ${actualDialogs.length}/${expectedDialogs.length}\n- 라우트 오류: ${routeIssues.length}\n- 화면 연결 없는 DLG: ${unlinkedDialogs.length}\n\n## Missing Screens\n${screenDiff.missing.map((id) => `- ${id}`).join("\n") || "- 없음"}\n\n## Missing Dialogs\n${dialogDiff.missing.map((id) => `- ${id}`).join("\n") || "- 없음"}\n\n## Extra Implementations\n${[...screenDiff.extra, ...dialogDiff.extra].map((id) => `- ${id}`).join("\n") || "- 없음"}\n\n## Routes\n${screens.map((screen) => `- ${screen.id} ${screen.title}: \`${screen.route}\``).join("\n")}\n`;
 

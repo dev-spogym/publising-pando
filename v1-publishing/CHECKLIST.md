@@ -1,6 +1,6 @@
 # V1 D01~D11 Coverage Report
 
-- Generated: 2026-05-29T00:57:09.036Z
+- Generated: 2026-05-29T00:58:17.723Z
 - 기준 문서: docs4/V1 D01~D11 화면설계 문서
 - 화면 구현: 118/91
 - 다이얼로그 구현: 156/137
@@ -11,21 +11,7 @@
 - 없음
 
 ## Missing Dialogs
-- DLG-P001
-- DLG-P002
-- DLG-P003
-- DLG-P004
-- DLG-P005
-- DLG-P006
-- DLG-P007
-- DLG-P008
-- DLG-P009
-- DLG-P010
-- DLG-P011
-- DLG-P012
-- DLG-P013
-- DLG-P014
-- DLG-P015
+- 없음
 
 ## Extra Implementations
 - SCR-055
@@ -66,21 +52,6 @@
 - DLG-057-002
 - DLG-057-003
 - DLG-058-001
-- DLG-P001-상품등록모달
-- DLG-P002-전지점배포
-- DLG-P003-작업취소확인
-- DLG-P004-가격이력
-- DLG-P005-상품삭제확인
-- DLG-P006-비활성화안내
-- DLG-P007-할인규칙등록
-- DLG-P008-상품가져오기
-- DLG-P009-할인규칙수정
-- DLG-P010-상품삭제최종확인
-- DLG-P011-할인규칙삭제확인
-- DLG-P012-상품이미지업로드
-- DLG-P013-할인정책추가수정
-- DLG-P014-가격이력조회
-- DLG-P015-할인정책삭제확인
 - DLG-P016
 - DLG-P017
 - DLG-P018
