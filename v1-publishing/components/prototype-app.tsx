@@ -97,7 +97,45 @@ const defaultRole: RoleId = "OWNER";
 
 type ToastTone = "success" | "warning" | "info";
 type ToastState = { message: string; tone: ToastTone } | null;
+type MockActionPanelState = {
+  message: string;
+  tone: ToastTone;
+  screenId: string;
+  screenTitle: string;
+  route: string;
+  branch: string;
+  roleLabel: string;
+  source: string;
+  dialogIds: string[];
+  timestamp: string;
+} | null;
 type Notify = (message: string, tone?: ToastTone) => void;
+
+const actionLikeToastPatterns = [
+  "mock",
+  "이동",
+  "상세",
+  "선택",
+  "필터",
+  "탭",
+  "조회",
+  "내보내기",
+  "다운로드",
+  "적용",
+  "처리",
+  "등록",
+  "수정",
+  "삭제",
+  "생성",
+  "발송",
+  "예약",
+  "보기",
+];
+
+function shouldOpenMockActionPanel(message: string, tone: ToastTone) {
+  if (tone === "warning") return false;
+  return actionLikeToastPatterns.some((pattern) => message.includes(pattern));
+}
 
 const preferencesEvent = "pando-preferences-change";
 
@@ -143,6 +181,8 @@ export function PrototypeApp({ initialRoute }: { initialRoute: string }) {
   );
   const [activeDialog, setActiveDialog] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
+  const [mockActionPanel, setMockActionPanel] =
+    useState<MockActionPanelState>(null);
   const setRole = (nextRole: RoleId) => {
     window.localStorage.setItem("pando-role", nextRole);
     emitPreferencesChange();
@@ -159,8 +199,27 @@ export function PrototypeApp({ initialRoute }: { initialRoute: string }) {
   }, [toast]);
 
   const openDialog = (dialogId: string) => setActiveDialog(dialogId);
-  const notify = (message: string, tone: ToastTone = "success") =>
+  const notify = (message: string, tone: ToastTone = "success") => {
     setToast({ message, tone });
+    if (screen.id !== "SCR-100" && shouldOpenMockActionPanel(message, tone)) {
+      setMockActionPanel({
+        message,
+        tone,
+        screenId: screen.id,
+        screenTitle: screen.title,
+        route: screen.route,
+        branch,
+        roleLabel: roleById.get(role)?.label ?? role,
+        source: screen.source,
+        dialogIds: screen.dialogs,
+        timestamp: new Date().toLocaleTimeString("ko-KR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        }),
+      });
+    }
+  };
 
   if (screen.id === "SCR-100") {
     return (
@@ -221,6 +280,11 @@ export function PrototypeApp({ initialRoute }: { initialRoute: string }) {
         role={role}
         onClose={() => setActiveDialog(null)}
         notify={notify}
+      />
+      <MockActionPanel
+        panel={mockActionPanel}
+        onClose={() => setMockActionPanel(null)}
+        onOpenDialog={openDialog}
       />
       <Toast toast={toast} />
     </div>
@@ -13268,6 +13332,98 @@ function CheckLine({ label }: { label: string }) {
       <CheckCircle2 className="size-4 text-emerald-600" />
       {label}
     </div>
+  );
+}
+
+function MockActionPanel({
+  panel,
+  onClose,
+  onOpenDialog,
+}: {
+  panel: MockActionPanelState;
+  onClose: () => void;
+  onOpenDialog: (id: string) => void;
+}) {
+  if (!panel) return null;
+  const toneLabel =
+    panel.tone === "success"
+      ? "상태 반영"
+      : panel.tone === "info"
+        ? "화면 연결"
+        : "검수 필요";
+  const normalizedMessage = panel.message.replace(/\s*mock\s*/gi, " ").trim();
+  const relatedDialog = panel.dialogIds
+    .map((dialogId) => dialogById.get(dialogId))
+    .find(Boolean);
+  return (
+    <AdminSlidePanel
+      open
+      onClose={onClose}
+      eyebrow={`${panel.screenId} · ${toneLabel}`}
+      title={normalizedMessage || panel.message}
+      size="md"
+      testId="mock-action-panel"
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>
+            닫기
+          </Button>
+          {relatedDialog ? (
+            <Button
+              onClick={() => {
+                onClose();
+                onOpenDialog(relatedDialog.id);
+              }}
+            >
+              연결 DLG 보기
+            </Button>
+          ) : (
+            <Button onClick={onClose}>상태 확인</Button>
+          )}
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Card className="shadow-none">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">화면 연결 결과</CardTitle>
+            <CardDescription>
+              toast 문구만 남기지 않고 현재 액션이 어느 화면·문서·local state로
+              이어지는지 사이드패널에서 확인합니다.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-3 text-xs">
+            {[
+              ["화면", `${panel.screenTitle} (${panel.screenId})`],
+              ["라우트", panel.route],
+              ["역할", panel.roleLabel],
+              ["지점", panel.branch],
+              ["문서", panel.source],
+              ["시각", panel.timestamp],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-xl border border-line bg-white p-3">
+                <p className="font-bold text-content-tertiary">{label}</p>
+                <p className="mt-1 break-words font-semibold text-content">{value}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">퍼블리싱 핸드오프</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-content-secondary">
+            <p>
+              실제 API 호출은 없고, 개발사가 연결해야 할 버튼·필터·상세·내보내기
+              액션의 화면 반응을 mock/local state로 보여주는 기준입니다.
+            </p>
+            <div className="rounded-xl bg-primary-light/40 p-3 text-xs font-semibold text-primary">
+              개발 연결점: {panel.screenId}.interaction.{normalizedMessage || panel.message}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </AdminSlidePanel>
   );
 }
 
