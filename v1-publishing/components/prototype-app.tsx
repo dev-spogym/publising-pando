@@ -1867,6 +1867,7 @@ type SpecializedScreenProps = {
 const memberDirectoryRows = [
   {
     no: "10291",
+    statusKey: "ACTIVE",
     status: "활성",
     name: "김민준",
     gender: "남",
@@ -1874,15 +1875,24 @@ const memberDirectoryRows = [
     age: "35",
     phone: "010-1234-5678",
     pass: "PT 20회 · 8회 잔여",
+    expiry: "2026-06-28",
     branch: "강남점",
     visit: "오늘 09:20",
+    lastVisitDays: 0,
     registered: "2026-01-12",
     owner: "이FC",
     source: "회원소개",
+    sourceKey: "referral",
+    memberType: "general",
+    favorite: true,
+    segment: "VIP 재등록",
+    messagePlan: "PT 잔여 8회 리텐션",
+    nextAction: "오늘 운동 후 재등록 상담",
     purpose: "체중 감량",
   },
   {
     no: "10254",
+    statusKey: "IMMINENT",
     status: "임박",
     name: "박서연",
     gender: "여",
@@ -1890,15 +1900,24 @@ const memberDirectoryRows = [
     age: "32",
     phone: "010-2222-8899",
     pass: "회원권 3개월 · D-3",
+    expiry: "2026-06-01",
     branch: "강남점",
     visit: "2026-05-12",
+    lastVisitDays: 17,
     registered: "2025-11-02",
     owner: "최매니저",
     source: "인스타",
+    sourceKey: "instagram",
+    memberType: "general",
+    favorite: true,
+    segment: "재등록 D-3",
+    messagePlan: "만료 임박 쿠폰 안내",
+    nextAction: "재등록 상담 예약",
     purpose: "재등록 상담",
   },
   {
     no: "10187",
+    statusKey: "HOLDING",
     status: "홀딩",
     name: "정하준",
     gender: "남",
@@ -1906,15 +1925,24 @@ const memberDirectoryRows = [
     age: "38",
     phone: "010-7755-4300",
     pass: "수강권 홀딩 · 12일",
+    expiry: "2026-07-04",
     branch: "서초점",
     visit: "2026-04-19",
+    lastVisitDays: 40,
     registered: "2025-09-21",
     owner: "박트레이너",
     source: "블로그",
+    sourceKey: "blog",
+    memberType: "corp",
+    favorite: false,
+    segment: "홀딩 복귀",
+    messagePlan: "복귀 예정일 확인",
+    nextAction: "홀딩 해제/연장 확인",
     purpose: "재활",
   },
   {
     no: "10044",
+    statusKey: "EXPIRED",
     status: "만료",
     name: "오지우",
     gender: "여",
@@ -1922,14 +1950,158 @@ const memberDirectoryRows = [
     age: "28",
     phone: "010-9080-1122",
     pass: "회원권 만료 · 미수 80,000",
+    expiry: "2026-04-30",
     branch: "잠실점",
     visit: "2026-03-30",
+    lastVisitDays: 60,
     registered: "2025-05-10",
     owner: "이FC",
     source: "당근",
+    sourceKey: "daangn",
+    memberType: "general",
+    favorite: true,
+    segment: "이탈 위험",
+    messagePlan: "미수/재방문 안내",
+    nextAction: "미수 확인 후 재등록 콜",
     purpose: "이탈 위험",
   },
+  {
+    no: "10308",
+    statusKey: "SCHEDULED",
+    status: "예정",
+    name: "한유나",
+    gender: "여",
+    birth: "1996-12-11",
+    age: "30",
+    phone: "010-3310-8820",
+    pass: "헬스 6개월 · 시작 예정",
+    expiry: "2026-12-02",
+    branch: "강남점",
+    visit: "미방문",
+    lastVisitDays: 999,
+    registered: "2026-05-28",
+    owner: "김FC",
+    source: "지역카페",
+    sourceKey: "cafe",
+    memberType: "general",
+    favorite: false,
+    segment: "신규 온보딩",
+    messagePlan: "첫 방문 안내",
+    nextAction: "OT 예약 확정",
+    purpose: "자세 교정",
+  },
+  {
+    no: "10277",
+    statusKey: "ACTIVE",
+    status: "활성",
+    name: "문도윤",
+    gender: "남",
+    birth: "1984-08-05",
+    age: "42",
+    phone: "010-6400-2211",
+    pass: "법인 PT 30회 · 18회 잔여",
+    expiry: "2026-09-14",
+    branch: "강남점",
+    visit: "2026-05-24",
+    lastVisitDays: 5,
+    registered: "2025-12-18",
+    owner: "윤매니저",
+    source: "현수막",
+    sourceKey: "banner",
+    memberType: "corp",
+    favorite: false,
+    segment: "법인 VIP",
+    messagePlan: "법인 담당자 월간 리포트",
+    nextAction: "법인 정산 담당자 확인",
+    purpose: "체력 관리",
+  },
+  {
+    no: "10012",
+    statusKey: "WITHDRAWN",
+    status: "탈퇴",
+    name: "서가온",
+    gender: "여",
+    birth: "1990-01-21",
+    age: "36",
+    phone: "010-7788-4301",
+    pass: "탈퇴 완료 · 개인정보 보관",
+    expiry: "2026-02-10",
+    branch: "강남점",
+    visit: "2026-01-20",
+    lastVisitDays: 130,
+    registered: "2024-08-02",
+    owner: "최매니저",
+    source: "간판",
+    sourceKey: "signboard",
+    memberType: "general",
+    favorite: false,
+    segment: "탈퇴 보관",
+    messagePlan: "발송 금지",
+    nextAction: "보관기간 확인",
+    purpose: "탈퇴",
+  },
+  {
+    no: "09988",
+    statusKey: "INACTIVE",
+    status: "미등록",
+    name: "권시우",
+    gender: "남",
+    birth: "2000-05-30",
+    age: "26",
+    phone: "010-4501-9900",
+    pass: "상담 후 결제 대기",
+    expiry: "미정",
+    branch: "서초점",
+    visit: "2026-05-27",
+    lastVisitDays: 2,
+    registered: "2026-05-27",
+    owner: "이FC",
+    source: "전단지",
+    sourceKey: "flyer",
+    memberType: "general",
+    favorite: true,
+    segment: "결제 대기",
+    messagePlan: "결제 링크 리마인드",
+    nextAction: "상품구매 화면 연결",
+    purpose: "벌크업",
+  },
+  {
+    no: "10321",
+    statusKey: "ACTIVE",
+    status: "활성",
+    name: "장하린",
+    gender: "여",
+    birth: "1993-09-14",
+    age: "33",
+    phone: "010-7133-2209",
+    pass: "GX 프리패스 · 42일 잔여",
+    expiry: "2026-07-10",
+    branch: "잠실점",
+    visit: "2026-05-26",
+    lastVisitDays: 3,
+    registered: "2025-10-12",
+    owner: "김FC",
+    source: "기타",
+    sourceKey: "etc",
+    memberType: "anon",
+    favorite: false,
+    segment: "GX 활성",
+    messagePlan: "GX 주간 예약 안내",
+    nextAction: "예약 누락 여부 확인",
+    purpose: "유지",
+  },
 ];
+
+type MemberDirectoryRow = (typeof memberDirectoryRows)[number];
+type MemberActionPanel =
+  | {
+      kind: "message" | "bulk-message" | "favorite" | "export" | "daily-focus";
+      title: string;
+      member?: MemberDirectoryRow;
+      rows: MemberDirectoryRow[];
+      body: string;
+    }
+  | null;
 
 const salesLedgerRows = [
   {
@@ -2808,7 +2980,7 @@ function MemberListScreen({
 }: SpecializedScreenProps) {
   // admin-pando members/page.tsx 구조 1:1 이식
   const [activeMainTab, setActiveMainTab] = useState<
-    "members" | "product" | "pass"
+    "members" | "product" | "pass" | "locker" | "clothes"
   >("members");
   const [activeStatusTab, setActiveStatusTab] = useState("all");
   const [activeSavedView, setActiveSavedView] = useState(
@@ -2823,12 +2995,26 @@ function MemberListScreen({
   const [memberType, setMemberType] = useState("all");
   const [referralSource, setReferralSource] = useState("all");
   const [detailPanelEnabled, setDetailPanelEnabled] = useState(true);
+  const [actionPanel, setActionPanel] = useState<MemberActionPanel>(null);
+  const [favoriteOverrides, setFavoriteOverrides] = useState<
+    Record<string, boolean>
+  >({});
+  const [lastFlow, setLastFlow] = useState("목록 조회 · 회원 선택 대기");
+
+  const isFavorite = (row: MemberDirectoryRow) =>
+    favoriteOverrides[row.no] ?? row.favorite;
+  const enrichedRows = memberDirectoryRows.map((row) => ({
+    ...row,
+    favorite: isFavorite(row),
+  }));
 
   // docs4 V1 SCR-M001 명시 운영 보기 탭 5개 (회원목록/회원권/수강권/락커/운동복)
   const MAIN_TABS = [
     { key: "members" as const, label: "회원 목록" },
     { key: "product" as const, label: "회원권 목록" },
     { key: "pass" as const, label: "수강권 목록" },
+    { key: "locker" as const, label: "락커 목록" },
+    { key: "clothes" as const, label: "운동복 목록" },
   ];
 
   // docs4 V1 명시 저장 뷰 탭 4개 (상담내역/상담예약/재등록대상/고객관리)
@@ -2841,20 +3027,96 @@ function MemberListScreen({
 
   // docs4 V1 SCR-M001 명시 상태 필터 탭 8개 (전체/활성/만료/예정/임박/홀딩/미등록/탈퇴)
   const STATUS_TABS = [
-    { key: "all", label: "전체", count: memberDirectoryRows.length },
-    { key: "ACTIVE", label: "활성", count: 2 },
-    { key: "EXPIRED", label: "만료", count: 1 },
-    { key: "SCHEDULED", label: "예정", count: 0 },
-    { key: "IMMINENT", label: "임박", count: 1 },
-    { key: "HOLDING", label: "홀딩", count: 1 },
-    { key: "INACTIVE", label: "미등록", count: 0 },
-    { key: "WITHDRAWN", label: "탈퇴", count: 0 },
+    { key: "all", label: "전체", count: enrichedRows.length },
+    {
+      key: "ACTIVE",
+      label: "활성",
+      count: enrichedRows.filter((row) => row.statusKey === "ACTIVE").length,
+    },
+    {
+      key: "EXPIRED",
+      label: "만료",
+      count: enrichedRows.filter((row) => row.statusKey === "EXPIRED").length,
+    },
+    {
+      key: "SCHEDULED",
+      label: "예정",
+      count: enrichedRows.filter((row) => row.statusKey === "SCHEDULED").length,
+    },
+    {
+      key: "IMMINENT",
+      label: "임박",
+      count: enrichedRows.filter((row) => row.statusKey === "IMMINENT").length,
+    },
+    {
+      key: "HOLDING",
+      label: "홀딩",
+      count: enrichedRows.filter((row) => row.statusKey === "HOLDING").length,
+    },
+    {
+      key: "INACTIVE",
+      label: "미등록",
+      count: enrichedRows.filter((row) => row.statusKey === "INACTIVE").length,
+    },
+    {
+      key: "WITHDRAWN",
+      label: "탈퇴",
+      count: enrichedRows.filter((row) => row.statusKey === "WITHDRAWN").length,
+    },
   ];
 
-  const rows = memberDirectoryRows.filter((row) =>
-    `${row.name} ${row.phone} ${row.pass} ${row.status}`.includes(searchValue),
-  );
-  const filtered = hideExpired ? rows.filter((r) => r.status !== "만료") : rows;
+  const rows = enrichedRows.filter((row) => {
+    const q = searchValue.trim();
+    const matchedSearch =
+      q.length === 0 ||
+      `${row.name} ${row.phone} ${row.pass} ${row.status} ${row.segment} ${row.source}`.includes(
+        q,
+      );
+    const matchedStatus =
+      activeStatusTab === "all" || row.statusKey === activeStatusTab;
+    const matchedFavorite = !onlyFavorite || row.favorite;
+    const matchedNoVisit =
+      daysNoVisit === "0" || row.lastVisitDays > Number(daysNoVisit);
+    const matchedMemberType =
+      memberType === "all" || row.memberType === memberType;
+    const matchedSource =
+      referralSource === "all" || row.sourceKey === referralSource;
+    const matchedExpired = !hideExpired || row.statusKey !== "EXPIRED";
+    const matchedSavedView =
+      activeSavedView === "consultation-history" ||
+      (activeSavedView === "consultation-scheduled" &&
+        ["IMMINENT", "INACTIVE", "SCHEDULED"].includes(row.statusKey)) ||
+      (activeSavedView === "renewal-target" &&
+        ["IMMINENT", "EXPIRED"].includes(row.statusKey)) ||
+      (activeSavedView === "legacy-customers" &&
+        ["HOLDING", "WITHDRAWN"].includes(row.statusKey));
+    return (
+      matchedSearch &&
+      matchedStatus &&
+      matchedFavorite &&
+      matchedNoVisit &&
+      matchedMemberType &&
+      matchedSource &&
+      matchedExpired &&
+      matchedSavedView
+    );
+  });
+  const filtered = rows;
+  const selectedRows = filtered.filter((row) => selected.has(row.no));
+  const openMemberAction = (
+    kind: NonNullable<MemberActionPanel>["kind"],
+    title: string,
+    body: string,
+    targetRows: MemberDirectoryRow[] = selectedRows.length
+      ? selectedRows
+      : detail
+        ? [detail]
+        : [],
+    member?: MemberDirectoryRow,
+  ) => {
+    setActionPanel({ kind, title, body, rows: targetRows, member });
+    setLastFlow(title);
+  };
   const toggleSelected = (no: string) =>
     setSelected((current) => {
       const next = new Set(current);
@@ -2886,7 +3148,14 @@ function MemberListScreen({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => notify("엑셀 다운로드 mock", "info")}
+            onClick={() =>
+              openMemberAction(
+                "export",
+                "회원 목록 Excel 다운로드 준비",
+                "현재 필터·저장뷰·선택 상태를 기준으로 내보내기 요청 payload를 구성합니다. 실제 파일 생성/API 호출은 개발사 연결 영역입니다.",
+                filtered,
+              )
+            }
           >
             Excel 다운로드
           </Button>
@@ -2914,8 +3183,11 @@ function MemberListScreen({
             <button
               className="rounded-xl border border-amber-300/50 bg-amber-50 p-3 text-left transition-colors hover:bg-amber-100"
               onClick={() => {
-                setActiveStatusTab("ACTIVE");
-                notify("재등록 집중 보기", "info");
+                setActiveSavedView("renewal-target");
+                setActiveStatusTab("IMMINENT");
+                setDaysNoVisit("0");
+                setOnlyFavorite(false);
+                setLastFlow("재등록 집중 보기 · 임박/만료 회원 필터");
               }}
             >
               <p className="text-[12px] font-semibold text-amber-800">
@@ -2931,8 +3203,11 @@ function MemberListScreen({
             <button
               className="rounded-xl border border-rose-300/50 bg-rose-50 p-3 text-left transition-colors hover:bg-rose-100"
               onClick={() => {
-                setActiveStatusTab("ACTIVE");
+                setActiveSavedView("consultation-history");
+                setActiveStatusTab("all");
                 setDaysNoVisit("14");
+                setOnlyFavorite(false);
+                setLastFlow("이탈 위험 보기 · 14일 이상 미방문 필터");
               }}
             >
               <p className="text-[12px] font-semibold text-rose-800">
@@ -2947,7 +3222,12 @@ function MemberListScreen({
             </button>
             <button
               className="rounded-xl border border-sky-300/50 bg-sky-50 p-3 text-left transition-colors hover:bg-sky-100"
-              onClick={() => setOnlyFavorite(true)}
+              onClick={() => {
+                setActiveSavedView("consultation-history");
+                setActiveStatusTab("all");
+                setOnlyFavorite(true);
+                setLastFlow("관심회원 보기 · favorite 필터");
+              }}
             >
               <p className="text-[12px] font-semibold text-sky-800">
                 관심회원 보기
@@ -2971,7 +3251,15 @@ function MemberListScreen({
               variant="default"
               size="sm"
               className="justify-start"
-              onClick={() => notify("선택 회원 메시지 발송 mock", "info")}
+              onClick={() =>
+                openMemberAction(
+                  "bulk-message",
+                  "선택 회원 메시지 발송",
+                  selectedRows.length
+                    ? "선택된 회원을 수신자로 고정해 메시지 작성 화면으로 넘기는 전 단계입니다."
+                    : "선택 회원이 없으면 현재 상세 패널 회원 1명을 기본 수신자로 사용합니다.",
+                )
+              }
             >
               <MessageSquare size={13} /> 선택 회원 메시지 발송
             </Button>
@@ -2979,7 +3267,10 @@ function MemberListScreen({
               variant="outline"
               size="sm"
               className="justify-start"
-              onClick={() => openDialog("DLG-M001")}
+              onClick={() => {
+                setLastFlow("선택 회원 상태 변경 · DLG-M001");
+                openDialog("DLG-M001");
+              }}
             >
               <ChevronRight size={13} /> 선택 회원 상태 변경
             </Button>
@@ -2987,7 +3278,10 @@ function MemberListScreen({
               variant="outline"
               size="sm"
               className="justify-start"
-              onClick={() => openDialog("DLG-M022")}
+              onClick={() => {
+                setLastFlow("선택 회원 수동 출석 · DLG-M022");
+                openDialog("DLG-M022");
+              }}
             >
               <CheckCircle2 size={13} /> 선택 회원 수동 출석
             </Button>
@@ -2995,6 +3289,9 @@ function MemberListScreen({
               {selected.size > 0
                 ? `${selected.size}명 선택됨`
                 : "회원을 선택하면 액션 큐에서 메시지·상태변경·출석을 실행할 수 있습니다."}
+            </div>
+            <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-[12px] text-blue-800">
+              최근 흐름: <b>{lastFlow}</b>
             </div>
           </div>
         </div>
@@ -3084,7 +3381,10 @@ function MemberListScreen({
                             ? "text-primary"
                             : "text-content-secondary hover:text-content",
                         )}
-                        onClick={() => setActiveStatusTab(tab.key)}
+                  onClick={() => {
+                    setActiveStatusTab(tab.key);
+                    setLastFlow(`${tab.label} 상태 필터 적용`);
+                  }}
                       >
                         {tab.label}
                         <span
@@ -3127,7 +3427,14 @@ function MemberListScreen({
                     onClick={() => {
                       setSearchValue("");
                       setSelected(new Set());
-                      notify("필터 초기화", "info");
+                      setActiveStatusTab("all");
+                      setActiveSavedView("consultation-history");
+                      setHideExpired(false);
+                      setOnlyFavorite(false);
+                      setDaysNoVisit("0");
+                      setMemberType("all");
+                      setReferralSource("all");
+                      setLastFlow("필터 초기화");
                     }}
                   >
                     초기화
@@ -3240,7 +3547,10 @@ function MemberListScreen({
                         variant="ghost"
                         size="sm"
                         className="text-white/90 hover:bg-white/10 hover:text-white"
-                        onClick={() => openDialog("DLG-M001")}
+                        onClick={() => {
+                          setLastFlow("일괄 상태 변경 · DLG-M001");
+                          openDialog("DLG-M001");
+                        }}
                       >
                         상태 변경
                       </Button>
@@ -3248,7 +3558,13 @@ function MemberListScreen({
                         variant="ghost"
                         size="sm"
                         className="text-white/90 hover:bg-white/10 hover:text-white"
-                        onClick={() => notify("메시지 전송 mock", "info")}
+                        onClick={() =>
+                          openMemberAction(
+                            "bulk-message",
+                            "일괄 메시지 전송",
+                            "선택 회원을 수신자 그룹으로 묶어 메시지 화면에 넘기는 전 단계입니다.",
+                          )
+                        }
                       >
                         전송하기
                       </Button>
@@ -3256,7 +3572,10 @@ function MemberListScreen({
                         variant="ghost"
                         size="sm"
                         className="text-white/90 hover:bg-white/10 hover:text-white"
-                        onClick={() => openDialog("DLG-M022")}
+                        onClick={() => {
+                          setLastFlow("일괄 수동 출석 · DLG-M022");
+                          openDialog("DLG-M022");
+                        }}
                       >
                         출석 처리
                       </Button>
@@ -3264,7 +3583,20 @@ function MemberListScreen({
                         variant="ghost"
                         size="sm"
                         className="text-white/90 hover:bg-white/10 hover:text-white"
-                        onClick={() => notify("관심회원 등록 mock", "info")}
+                        onClick={() => {
+                          setFavoriteOverrides((current) => {
+                            const next = { ...current };
+                            selectedRows.forEach((row) => {
+                              next[row.no] = true;
+                            });
+                            return next;
+                          });
+                          openMemberAction(
+                            "favorite",
+                            "관심회원 일괄 등록",
+                            "선택된 회원을 관심회원으로 표시하고 관심회원 필터에서 바로 확인할 수 있습니다.",
+                          );
+                        }}
                       >
                         관심회원
                       </Button>
@@ -3272,16 +3604,27 @@ function MemberListScreen({
                         variant="ghost"
                         size="sm"
                         className="text-white/90 hover:bg-white/10 hover:text-white"
-                        onClick={() =>
-                          selected.size === 1
-                            ? openDialog("DLG-M023")
-                            : notify(
-                                "지점이관은 1명 선택 시에만 가능합니다.",
-                                "warning",
-                              )
-                        }
+                        asChild={selected.size === 1}
+                        onClick={() => {
+                          if (selected.size !== 1) {
+                            notify(
+                              "지점이관은 1명 선택 시에만 가능합니다.",
+                              "warning",
+                            );
+                            return;
+                          }
+                          setLastFlow("단일 회원 지점이관 전용 화면 이동");
+                        }}
                       >
-                        지점이관
+                        {selected.size === 1 ? (
+                          <Link
+                            href={`/members/transfer?memberId=${selectedRows[0]?.no ?? detail.no}`}
+                          >
+                            지점이관
+                          </Link>
+                        ) : (
+                          "지점이관"
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -3342,8 +3685,8 @@ function MemberListScreen({
                         )}
                         onClick={() => {
                           setDetail(row);
-                          if (!detailPanelEnabled)
-                            notify(`${row.name} 상세로 이동 mock`, "info");
+                          setDetailPanelEnabled(true);
+                          setLastFlow(`${row.name} Quick Member View 열림`);
                         }}
                       >
                         <TableCell onClick={(e) => e.stopPropagation()}>
@@ -3359,16 +3702,20 @@ function MemberListScreen({
                             className="text-content-tertiary hover:text-yellow-400 text-[16px]"
                             onClick={(e) => {
                               e.stopPropagation();
-                              notify(`${row.name} 관심회원 토글`, "info");
+                              setFavoriteOverrides((current) => ({
+                                ...current,
+                                [row.no]: !row.favorite,
+                              }));
+                              setLastFlow(`${row.name} 관심회원 토글`);
                             }}
                           >
-                            ☆
+                            {row.favorite ? "★" : "☆"}
                           </button>
                         </TableCell>
                         <TableCell>{statusAwareValue(row.status)}</TableCell>
                         <TableCell>
                           <span className="inline-block rounded bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-700">
-                            활발한 회원
+                            {row.segment}
                           </span>
                         </TableCell>
                         <TableCell className="font-semibold">
@@ -3388,7 +3735,7 @@ function MemberListScreen({
                         </TableCell>
                         <TableCell>{row.pass}</TableCell>
                         <TableCell className="tabular-nums">
-                          {row.visit}
+                          {row.expiry}
                         </TableCell>
                         <TableCell className="tabular-nums">
                           {row.registered}
@@ -3397,12 +3744,12 @@ function MemberListScreen({
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openDialog("DLG-M023");
-                            }}
+                            asChild
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            이관
+                            <Link href={`/members/transfer?memberId=${row.no}`}>
+                              이관
+                            </Link>
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -3444,13 +3791,16 @@ function MemberListScreen({
                     <div className="mt-1 flex items-center gap-1.5">
                       {statusAwareValue(detail.status)}
                       <span className="inline-block rounded bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-700">
-                        활발한 회원
+                        {detail.segment}
                       </span>
                     </div>
                   </div>
                   <button
                     className="text-[12px] font-medium text-content-secondary hover:text-content"
-                    onClick={() => notify("패널 닫기", "info")}
+                    onClick={() => {
+                      setDetailPanelEnabled(false);
+                      setLastFlow("Quick Member View 닫힘");
+                    }}
                   >
                     닫기
                   </button>
@@ -3493,28 +3843,37 @@ function MemberListScreen({
                       {detail.source}
                     </span>
                   </div>
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+                    <p className="text-[11px] font-black">다음 운영 액션</p>
+                    <p className="mt-1 text-[12px] leading-5">
+                      {detail.nextAction}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="mt-3 grid gap-2">
                   <Button size="sm" asChild>
-                    <Link href="/members/detail">상세 보기</Link>
+                    <Link href={`/members/detail?memberId=${detail.no}`}>
+                      상세 보기
+                    </Link>
                   </Button>
                   <Button variant="outline" size="sm" asChild>
-                    <Link href="/sales/payment">상품구매</Link>
+                    <Link href={`/sales/payment?memberId=${detail.no}`}>
+                      상품구매
+                    </Link>
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => notify(`${detail.name} 메시지 작성`, "info")}
-                  >
-                    메시지
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/message?memberId=${detail.no}`}>메시지</Link>
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openDialog("DLG-M023")}
-                  >
-                    지점이관
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/body-composition?memberId=${detail.no}`}>
+                      체성분
+                    </Link>
+                  </Button>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={`/members/transfer?memberId=${detail.no}`}>
+                      지점이관
+                    </Link>
                   </Button>
                 </div>
               </aside>
@@ -3610,6 +3969,139 @@ function MemberListScreen({
         </Card>
       )}
 
+      {activeMainTab === "locker" && (
+        <OperationalTable
+          title="락커 이용 회원"
+          description="회원관리 탭 안에서 락커 보유 회원을 바로 확인하고 상세/이관/연장 흐름으로 이어갑니다."
+          columns={["회원명", "락커", "만료일", "상태", "다음 액션"]}
+          rows={[
+            ["김민준", "A-12", "2026-06-18", "정상", "연장 안내"],
+            ["박서연", "B-03", "2026-06-01", "임박", "재등록 상담"],
+            ["문도윤", "법인-07", "2026-09-14", "정상", "법인 정산 확인"],
+          ]}
+          action={
+            <Button size="sm" onClick={() => openDialog("DLG-M018")}>
+              락커 연장 등록
+            </Button>
+          }
+        />
+      )}
+
+      {activeMainTab === "clothes" && (
+        <OperationalTable
+          title="운동복 이용 회원"
+          description="운동복 대여/반납 상태를 회원 맥락에서 확인하는 운영 뷰입니다."
+          columns={["회원명", "상품", "반납 상태", "마지막 처리", "액션"]}
+          rows={[
+            ["장하린", "운동복 월정액", "정상", "2026-05-26", "이용내역"],
+            ["오지우", "운동복 1개월", "연체", "2026-03-30", "미수 안내"],
+            ["김민준", "운동복 3개월", "정상", "오늘 09:20", "연장 안내"],
+          ]}
+          action={
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                openMemberAction(
+                  "daily-focus",
+                  "운동복 미수/연체 점검",
+                  "운동복 상태는 회원 상세·결제·메시지로 이어지는 보조 운영 큐입니다.",
+                  enrichedRows.filter((row) => row.statusKey !== "WITHDRAWN"),
+                )
+              }
+            >
+              연체 점검
+            </Button>
+          }
+        />
+      )}
+
+      <AdminSlidePanel
+        open={Boolean(actionPanel)}
+        onClose={() => setActionPanel(null)}
+        eyebrow="SCR-M001 LOCAL FLOW"
+        title={actionPanel?.title ?? "회원관리 액션"}
+        size="md"
+        testId="member-action-panel"
+        footer={
+          actionPanel ? (
+            <>
+              <Button variant="outline" onClick={() => setActionPanel(null)}>
+                닫기
+              </Button>
+              {["message", "bulk-message"].includes(actionPanel.kind) ? (
+                <Button asChild>
+                  <Link
+                    href={`/message?memberIds=${actionPanel.rows
+                      .map((row) => row.no)
+                      .join(",")}`}
+                  >
+                    메시지 작성으로 이동
+                  </Link>
+                </Button>
+              ) : (
+                <Button onClick={() => setActionPanel(null)}>
+                  상태 확인
+                </Button>
+              )}
+            </>
+          ) : null
+        }
+      >
+        {actionPanel ? (
+          <div className="space-y-4">
+            <Card className="shadow-none">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">운영 액션 결과</CardTitle>
+                <CardDescription>{actionPanel.body}</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-2 text-xs">
+                {[
+                  ["현재 지점", branch],
+                  ["담당 역할", roleById.get(role)?.label ?? role],
+                  ["선택 회원", `${actionPanel.rows.length}명`],
+                  ["연결 정책", "API 호출 없음 · local state/route/dialog만 표시"],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="flex items-center justify-between rounded-xl border border-line bg-white px-3 py-2"
+                  >
+                    <span className="font-bold text-content-tertiary">
+                      {label}
+                    </span>
+                    <span className="font-semibold text-content">{value}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+            <Card className="shadow-none">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">대상 회원</CardTitle>
+                <CardDescription>
+                  개발 연결 시 memberIds preselect payload로 넘길 목록입니다.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {actionPanel.rows.slice(0, 8).map((row) => (
+                  <div
+                    key={row.no}
+                    className="rounded-xl border border-line bg-white p-3 text-sm"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <b>{row.name}</b>
+                      {statusAwareValue(row.status)}
+                    </div>
+                    <p className="mt-1 text-xs text-content-secondary">
+                      {row.phone} · {row.pass} · {row.nextAction}
+                    </p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
+      </AdminSlidePanel>
+
       {/* 검수용 핸드오프 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <HandoffContractCard screen={screen} />
@@ -3638,8 +4130,12 @@ function MemberRegistrationScreen({
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [gender, setGender] = useState("여성");
   const [memberType, setMemberType] = useState("일반");
-  const canNext = name.trim().length > 1 && phone.trim().length >= 8;
+  const [phoneChecked, setPhoneChecked] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
+  const canNext =
+    name.trim().length > 1 && phone.trim().length >= 8 && phoneChecked;
   return (
     <div className="space-y-5">
       <DeliveryHeader
@@ -3657,23 +4153,23 @@ function MemberRegistrationScreen({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div
-                className={cn(
-                  "rounded-lg border p-3",
-                  step === 1 && "border-blue-400 bg-blue-50",
-                )}
-              >
-                1. 기본 인적 사항
-              </div>
-              <div
-                className={cn(
-                  "rounded-lg border p-3",
-                  step === 2 && "border-blue-400 bg-blue-50",
-                )}
-              >
-                2. 추가 정보 및 결제 진입
-              </div>
+            <div className="grid grid-cols-2 gap-2 text-sm xl:grid-cols-4">
+              {[
+                ["1", "기본 인적 사항", step === 1],
+                ["2", "전화번호 중복 확인", phoneChecked],
+                ["3", "추가 정보", step === 2],
+                ["4", "결제 진입", step === 2 && draftSaved],
+              ].map(([no, label, active]) => (
+                <div
+                  key={String(no)}
+                  className={cn(
+                    "rounded-lg border p-3",
+                    active && "border-blue-400 bg-blue-50",
+                  )}
+                >
+                  {no}. {label}
+                </div>
+              ))}
             </div>
             {step === 1 ? (
               <div className="grid grid-cols-2 gap-4">
@@ -3695,13 +4191,15 @@ function MemberRegistrationScreen({
                   <div className="grid grid-cols-2 gap-2">
                     <Button
                       variant="outline"
-                      onClick={() => notify("남성 선택", "info")}
+                      onClick={() => setGender("남성")}
+                      className={gender === "남성" ? "border-primary" : ""}
                     >
                       남성
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => notify("여성 선택", "info")}
+                      onClick={() => setGender("여성")}
+                      className={gender === "여성" ? "border-primary" : ""}
                     >
                       여성
                     </Button>
@@ -3712,17 +4210,35 @@ function MemberRegistrationScreen({
                   <div className="flex gap-2">
                     <Input
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+                        setPhoneChecked(false);
+                      }}
                       placeholder="010-0000-0000"
                     />
                     <Button
                       data-dialog-id="DLG-M006"
                       variant="outline"
-                      onClick={() => openDialog("DLG-M006")}
+                      onClick={() => {
+                        setPhoneChecked(true);
+                        openDialog("DLG-M006");
+                      }}
                     >
                       중복 확인
                     </Button>
                   </div>
+                  {phone && (
+                    <p
+                      className={cn(
+                        "text-xs",
+                        phoneChecked ? "text-emerald-600" : "text-amber-600",
+                      )}
+                    >
+                      {phoneChecked
+                        ? "DLG-M006 중복 확인 완료 · 다음 단계 가능"
+                        : "전화번호 변경 시 중복 확인이 다시 필요합니다."}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1">
                   <Label>회원구분 *</Label>
@@ -3785,9 +4301,21 @@ function MemberRegistrationScreen({
                   취소
                 </Button>
                 <Button
+                  variant="outline"
+                  onClick={() => {
+                    setDraftSaved(true);
+                    notify("회원 등록 임시저장 완료", "success");
+                  }}
+                >
+                  임시 저장
+                </Button>
+                <Button
                   data-dialog-id="DLG-M008"
                   variant="outline"
-                  onClick={() => openDialog("DLG-M008")}
+                  onClick={() => {
+                    setDraftSaved(false);
+                    openDialog("DLG-M008");
+                  }}
                 >
                   초기화
                 </Button>
@@ -3839,7 +4367,6 @@ function MemberDetailScreen({
   role,
   branch,
   openDialog,
-  notify,
 }: SpecializedScreenProps) {
   const member = memberDirectoryRows[0];
   const [favorite, setFavorite] = useState(true);
@@ -4048,26 +4575,22 @@ function MemberDetailScreen({
             수동출석
             </Button>
             <Button asChild variant="outline" size="sm">
-            <Link href="/members/edit">
+            <Link href={`/members/edit?memberId=${member.no}`}>
               <Edit className="size-3.5" />
               수정
             </Link>
             </Button>
-            <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => notify("상품 구매 화면으로 이동 mock", "info")}
-          >
+            <Button asChild variant="secondary" size="sm">
+            <Link href={`/sales/payment?memberId=${member.no}`}>
             <ShoppingCart className="size-3.5" />
             상품구매
+            </Link>
             </Button>
-            <Button
-            variant="outline"
-            size="sm"
-            onClick={() => notify("메시지 발송 화면으로 이동 mock", "info")}
-          >
+            <Button asChild variant="outline" size="sm">
+            <Link href={`/message?memberId=${member.no}`}>
             <MessageSquare className="size-3.5" />
             메시지
+            </Link>
             </Button>
             <Button
             variant="outline"
@@ -4159,20 +4682,17 @@ function MemberDetailScreen({
                 Next Actions
               </p>
               <div className="grid gap-2">
-                <Button
-                  className="justify-start bg-primary text-white hover:bg-primary/90"
-                  onClick={() => notify("리텐션 메시지 발송 mock", "success")}
-                >
+                <Button asChild className="justify-start bg-primary text-white hover:bg-primary/90">
+                  <Link href={`/message?memberId=${member.no}&template=retention`}>
                   <MessageSquare className="size-3.5" />
                   리텐션 메시지 발송
+                  </Link>
                 </Button>
-                <Button
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => notify("추가 상품 제안 mock", "info")}
-                >
+                <Button asChild variant="outline" className="justify-start">
+                  <Link href={`/sales/payment?memberId=${member.no}&mode=recommend`}>
                   <ShoppingCart className="size-3.5" />
                   추가 상품 제안
+                  </Link>
                 </Button>
                 <Button
                   variant="ghost"
