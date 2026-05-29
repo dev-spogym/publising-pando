@@ -113,26 +113,9 @@ type MockActionPanelState = {
 } | null;
 type Notify = (message: string, tone?: ToastTone) => void;
 
-const actionLikeToastPatterns = [
-  "mock",
-  "이동",
-  "상세",
-  "선택",
-  "필터",
-  "탭",
-  "조회",
-  "내보내기",
-  "다운로드",
-  "적용",
-  "처리",
-  "등록",
-  "수정",
-  "삭제",
-  "생성",
-  "발송",
-  "예약",
-  "보기",
-];
+// 운영 버튼은 실제 프론트 UX처럼 route/패널/DLG/local state로만 반응한다.
+// 퍼블리싱 설명 패널은 "문서/계약" 안에만 격리한다.
+const actionLikeToastPatterns: string[] = [];
 
 function shouldOpenMockActionPanel(message: string, tone: ToastTone) {
   if (tone === "warning") return false;
@@ -8846,11 +8829,9 @@ function PaymentProcessingScreen({
               </Button>
               <Button
                 variant="outline"
-                onClick={() =>
-                  notify(`${submittedSnapshot.member} 회원 상세 이동`, "info")
-                }
+                asChild
               >
-                회원 상세
+                <Link href="/members/detail?from=SCR-S001">회원 상세</Link>
               </Button>
               <Button
                 variant="outline"
@@ -11560,6 +11541,23 @@ function DomainOperationsScreen({
       },
       "action",
     );
+  const openTableRowPanel = (row: Record<string, string>, index: number) =>
+    openStatePanel(
+      String(
+        row[visibleColumns[0]] ??
+          row[Object.keys(row)[0]] ??
+          `${screen.title} ${index + 1}`,
+      ),
+      {
+        ...row,
+        "선택 lane": activeLane,
+        "적용 필터": activeFilters.length
+          ? activeFilters.join(" · ")
+          : "없음",
+        "구현 연결점": `${screen.id}.row.${index + 1}`,
+      },
+      "table",
+    );
   return (
     <div className="space-y-5">
       <DeliveryHeader
@@ -11688,7 +11686,8 @@ function DomainOperationsScreen({
             <CardHeader>
               <CardTitle>{config.boardTitle}</CardTitle>
               <CardDescription>
-                검색·탭·상태 배지·행 액션이 테이블/상세 패널 상태로 연결됩니다.
+                리스트 행 자체를 누르면 우측 상세 패널이 열리고, 버튼은 보조
+                액션만 담당합니다.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -11740,14 +11739,25 @@ function DomainOperationsScreen({
                         <TableHead key={column}>{column}</TableHead>
                       ))}
                       <TableHead>운영 상태</TableHead>
-                      <TableHead>행 액션</TableHead>
+                      <TableHead>상세 패널</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredRows
                       .slice(0, visibleRowLimit)
                       .map((row, index) => (
-                        <TableRow key={index}>
+                        <TableRow
+                          key={index}
+                          tabIndex={0}
+                          className="cursor-pointer transition hover:bg-surface-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          onClick={() => openTableRowPanel(row, index)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              openTableRowPanel(row, index);
+                            }
+                          }}
+                        >
                           {visibleColumns.map((column) => (
                             <TableCell key={column}>
                               {statusAwareValue(
@@ -11769,30 +11779,7 @@ function DomainOperationsScreen({
                             )}
                           </TableCell>
                           <TableCell>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() =>
-                                openStatePanel(
-                                  String(
-                                    row[visibleColumns[0]] ??
-                                      row[Object.keys(row)[0]] ??
-                                      `${screen.title} ${index + 1}`,
-                                  ),
-                                  {
-                                    ...row,
-                                    "선택 lane": activeLane,
-                                    "적용 필터": activeFilters.length
-                                      ? activeFilters.join(" · ")
-                                      : "없음",
-                                    "구현 연결점": `${screen.id}.row.${index + 1}`,
-                                  },
-                                  "table",
-                                )
-                              }
-                            >
-                              상세
-                            </Button>
+                            <Badge variant="outline">행 클릭</Badge>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -12113,6 +12100,21 @@ function DataPanel({ screen }: { screen: ScreenDefinition }) {
     Object.values(row).join(" ").toLowerCase().includes(query.toLowerCase()),
   );
   const visibleRows = filteredRows.slice((page - 1) * 5, page * 5);
+  const openDataRowDetail = (
+    row: Record<string, string>,
+    absoluteIndex: number,
+    selected: boolean,
+  ) =>
+    setDetail({
+      title: String(
+        row[screen.tableColumns[0]] ?? `${screen.title} ${absoluteIndex + 1}`,
+      ),
+      rows: {
+        ...row,
+        "선택 상태": selected ? "선택됨" : "미선택",
+        "구현 연결점": `${screen.id}.row.${absoluteIndex + 1}`,
+      },
+    });
 
   if (!screen.tableColumns.length)
     return (
@@ -12172,7 +12174,7 @@ function DataPanel({ screen }: { screen: ScreenDefinition }) {
             {screen.tableColumns.map((column) => (
               <TableHead key={column}>{column}</TableHead>
             ))}
-            <TableHead>행 액션</TableHead>
+            <TableHead>상세 패널</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -12183,8 +12185,17 @@ function DataPanel({ screen }: { screen: ScreenDefinition }) {
               <TableRow
                 key={absoluteIndex}
                 data-state={selected ? "selected" : undefined}
+                tabIndex={0}
+                className="cursor-pointer transition hover:bg-surface-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                onClick={() => openDataRowDetail(row, absoluteIndex, selected)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openDataRowDetail(row, absoluteIndex, selected);
+                  }
+                }}
               >
-                <TableCell>
+                <TableCell onClick={(event) => event.stopPropagation()}>
                   <Button
                     type="button"
                     variant={selected ? "default" : "outline"}
@@ -12206,26 +12217,7 @@ function DataPanel({ screen }: { screen: ScreenDefinition }) {
                   </TableCell>
                 ))}
                 <TableCell>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      setDetail({
-                        title: String(
-                          row[screen.tableColumns[0]] ??
-                            `${screen.title} ${absoluteIndex + 1}`,
-                        ),
-                        rows: {
-                          ...row,
-                          "선택 상태": selected ? "선택됨" : "미선택",
-                          "구현 연결점": `${screen.id}.row.${absoluteIndex + 1}`,
-                        },
-                      })
-                    }
-                  >
-                    상세
-                  </Button>
+                  <Badge variant="outline">행 클릭</Badge>
                 </TableCell>
               </TableRow>
             );
@@ -12948,7 +12940,9 @@ function MemberWithdrawDialog({ setDirty }: DialogBodyProps) {
 }
 
 // DLG-M006 전화번호 중복
-function PhoneDuplicateDialog({ notify }: DialogBodyProps) {
+function PhoneDuplicateDialog(_props: DialogBodyProps) {
+  void _props;
+
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-900 text-sm">
@@ -13001,9 +12995,9 @@ function PhoneDuplicateDialog({ notify }: DialogBodyProps) {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => notify(`${m.name} 회원 상세 이동`, "info")}
+                  asChild
                 >
-                  상세
+                  <Link href="/members/detail?from=DLG-M006">상세</Link>
                 </Button>
               </div>
             </div>
@@ -15234,6 +15228,16 @@ function PrimaryActionRow({
   notify: Notify;
 }) {
   const roleInfo = roleById.get(role)!;
+  const router = useRouter();
+  const routeForAction = (label: string) => {
+    if (label.includes("회원 상세")) return "/members/detail";
+    if (label.includes("수업 상세")) return "/lessons";
+    if (label.includes("상품구매") || label.includes("결제"))
+      return "/sales/payment";
+    if (label.includes("체성분")) return "/body-composition";
+    if (label.includes("메시지")) return "/message";
+    return null;
+  };
   return (
     <div className="flex flex-wrap gap-2">
       {screen.primaryActions.map((action) => {
@@ -15257,7 +15261,14 @@ function PrimaryActionRow({
                 return;
               }
               if (action.dialogId) openDialog(action.dialogId);
-              else notify(`${action.label} mock 실행 완료`);
+              else {
+                const route = routeForAction(action.label);
+                if (route) {
+                  router.push(`${route}?from=${screen.id}`);
+                  return;
+                }
+                notify(`${action.label} 완료`, "success");
+              }
             }}
           >
             {!allowed && <Lock className="size-3.5" />} {action.label}
@@ -17315,6 +17326,12 @@ function ReservationListScreen({
   openDialog,
   notify,
 }: SpecializedScreenProps) {
+  const [selectedReservation, setSelectedReservation] = useState<
+    Record<string, string> | null
+  >(screen.rows[0] ?? null);
+  const openReservationDetail = (row: Record<string, string>) => {
+    setSelectedReservation(row);
+  };
   return (
     <div className="space-y-5">
       <DeliveryHeader
@@ -17346,22 +17363,28 @@ function ReservationListScreen({
                 </TableHeader>
                 <TableBody>
                   {screen.rows.map((row, idx) => (
-                    <TableRow key={idx}>
+                    <TableRow
+                      key={idx}
+                      tabIndex={0}
+                      className={cn(
+                        "cursor-pointer transition hover:bg-surface-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                        selectedReservation === row && "bg-primary-light/20",
+                      )}
+                      onClick={() => openReservationDetail(row)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          openReservationDetail(row);
+                        }
+                      }}
+                    >
                       {screen.tableColumns.slice(0, 8).map((c) => (
                         <TableCell key={c}>
                           {statusAwareValue(String(row[c] ?? "-"))}
                         </TableCell>
                       ))}
                       <TableCell>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() =>
-                            notify(`${row["수업명"]} 회원 상세 mock`, "info")
-                          }
-                        >
-                          상세
-                        </Button>
+                        <Badge variant="outline">행 클릭</Badge>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -17371,6 +17394,42 @@ function ReservationListScreen({
           </CardContent>
         </Card>
         <aside className="space-y-4">
+          {selectedReservation && (
+            <Card className="shadow-none" data-testid="scr-c016-row-detail-panel">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <CardTitle>예약 상세 패널</CardTitle>
+                    <CardDescription>
+                      예약·회원·출석 처리 정보를 한 번에 확인합니다.
+                    </CardDescription>
+                  </div>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    aria-label="닫기"
+                    onClick={() => setSelectedReservation(null)}
+                  >
+                    <X size={16} />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {screen.tableColumns.slice(0, 8).map((column) => (
+                  <InfoCell
+                    key={column}
+                    label={column}
+                    value={String(selectedReservation[column] ?? "-")}
+                  />
+                ))}
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
+                  후속 처리: 회원 상세 이동 · 출석 확정 · 예약 취소 · 변경
+                  이력 확인
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <Card className="shadow-none">
             <CardHeader>
               <CardTitle>예약 처리</CardTitle>
@@ -27581,14 +27640,9 @@ function UnifiedAttendanceScreen({
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() =>
-                              notify(
-                                `${a.memberName} 회원 상세 이동 mock`,
-                                "info",
-                              )
-                            }
+                            asChild
                           >
-                            상세
+                            <Link href="/members/detail?from=SCR-C011">상세</Link>
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -27655,11 +27709,9 @@ function UnifiedAttendanceScreen({
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() =>
-                            notify(`${a.memberName} 회원 상세 이동`, "info")
-                          }
+                          asChild
                         >
-                          상세
+                          <Link href="/members/detail?from=SCR-C011">상세</Link>
                         </Button>
                       </div>
                     </div>

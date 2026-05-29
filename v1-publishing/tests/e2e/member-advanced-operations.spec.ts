@@ -184,11 +184,7 @@ test.describe("회원관리 고급 하위 카테고리 E2E", () => {
     await expect(dialog).toContainText("선택됨");
     await confirmRuntimeDialog(page, /^선택 적용$/);
     await expect(page.getByText("가족 연결 mock 처리 완료")).toBeVisible();
-    await page
-      .getByTestId("mock-action-panel")
-      .getByRole("button", { name: "닫기" })
-      .last()
-      .click();
+    await expect(page.getByTestId("mock-action-panel")).toHaveCount(0);
   });
 
   test("/members/segment supports builder preview, custom segment save, and DLG-M009 memo on an automatic segment", async ({
@@ -215,11 +211,7 @@ test.describe("회원관리 고급 하위 카테고리 E2E", () => {
     await expect(
       page.getByRole("row", { name: /5월 이탈 회복 캠페인.*86.*검수 대기/ }),
     ).toBeVisible();
-    await page
-      .getByTestId("mock-action-panel")
-      .getByRole("button", { name: "닫기" })
-      .last()
-      .click();
+    await expect(page.getByTestId("mock-action-panel")).toHaveCount(0);
 
     await page.getByRole("button", { name: "자동 7종" }).click();
     const riskRow = page.getByRole("row", {
@@ -253,11 +245,7 @@ test.describe("회원관리 고급 하위 카테고리 E2E", () => {
     await expect(
       page.getByText("전화번호 중복 안내 mock 처리 완료"),
     ).toBeVisible();
-    await page
-      .getByTestId("mock-action-panel")
-      .getByRole("button", { name: "닫기" })
-      .last()
-      .click();
+    await expect(page.getByTestId("mock-action-panel")).toHaveCount(0);
     await page.getByRole("button", { name: "다음" }).click();
     await expect(page.getByText("Step 2 / 2")).toBeVisible();
 
@@ -271,11 +259,7 @@ test.describe("회원관리 고급 하위 카테고리 E2E", () => {
       .filter({ hasText: "서울 강남구 테헤란로 211" })
       .click();
     await confirmRuntimeDialog(page, /^주소 선택$/);
-    await page
-      .getByTestId("mock-action-panel")
-      .getByRole("button", { name: "닫기" })
-      .last()
-      .click();
+    await expect(page.getByTestId("mock-action-panel")).toHaveCount(0);
 
     const memo = page.locator("textarea").first();
     await memo.fill("900101-1234567");

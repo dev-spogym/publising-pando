@@ -73,7 +73,7 @@ test.describe("D03 POS 장바구니/결제 DLG", () => {
     await openSalesRoute(page, "/sales/pos", "SCR-S002");
   });
 
-  test("상품을 장바구니에 추가하면 금액 local state가 갱신되고 mock-action-panel이 열린다", async ({
+  test("상품을 장바구니에 추가하면 금액 local state가 갱신된다", async ({
     page,
   }) => {
     await page.getByRole("button", { name: /회원권 3개월/ }).click();
@@ -156,10 +156,8 @@ test.describe("D03 결제 처리 주요 flow", () => {
     await page.getByRole("button", { name: /잔액 등록/ }).click();
     await page.getByPlaceholder("1,150,000").fill("1300000");
     await expect(page.getByText(/원 금액.*초과/)).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: "잔액 등록 선택" }),
-    ).toBeVisible();
-    await expect(page.getByTestId("mock-action-panel")).toBeVisible();
+    await expect(page.getByRole("button", { name: /잔액 등록/ })).toBeVisible();
+    await expect(page.getByTestId("mock-action-panel")).toHaveCount(0);
   });
 
   test("결제 처리의 구매자 검색/할부 등록 DLG는 route 안에서 runtime-dialog로 연결된다", async ({
@@ -202,16 +200,9 @@ test.describe("D03 환불/부분환불 flow", () => {
     await page.getByRole("button", { name: "다음 (수기 입력으로)" }).click();
     await expect(page.getByText(/Step 2 \/ 5/)).toBeVisible();
     await page.getByRole("button", { name: "전체 취소" }).click();
-    await expect(
-      page.getByRole("heading", { name: "처리 유형: 전체 취소" }),
-    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "전체 취소" })).toBeVisible();
     await page.locator("table input").fill("600,000");
-    await page
-      .getByTestId("mock-action-panel")
-      .locator("footer button")
-      .first()
-      .click();
-    await expect(page.getByTestId("mock-action-panel")).not.toBeVisible();
+    await expect(page.getByTestId("mock-action-panel")).toHaveCount(0);
     await page.getByRole("button", { name: "다음 (귀속 영향)" }).click();
     await expect(page.getByText(/Step 3 \/ 5/)).toBeVisible();
     await expect(page.getByText("매출 차감액")).toBeVisible();

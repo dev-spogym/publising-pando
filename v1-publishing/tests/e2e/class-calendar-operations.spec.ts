@@ -32,20 +32,14 @@ async function confirmRuntimeDialog(page: Page, actionName: RegExp | string) {
 }
 
 async function expectMockActionPanel(page: Page, screenId: string, route: string) {
-  const panel = page.getByTestId("mock-action-panel");
-  await expect(panel).toBeVisible();
-  await expect(panel).toContainText(screenId);
-  await expect(panel).toContainText(route);
-  await expect(panel).toContainText("mock/local state");
-  return panel;
+  await expect(page.getByTestId("mock-action-panel")).toHaveCount(0);
+  await expect(page.getByText(screenId, { exact: true }).first()).toBeVisible();
+  await expect(page.locator("body")).toContainText(route);
+  return page.locator("main");
 }
 
 async function closeMockActionPanel(page: Page) {
-  const panel = page.getByTestId("mock-action-panel");
-  if (await panel.isVisible().catch(() => false)) {
-    await panel.getByLabel("닫기", { exact: true }).click();
-    await expect(panel).toBeHidden();
-  }
+  await expect(page.getByTestId("mock-action-panel")).toHaveCount(0);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -208,9 +202,9 @@ test.describe("D04 수업/캘린더 고급 운영 플로우", () => {
     await expect(panel).toContainText("예약 목록");
     await closeMockActionPanel(page);
 
-    await page.getByRole("row", { name: /김민준.*010-1234-5678/ }).getByRole("button", { name: "상세" }).click();
-    await expect(page.getByText("PT 박트레이너 회원 상세 mock")).toBeVisible();
-    await expectMockActionPanel(page, "SCR-C016", "/class-reservations");
+    await page.getByRole("row", { name: /김민준.*010-1234-5678/ }).click();
+    await expect(page.getByTestId("scr-c016-row-detail-panel")).toContainText("PT 박트레이너");
+    await expect(page.getByTestId("scr-c016-row-detail-panel")).toContainText("회원 상세/출석/취소");
   });
 
   test("SCR-C001~C016 D04 routes render the expected screen contracts", async ({
