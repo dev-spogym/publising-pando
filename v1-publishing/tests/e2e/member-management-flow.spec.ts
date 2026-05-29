@@ -5,6 +5,7 @@ const memberNames = {
   imminent: "박서연",
   holding: "정하준",
   expired: "오지우",
+  withdrawn: "서가온",
 };
 
 async function gotoMembers(page: Page) {
@@ -110,6 +111,30 @@ test.describe("회원 목록 필터", () => {
     await expect(memberRow(page, memberNames.imminent)).toHaveCount(0);
   });
 
+  test("deleted and withdrawn members stay hidden until the dedicated policy view is requested", async ({
+    page,
+  }) => {
+    await gotoMembers(page);
+
+    await expect(memberRow(page, memberNames.withdrawn)).toHaveCount(0);
+
+    await page.getByLabel(/삭제·탈퇴 회원 보기/).check();
+    await expect(memberRow(page, memberNames.withdrawn)).toBeVisible();
+    await expect(memberRow(page, memberNames.withdrawn)).toContainText(
+      "010-****-4301",
+    );
+
+    await memberRow(page, memberNames.withdrawn).click();
+    await expect(quickMemberPanel(page)).toContainText("개인정보 보관/마스킹");
+
+    await memberRow(page, memberNames.withdrawn)
+      .getByRole("button", { name: /^복구$/ })
+      .click();
+    const restoreDialog = page.getByTestId("runtime-dialog");
+    await expect(restoreDialog).toBeVisible();
+    await expect(restoreDialog).toContainText("DLG-M005");
+  });
+
   test("daily focus shortcuts drive the same filter state as the dedicated controls", async ({ page }) => {
     await gotoMembers(page);
 
@@ -143,7 +168,9 @@ test.describe("회원 상세/등록/수정/결제/메시지/DLG 브라우저 플
     await expect(page.getByTestId("member-detail-screen")).toBeVisible();
 
     await page.getByRole("tab", { name: /결제내역/ }).click();
-    await expect(page.getByText("결제내역 상세").first()).toBeVisible();
+    await expect(page.getByText("CRM 내부 승인번호별 수납행").first()).toBeVisible();
+    await expect(page.getByText("상품별 결제 배분").first()).toBeVisible();
+    await expect(page.getByText("CRM-260318-001").first()).toBeVisible();
 
     const holdingDialog = await openRuntimeDialog(page, /홀딩 처리/);
     await expect(holdingDialog).toContainText("DLG-M003");
@@ -213,6 +240,9 @@ test.describe("회원 상세/등록/수정/결제/메시지/DLG 브라우저 플
     await submit.click();
     await expect(page.getByRole("heading", { name: "결제 등록 완료", exact: true })).toBeVisible();
     await expect(page.getByText("결제완료 상태 + 회원권/수강권 구매 완료")).toBeVisible();
+    await expect(page.getByText("CRM 내부 승인번호").first()).toBeVisible();
+    await expect(page.getByText("결제수단별 수납행").first()).toBeVisible();
+    await expect(page.getByText("상품별 결제 배분").first()).toBeVisible();
   });
 
   test("message compose validates required fields, previews content, and adds a browser-visible send row", async ({ page }) => {

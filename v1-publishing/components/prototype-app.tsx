@@ -486,6 +486,13 @@ function LoginScreen({
               <br />
               {roleInfo.description}
             </div>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+              <b>계정 잠금 정책</b>
+              <br />
+              로그인 5회 실패 시 30분 잠금 상태로 전환됩니다. 수동 해제는
+              직원 상세 &gt; 계정/보안에서 본사 관리자·지점 Owner 권한만
+              처리하며 지점 권한 범위를 넘길 수 없습니다.
+            </div>
             <Button className="w-full" size="lg" onClick={submitLogin}>
               로그인
             </Button>
@@ -2695,8 +2702,8 @@ function DeliveryHeader({
             {screen.policyPending && (
               <Badge variant="warning">정책 확인 필요</Badge>
             )}
-            <Badge variant="outline">DLG 컴포넌트화</Badge>
-            <Badge variant="outline">목데이터 동작</Badge>
+            <Badge variant="outline">DLG 연결</Badge>
+            <Badge variant="outline">화면 상태 동작</Badge>
             <Button
               asChild
               variant="link"
@@ -3042,6 +3049,7 @@ function MemberListScreen({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [detail, setDetail] = useState(memberDirectoryRows[0]);
   const [hideExpired, setHideExpired] = useState(false);
+  const [showDeletedWithdrawn, setShowDeletedWithdrawn] = useState(false);
   const [onlyFavorite, setOnlyFavorite] = useState(false);
   const [daysNoVisit, setDaysNoVisit] = useState("0");
   const [memberType, setMemberType] = useState("all");
@@ -3134,6 +3142,10 @@ function MemberListScreen({
     const matchedSource =
       referralSource === "all" || row.sourceKey === referralSource;
     const matchedExpired = !hideExpired || row.statusKey !== "EXPIRED";
+    const matchedDeletedWithdrawn =
+      showDeletedWithdrawn ||
+      activeStatusTab === "WITHDRAWN" ||
+      row.statusKey !== "WITHDRAWN";
     const matchedSavedView =
       activeSavedView === "consultation-history" ||
       (activeSavedView === "consultation-scheduled" &&
@@ -3150,11 +3162,16 @@ function MemberListScreen({
       matchedMemberType &&
       matchedSource &&
       matchedExpired &&
+      matchedDeletedWithdrawn &&
       matchedSavedView
     );
   });
   const filtered = rows;
   const selectedRows = filtered.filter((row) => selected.has(row.no));
+  const displayPhone = (row: MemberDirectoryRow) =>
+    row.statusKey === "WITHDRAWN"
+      ? row.phone.replace(/(\d{3})-\d{4}-(\d{4})/, "$1-****-$2")
+      : row.phone;
   const openMemberAction = (
     kind: NonNullable<MemberActionPanel>["kind"],
     title: string,
@@ -3482,6 +3499,7 @@ function MemberListScreen({
                       setActiveStatusTab("all");
                       setActiveSavedView("consultation-history");
                       setHideExpired(false);
+                      setShowDeletedWithdrawn(false);
                       setOnlyFavorite(false);
                       setDaysNoVisit("0");
                       setMemberType("all");
@@ -3581,6 +3599,21 @@ function MemberListScreen({
                     />
                     <span className="text-[13px] text-content-secondary">
                       만료 숨기기
+                    </span>
+                  </label>
+                  <div className="h-4 w-px bg-line" />
+
+                  <label className="flex cursor-pointer items-center gap-1.5 select-none">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded accent-primary"
+                      checked={showDeletedWithdrawn}
+                      onChange={(e) =>
+                        setShowDeletedWithdrawn(e.target.checked)
+                      }
+                    />
+                    <span className="text-[13px] text-content-secondary">
+                      삭제·탈퇴 회원 보기
                     </span>
                   </label>
                 </div>
@@ -3724,6 +3757,7 @@ function MemberListScreen({
                       <TableHead>이용권</TableHead>
                       <TableHead>만료일</TableHead>
                       <TableHead>등록일</TableHead>
+                      <TableHead>복구</TableHead>
                       <TableHead>이관</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -3783,7 +3817,7 @@ function MemberListScreen({
                           {row.birth}
                         </TableCell>
                         <TableCell className="tabular-nums">
-                          {row.phone}
+                          {displayPhone(row)}
                         </TableCell>
                         <TableCell>{row.pass}</TableCell>
                         <TableCell className="tabular-nums">
@@ -3791,6 +3825,24 @@ function MemberListScreen({
                         </TableCell>
                         <TableCell className="tabular-nums">
                           {row.registered}
+                        </TableCell>
+                        <TableCell>
+                          {row.statusKey === "WITHDRAWN" ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDetail(row);
+                                setLastFlow(`${row.name} 복구 확인 · DLG-M005`);
+                                openDialog("DLG-M005");
+                              }}
+                            >
+                              복구
+                            </Button>
+                          ) : (
+                            <span className="text-content-tertiary">-</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Button
@@ -3862,7 +3914,7 @@ function MemberListScreen({
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-content-secondary">연락처</span>
                     <span className="font-semibold text-content tabular-nums">
-                      {detail.phone}
+                      {displayPhone(detail)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-2">
@@ -3901,6 +3953,18 @@ function MemberListScreen({
                       {detail.nextAction}
                     </p>
                   </div>
+                  {detail.statusKey === "WITHDRAWN" && (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-rose-900">
+                      <p className="text-[11px] font-black">
+                        개인정보 보관/마스킹
+                      </p>
+                      <p className="mt-1 text-[12px] leading-5">
+                        탈퇴·삭제 회원은 기본 목록에서 숨기고 연락처를
+                        마스킹합니다. 보관 90일 경과 후 PII 마스킹 대상이며,
+                        권한자 사유 입력 시에만 일시 확인합니다.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-3 grid gap-2">
@@ -5000,35 +5064,83 @@ function MemberDetailScreen({
                 ])}
               />
             </TabsContent>
-            <TabsContent value="paymentDetail" className="mt-0">
+            <TabsContent value="paymentDetail" className="mt-0 space-y-3">
               <OperationalTable
-                title="결제내역 상세"
-                description="내부 승인번호 기준으로 수납행·영수증·인보이스 액션을 묶어 표시합니다."
+                title="CRM 내부 승인번호별 수납행"
+                description="같은 장바구니/결제 그룹은 CRM 내부 승인번호 하나로 묶고, 카드·현금·이체 수납행은 별도 행으로 추적합니다."
                 columns={[
-                  "승인번호",
-                  "수납수단",
-                  "승인/입금 정보",
-                  "표시상태",
-                  "액션",
+                  "내부 승인번호",
+                  "수납행",
+                  "외부 승인/입금",
+                  "증빙",
+                  "상태",
                 ]}
                 rows={[
-                  ["CRM-260318-001", "카드", "VAN 8432-2211", "완료", "영수증"],
                   [
                     "CRM-260318-001",
-                    "현금",
-                    "현금영수증 처리",
+                    "카드 800,000원",
+                    "VAN 8432-2211 · 단말기 KIOSK-02",
+                    "카드 영수증",
                     "완료",
+                  ],
+                  [
+                    "CRM-260318-001",
+                    "현금 350,000원",
+                    "현금영수증 010-1234-5678",
                     "인보이스",
+                    "완료",
+                  ],
+                  [
+                    "CRM-260430-002",
+                    "계좌이체 80,000원",
+                    "입금자 오지우 · 우리 1002",
+                    "입금 확인서",
+                    "미수 해소",
                   ],
                   [
                     "LINK-260528-003",
-                    "결제링크",
-                    "발송됨",
+                    "결제링크 120,000원",
+                    "발송됨 · 아직 결제 전",
+                    "영수증 없음",
                     "미결제",
-                    "환불 숨김",
                   ],
                 ]}
               />
+              <OperationalTable
+                title="상품별 결제 배분"
+                description="정가·할인·최종금액·포인트·수납행 배분·미수잔액을 상품 단위로 분리해 환불/취소 판단 기준을 남깁니다."
+                columns={[
+                  "상품",
+                  "정가",
+                  "할인/포인트",
+                  "최종금액",
+                  "수납행 배분",
+                  "미수잔액",
+                ]}
+                rows={[
+                  [
+                    "PT 20회권",
+                    "1,200,000원",
+                    "쿠폰 50,000원 · 포인트 0P",
+                    "1,150,000원",
+                    "카드 800,000원 / 현금 350,000원",
+                    "0원",
+                  ],
+                  [
+                    "헬스 1개월",
+                    "120,000원",
+                    "할인 없음 · 포인트 0P",
+                    "120,000원",
+                    "결제링크 대기",
+                    "120,000원",
+                  ],
+                ]}
+              />
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                수납행만 취소하면 상품 계약은 유지되고 취소 배분액은 미수금으로
+                전환됩니다. 상품 환불/계약 취소는 매출과 계약 잔여를 함께
+                줄이며 자동 미수금을 만들지 않습니다.
+              </div>
             </TabsContent>
             <TabsContent value="reservation" className="mt-0">
               <OperationalTable
@@ -8680,6 +8792,7 @@ function PaymentProcessingScreen({
     phone: string;
     product: string;
     amount: string;
+    approvalNo: string;
     method: PaymentMethod;
     type: PaymentType;
     receipt: string;
@@ -8688,6 +8801,59 @@ function PaymentProcessingScreen({
 
   const amountNum = Number(amountInput.replace(/[^0-9]/g, "")) || 0;
   const amountFmt = amountNum.toLocaleString("ko-KR");
+  const internalApprovalNo = "CRM-260529-001";
+  const paymentLines =
+    paymentMethod === "mixed"
+      ? [
+          {
+            method: "카드",
+            amount: "700,000원",
+            external: "VAN 승인 9364-2026 · 단말기 POS-03",
+            proof: "카드 영수증",
+          },
+          {
+            method: "현금",
+            amount: "200,000원",
+            external: "현금영수증 010-1234-5678",
+            proof: "현금영수증",
+          },
+          {
+            method: "계좌이체",
+            amount: `${Math.max(amountNum - 900000, 0).toLocaleString("ko-KR")}원`,
+            external: "입금자 김민준 · 우리 1002",
+            proof: "입금 확인서",
+          },
+        ].filter((line) => !line.amount.startsWith("0원"))
+      : [
+          {
+            method: methodMeta[paymentMethod].label,
+            amount: `${amountFmt}원`,
+            external:
+              paymentMethod === "card"
+                ? "VAN 승인 9364-2026 · 단말기 POS-03"
+                : paymentMethod === "cash"
+                  ? "현금영수증 010-1234-5678"
+                  : "입금자 김민준 · 우리 1002",
+            proof:
+              paymentMethod === "card"
+                ? "카드 영수증"
+                : paymentMethod === "cash"
+                  ? "현금영수증"
+                  : "입금 확인서",
+          },
+        ];
+  const allocationRows = [
+    {
+      product,
+      regular: originalAmount.toLocaleString("ko-KR") + "원",
+      discount: `${Math.max(originalAmount - amountNum, 0).toLocaleString("ko-KR")}원 할인 · 포인트 0P`,
+      final: `${amountFmt}원`,
+      allocation: paymentLines
+        .map((line) => `${line.method} ${line.amount}`)
+        .join(" / "),
+      unpaid: paymentType === "deposit" ? "잔액 별도 관리" : "0원",
+    },
+  ];
   const isOverPaying =
     paymentType === "remaining" && amountNum > originalAmount;
   const isUnderPaying =
@@ -8750,6 +8916,7 @@ function PaymentProcessingScreen({
       phone: memberPhone,
       product,
       amount: amountFmt,
+      approvalNo: internalApprovalNo,
       method: paymentMethod,
       type: paymentType,
       receipt: receiptFileName,
@@ -8797,6 +8964,14 @@ function PaymentProcessingScreen({
                   </span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-content-tertiary">
+                    CRM 내부 승인번호
+                  </span>
+                  <span className="font-mono text-xs font-bold text-primary">
+                    {submittedSnapshot.approvalNo}
+                  </span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-content-tertiary">결제 유형</span>
                   <span className="font-semibold">
                     {typeMeta[submittedSnapshot.type].label}
@@ -8829,10 +9004,68 @@ function PaymentProcessingScreen({
               </div>
             </div>
 
+            <div className="mt-4 grid w-full max-w-3xl gap-3 text-left md:grid-cols-2">
+              <div className="rounded-2xl border bg-white p-4">
+                <h3 className="text-sm font-bold">결제수단별 수납행</h3>
+                <div className="mt-2 space-y-2">
+                  {paymentLines.map((line) => (
+                    <div
+                      key={`${line.method}-${line.amount}`}
+                      className="rounded-xl bg-surface-secondary p-3 text-xs leading-5"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <b>{line.method}</b>
+                        <span className="font-mono font-bold">
+                          {line.amount}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-content-secondary">
+                        {line.external}
+                      </p>
+                      <p className="text-content-tertiary">{line.proof}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-2xl border bg-white p-4">
+                <h3 className="text-sm font-bold">상품별 결제 배분</h3>
+                <div className="mt-2 space-y-2">
+                  {allocationRows.map((row) => (
+                    <div
+                      key={row.product}
+                      className="rounded-xl bg-surface-secondary p-3 text-xs leading-5"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <b>{row.product}</b>
+                        <span className="font-mono font-bold">
+                          {row.final}
+                        </span>
+                      </div>
+                      <p className="text-content-secondary">
+                        정가 {row.regular} · {row.discount}
+                      </p>
+                      <p className="text-content-secondary">
+                        배분 {row.allocation}
+                      </p>
+                      <p className="text-content-tertiary">
+                        미수잔액 {row.unpaid}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             {/* 후속 액션 */}
             <div className="mt-6 flex flex-wrap gap-2 justify-center">
               <Button onClick={() => notify("영수증 파일 보기", "info")}>
                 <ClipboardCheck size={14} className="mr-1.5" /> 영수증 파일 보기
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => notify("인보이스 보기", "info")}
+              >
+                <FileText size={14} className="mr-1.5" /> 인보이스 보기
               </Button>
               <Button
                 variant="outline"
@@ -8978,6 +9211,57 @@ function PaymentProcessingScreen({
                       onChange={(e) => setProduct(e.target.value)}
                       placeholder="상품명"
                     />
+                  </div>
+                </div>
+                <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/60 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-[0.12em] text-blue-700">
+                        CRM 내부 승인번호
+                      </p>
+                      <p className="mt-0.5 font-mono text-sm font-bold text-content">
+                        {internalApprovalNo}
+                      </p>
+                    </div>
+                    <Badge variant="outline">
+                      {methodMeta[paymentMethod].label} 수납행{" "}
+                      {paymentLines.length}개
+                    </Badge>
+                  </div>
+                  <div className="mt-3 overflow-hidden rounded-lg border bg-white">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>수단</TableHead>
+                          <TableHead>금액</TableHead>
+                          <TableHead>승인·입금 정보</TableHead>
+                          <TableHead>필수 확인</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paymentLines.map((line) => (
+                          <TableRow key={`${line.method}-${line.amount}`}>
+                            <TableCell className="font-semibold">
+                              {line.method}
+                            </TableCell>
+                            <TableCell className="font-mono">
+                              {line.amount}
+                            </TableCell>
+                            <TableCell className="text-xs text-content-secondary">
+                              {line.external}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {line.proof}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-5 text-amber-900">
+                    수납행만 취소하면 상품 계약은 유지되고 해당 배분액은
+                    미수금으로 전환됩니다. 상품 환불/계약 취소는 별도 취소
+                    화면에서 계약 잔여와 매출을 함께 조정합니다.
                   </div>
                 </div>
               </div>
@@ -16299,8 +16583,21 @@ function ClassCalendarScreen({
                         </Badge>
                       </div>
                       <p className="mt-1 text-[11px] text-content-secondary">
+                        {idx === 0 ? "10:00-10:50" : "19:00-19:50"} ·{" "}
                         {ev.instructor} · {ev.type}
                       </p>
+                      <div className="mt-2">
+                        <div className="mb-1 flex items-center justify-between text-[10px] text-content-tertiary">
+                          <span>예약/정원</span>
+                          <span>{idx === 0 ? "8/12명" : "1/1명"}</span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-surface-tertiary">
+                          <div
+                            className="h-full rounded-full bg-primary"
+                            style={{ width: idx === 0 ? "66%" : "100%" }}
+                          />
+                        </div>
+                      </div>
                     </button>
                   ))}
                 </div>

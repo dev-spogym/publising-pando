@@ -17,7 +17,7 @@ test.describe("Sanity Test — representative feature checks", () => {
     await page.goto("/members/detail");
     await expect(page.getByTestId("member-detail-cockpit")).toBeVisible();
     await page.getByRole("tab", { name: /결제내역/ }).click();
-    await expect(page.getByText("결제내역 상세").first()).toBeVisible();
+    await expect(page.getByText("CRM 내부 승인번호별 수납행").first()).toBeVisible();
 
     await page.goto("/products/p001");
     await page.getByText(/PT 20회권/).first().click();

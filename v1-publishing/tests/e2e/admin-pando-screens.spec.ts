@@ -179,7 +179,7 @@ test.describe("SCR-M004 회원 상세", () => {
     await expect(page.getByText("운영 정보").first()).toBeVisible();
 
     await page.getByRole("tab", { name: /결제내역/ }).click();
-    await expect(page.getByText("결제내역 상세").first()).toBeVisible();
+    await expect(page.getByText("CRM 내부 승인번호별 수납행").first()).toBeVisible();
     await expect(page.getByText("환불 숨김").first()).toBeVisible();
 
     await page.getByRole("tab", { name: /체성분/ }).click();
