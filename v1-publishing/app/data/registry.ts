@@ -60,7 +60,7 @@ export const roles: { id: RoleId; label: string; branchScope: string; descriptio
   { id: "STAFF", label: "일반 직원", branchScope: "선택 지점", description: "조회, POS 판매, 기본 접수 중심. 승인성 액션은 권한 필요 상태로 표시합니다.", permissions: ["salesWrite"] }
 ];
 
-export const branches = ["강남점", "서초점", "잠실점", "본사 통합"];
+export const branches = ["강남점", "광화문 본점", "서초점", "잠실점", "판교점", "여의도점", "마포점", "송도점", "부산 센텀점", "대구 수성점", "본사 통합"];
 
 const memberRows = [
   { 이름: "김민준", 상태: "활성", 지점: "강남점", 담당: "이FC", 만료일: "2026-06-25", 미수: "0원" },

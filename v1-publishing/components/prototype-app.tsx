@@ -539,7 +539,7 @@ function Sidebar({
         </div>
       </div>
 
-      {/* 지점 전환 박스 — admin-pando 패턴 */}
+      {/* 메뉴 검색 — 지점 선택은 상단 전역 컨트롤 1곳으로만 유지 */}
       <div className="px-3 pt-3 pb-2 border-b border-line/60">
         <div className="relative mb-2">
           <Search
@@ -554,13 +554,9 @@ function Sidebar({
             className="h-8 w-full rounded-lg border border-line/80 bg-white/80 pl-7 pr-2 text-[12px] text-content placeholder:text-content-tertiary outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
           />
         </div>
-        <button className="flex h-9 w-full items-center justify-between gap-2 rounded-xl border border-line/80 bg-white/80 px-3 text-[12.5px] font-semibold text-content transition-colors hover:border-primary/30">
-          <div className="flex items-center gap-2 min-w-0">
-            <Building2 className="size-3.5 text-primary shrink-0" />
-            <span className="truncate">광화문 본점</span>
-          </div>
-          <ChevronRight className="size-3.5 text-content-tertiary rotate-90" />
-        </button>
+        <div className="rounded-xl bg-surface-secondary px-3 py-2 text-[11px] leading-4 text-content-tertiary">
+          지점 기준은 상단 전역 선택에서만 변경됩니다.
+        </div>
       </div>
 
       {/* 메뉴 — 본부 관리 → 대시보드 → 도메인 */}
@@ -678,7 +674,10 @@ function Topbar({
         <button className="flex h-9 w-9 items-center justify-center rounded-xl text-content-secondary transition-colors hover:bg-white/75 hover:text-content">
           <Menu size={18} />
         </button>
-        <div className="app-control flex h-10 items-center gap-2 rounded-2xl px-3">
+        <div
+          data-testid="global-branch-selector"
+          className="app-control flex h-10 items-center gap-2 rounded-2xl px-3"
+        >
           <Building2 className="size-4 text-primary" />
           <BranchSelect branch={branch} setBranch={setBranch} compact />
         </div>
@@ -9525,6 +9524,219 @@ function buildOperationalQueueItems(
   );
 }
 
+const denseMockBranches = [
+  {
+    name: "강남점",
+    code: "GN-001",
+    address: "서울 강남구 테헤란로 152",
+    phone: "02-555-0901",
+  },
+  {
+    name: "광화문 본점",
+    code: "HQ-000",
+    address: "서울 종로구 세종대로 178",
+    phone: "02-730-0900",
+  },
+  {
+    name: "서초점",
+    code: "SC-002",
+    address: "서울 서초구 강남대로 369",
+    phone: "02-3477-0902",
+  },
+  {
+    name: "잠실점",
+    code: "JS-003",
+    address: "서울 송파구 올림픽로 240",
+    phone: "02-423-0903",
+  },
+  {
+    name: "판교점",
+    code: "PG-004",
+    address: "경기 성남시 분당구 판교역로 166",
+    phone: "031-8016-0904",
+  },
+  {
+    name: "여의도점",
+    code: "YD-005",
+    address: "서울 영등포구 국제금융로 10",
+    phone: "02-785-0905",
+  },
+  {
+    name: "마포점",
+    code: "MP-006",
+    address: "서울 마포구 월드컵북로 21",
+    phone: "02-332-0906",
+  },
+  {
+    name: "송도점",
+    code: "SD-007",
+    address: "인천 연수구 송도과학로 32",
+    phone: "032-831-0907",
+  },
+  {
+    name: "부산 센텀점",
+    code: "BS-008",
+    address: "부산 해운대구 센텀남대로 35",
+    phone: "051-742-0908",
+  },
+  {
+    name: "대구 수성점",
+    code: "DG-009",
+    address: "대구 수성구 달구벌대로 2435",
+    phone: "053-756-0909",
+  },
+];
+
+const denseMockMembers = [
+  "김민준",
+  "박서연",
+  "정하준",
+  "오지우",
+  "한서윤",
+  "최가온",
+  "윤하린",
+  "강도윤",
+];
+const denseMockOwners = [
+  "최민아 Owner",
+  "이도현 매니저",
+  "박지훈 FC",
+  "김서연 트레이너",
+  "정유진 본사",
+];
+const denseMockProducts = [
+  "PT 20회",
+  "회원권 3개월",
+  "락커 1개월",
+  "운동복 월정액",
+  "그룹수업 패키지",
+];
+const denseMockStatuses = [
+  "정상",
+  "운영 중",
+  "확인 필요",
+  "승인대기",
+  "보류",
+  "완료",
+  "점검",
+  "오픈 예정",
+];
+
+function isSparseMockValue(value: unknown) {
+  const text = String(value ?? "").trim();
+  return (
+    !text ||
+    text === "—" ||
+    text === "-" ||
+    text === "…" ||
+    text.includes("…")
+  );
+}
+
+function mockCellValue(
+  column: string,
+  screen: ScreenDefinition,
+  index: number,
+  branch: string,
+) {
+  const branchInfo = denseMockBranches[index % denseMockBranches.length];
+  const member = denseMockMembers[index % denseMockMembers.length];
+  const owner = denseMockOwners[index % denseMockOwners.length];
+  const product = denseMockProducts[index % denseMockProducts.length];
+  const status = denseMockStatuses[index % denseMockStatuses.length];
+  const amount = [120000, 300000, 450000, 780000, 1250000, 0, 89000, 220000][
+    index % 8
+  ];
+
+  if (/지점명|센터명/.test(column)) return branchInfo.name;
+  if (/지점 코드|코드/.test(column)) return branchInfo.code;
+  if (/주소/.test(column)) return branchInfo.address;
+  if (/연락처|전화|휴대폰/.test(column)) return branchInfo.phone;
+  if (/회원 수|회원수/.test(column)) return String([842, 1126, 615, 538, 412, 356, 284, 128][index % 8]);
+  if (/직원 수|직원수/.test(column)) return String([18, 24, 14, 12, 10, 9, 8, 6][index % 8]);
+  if (/운영 상태/.test(column))
+    return ["운영 중", "운영 중", "운영 중", "점검", "오픈 예정", "임시휴업"][
+      index % 6
+    ];
+  if (/등록일|신청일|생성일|일자|날짜|기간/.test(column))
+    return `2026-05-${String(29 - (index % 9)).padStart(2, "0")}`;
+  if (/시간|시각/.test(column)) return `${String(9 + (index % 9)).padStart(2, "0")}:30`;
+  if (/상태|분류/.test(column)) return status;
+  if (/담당|승인자|처리자|직원|매니저|Owner|owner/.test(column)) return owner;
+  if (/회원명|회원|이름|대상자/.test(column)) return member;
+  if (/상품|이용권|수강권|프로그램/.test(column)) return product;
+  if (/수업|클래스|룸/.test(column))
+    return ["모닝 PT", "저녁 그룹필라테스", "체형 교정", "하체 루틴"][
+      index % 4
+    ];
+  if (/금액|매출|결제|미수|정산|환불|단가/.test(column))
+    return `${amount.toLocaleString()}원`;
+  if (/수량|횟수|회차|잔여|건수/.test(column)) return String((index + 1) * 3);
+  if (/권한|역할/.test(column)) return roleById.get(defaultRole)?.label ?? "Owner";
+  if (/지점/.test(column)) return branchInfo.name;
+  if (/액션|바로가기|처리/.test(column))
+    return screen.primaryActions.map((action) => action.label).join(" / ") || "상세 / 수정";
+  if (/메모|사유|내용|설명/.test(column))
+    return `${screen.title} 운영 기준 ${index + 1}번 mock 기록`;
+  if (/출처|문서/.test(column)) return getScreenSourceLabel(screen);
+  if (/브랜치|귀속/.test(column)) return branchInfo.name;
+  return `${branch === "본사 통합" ? branchInfo.name : branch} ${screen.title} ${index + 1}`;
+}
+
+function buildDenseMockRows(
+  screen: ScreenDefinition,
+  branch: string,
+  targetCount = 8,
+) {
+  const columns = screen.tableColumns.length
+    ? screen.tableColumns
+    : ["항목", "상태", "담당", "일정", "액션"];
+  const baseRows: Record<string, string>[] = screen.rows.length
+    ? screen.rows
+    : Array.from({ length: targetCount }, () => ({}));
+
+  const normalizedRows = baseRows.map((row, index) =>
+    columns.reduce<Record<string, string>>((acc, column) => {
+      const current = row[column];
+      acc[column] = isSparseMockValue(current)
+        ? mockCellValue(column, screen, index, branch)
+        : String(current);
+      return acc;
+    }, {}),
+  );
+
+  while (normalizedRows.length < targetCount) {
+    const index = normalizedRows.length;
+    normalizedRows.push(
+      columns.reduce<Record<string, string>>((acc, column) => {
+        acc[column] = mockCellValue(column, screen, index, branch);
+        return acc;
+      }, {}),
+    );
+  }
+
+  return normalizedRows;
+}
+
+function buildDenseMockMetrics(
+  screen: ScreenDefinition,
+  rows: Record<string, string>[],
+) {
+  const fallbackMetrics = [
+    { label: "전체", value: String(rows.length), hint: "표시 가능한 mock row" },
+    { label: "정상", value: "6", hint: "운영 가능 상태" },
+    { label: "확인 필요", value: "2", hint: "검수/승인 필요" },
+    { label: "오늘 처리", value: "4", hint: "운영 큐 연결" },
+  ];
+  const metrics = screen.metrics.length ? screen.metrics : fallbackMetrics;
+  return metrics.map((metric, index) => ({
+    ...metric,
+    value: isSparseMockValue(metric.value)
+      ? [String(rows.length), "6", "1", "1"][index % 4]
+      : metric.value,
+  }));
+}
+
 function DomainOperationsScreen({
   screen,
   role,
@@ -9536,16 +9748,8 @@ function DomainOperationsScreen({
   const accent = accentClasses[config.accent] ?? accentClasses.slate;
   const [activeLane, setActiveLane] = useState(config.lanes[0]);
   const [query, setQuery] = useState("");
-  const rows = screen.rows.length
-    ? screen.rows
-    : [
-        {
-          항목: screen.title,
-          상태: screen.policyPending ? "확인 필요" : "정상",
-          담당: roleById.get(role)?.label ?? "운영자",
-          일정: "오늘",
-        },
-      ];
+  const rows = buildDenseMockRows(screen, branch, screen.id === "SCR-092" ? 10 : 8);
+  const denseMetrics = buildDenseMockMetrics(screen, rows);
   const filteredRows = rows.filter((row) =>
     Object.values(row).join(" ").includes(query),
   );
@@ -9558,6 +9762,7 @@ function DomainOperationsScreen({
   );
   const primaryDialog = screen.dialogs[0];
   const secondaryDialog = screen.dialogs[1] ?? primaryDialog;
+  const visibleRowLimit = screen.id === "SCR-092" ? 10 : 8;
   const queueItems = buildOperationalQueueItems(screen, config);
   const [selectedQueue, setSelectedQueue] =
     useState<OperationalQueueItem | null>(null);
@@ -9571,7 +9776,7 @@ function DomainOperationsScreen({
       />
 
       <section className="grid grid-cols-4 gap-3">
-        {screen.metrics.slice(0, 4).map((metric, idx) => {
+        {denseMetrics.slice(0, 4).map((metric, idx) => {
           const tones = [
             "from-rose-50 to-rose-100/40 border-rose-200/60",
             "from-amber-50 to-amber-100/40 border-amber-200/60",
@@ -9602,15 +9807,6 @@ function DomainOperationsScreen({
             </button>
           );
         })}
-        {!screen.metrics.length &&
-          config.lanes.map((lane, index) => (
-            <Card key={lane} className="shadow-none">
-              <CardHeader>
-                <CardDescription>{lane}</CardDescription>
-                <CardTitle className="text-xl">{index + 3}</CardTitle>
-              </CardHeader>
-            </Card>
-          ))}
       </section>
 
       <section className="grid grid-cols-[minmax(0,1fr)_340px] gap-5">
@@ -9720,7 +9916,7 @@ function DomainOperationsScreen({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredRows.slice(0, 8).map((row, index) => (
+                    {filteredRows.slice(0, visibleRowLimit).map((row, index) => (
                       <TableRow key={index}>
                         {visibleColumns.map((column) => (
                           <TableCell key={column}>
@@ -9762,7 +9958,7 @@ function DomainOperationsScreen({
               <div className="flex items-center justify-between rounded-xl border bg-surface-secondary px-4 py-3 text-xs text-content-tertiary">
                 <span>
                   {filteredRows.length
-                    ? `1-${Math.min(8, filteredRows.length)} of ${filteredRows.length}`
+                    ? `1-${Math.min(visibleRowLimit, filteredRows.length)} of ${filteredRows.length}`
                     : "검색 결과 없음"}{" "}
                   · active lane {activeLane}
                 </span>
@@ -10101,6 +10297,7 @@ function statusAwareValue(value: string) {
       "완료",
       "발행 완료",
       "인식중",
+      "운영 중",
     ].includes(value)
   )
     return <Badge variant="success">{value}</Badge>;
@@ -10114,12 +10311,14 @@ function statusAwareValue(value: string) {
       "확인 필요",
       "부분납",
       "정책",
+      "점검",
+      "오픈 예정",
     ].includes(value)
   )
     return <Badge variant="warning">{value}</Badge>;
   if (["홀딩", "할부"].includes(value))
     return <Badge variant="info">{value}</Badge>;
-  if (["만료", "탈퇴", "오류"].includes(value))
+  if (["만료", "탈퇴", "오류", "임시휴업"].includes(value))
     return <Badge variant="destructive">{value}</Badge>;
   return value;
 }
@@ -12774,7 +12973,14 @@ function BranchSelect({
 }) {
   return (
     <Select value={branch} onValueChange={setBranch}>
-      <SelectTrigger className={compact ? "w-32 bg-white" : "w-full"}>
+      <SelectTrigger
+        data-testid={compact ? "global-branch-trigger" : undefined}
+        className={
+          compact
+            ? "h-8 w-32 border-0 bg-transparent px-0 py-0 shadow-none focus:ring-0 focus:ring-offset-0 data-[state=open]:bg-transparent"
+            : "w-full"
+        }
+      >
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
