@@ -1,9 +1,9 @@
 # V1 D01~D11 Coverage Report
 
-- Generated: 2026-05-29T00:51:01.785Z
+- Generated: 2026-05-29T00:57:09.036Z
 - 기준 문서: docs4/V1 D01~D11 화면설계 문서
-- 화면 구현: 110/91
-- 다이얼로그 구현: 151/137
+- 화면 구현: 118/91
+- 다이얼로그 구현: 156/137
 - 라우트 오류: 0
 - 화면 연결 없는 DLG: 0
 
@@ -38,6 +38,14 @@
 - SCR-090
 - SCR-091
 - SCR-096
+- SCR-101
+- SCR-102
+- SCR-103
+- SCR-105
+- SCR-106
+- SCR-107
+- SCR-108
+- SCR-109
 - SCR-C010
 - SCR-C015
 - SCR-DLG
@@ -47,6 +55,10 @@
 - SCR-P005
 - SCR-P006
 - SCR-P007
+- DLG-001
+- DLG-002
+- DLG-003
+- DLG-004
 - DLG-056-001
 - DLG-056-002
 - DLG-056-003
@@ -76,6 +88,7 @@
 - DLG-P020
 - DLG-P021
 - DLG-P022
+- DLG-S016
 
 ## Routes
 - SCR-100 로그인: `/login`
@@ -103,6 +116,14 @@
 - SCR-S010 세금계산서 발행: `/sales/tax-invoice`
 - SCR-S011 매출 예측: `/sales/forecast`
 - SCR-S012 결제 취소 / 부분 환불: `/sales/refund-partial`
+- SCR-101 대시보드 통합: `/hq/super-dashboard`
+- SCR-102 사이드바 네비게이션: `/components/sidebar`
+- SCR-103 글로벌 검색: `/search`
+- SCR-105 프로필 / 계정 설정: `/profile`
+- SCR-106 비밀번호 재설정: `/password-reset`
+- SCR-107 화면설계서 오버레이 (Cmd+/): `/spec-overlay`
+- SCR-108 에러 페이지: `/error`
+- SCR-109 로그아웃: `/logout`
 - SCR-C001 수업 캘린더: `/classes/c001`
 - SCR-C002 수업 관리: `/lessons`
 - SCR-C003 시간표 일괄 등록: `/class-schedule`

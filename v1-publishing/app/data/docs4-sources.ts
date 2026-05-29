@@ -80,6 +80,15 @@ export const publishingScreens: Record<string, PublishingSource> = {
   login: { version: "V1", kind: "screen", id: "SCR-100", label: "로그인", source: v1Common(21), referenceVersion: "V2", referenceSource: v2Common() },
   notifications: { version: "V1", kind: "screen", id: "SCR-104", label: "알림 센터", source: v1Common(100), referenceVersion: "V2", referenceSource: v2Common() },
   dialogGallery: { version: "V1", kind: "screen", id: "SCR-DLG", label: "DLG 컴포넌트 갤러리", source: "docs4/V1/D01~D03", referenceVersion: "V2", referenceSource: "docs4/V2/D01~D03" },
+  // D01 V2 only 신규 SCR-101~103, 105~109
+  dashboardCombined: { version: "V2", kind: "screen", id: "SCR-101", label: "대시보드 통합", source: v2Common(38), status: "policy-pending" },
+  sidebarNav: { version: "V2", kind: "screen", id: "SCR-102", label: "사이드바 네비게이션", source: v2Common(138), status: "policy-pending" },
+  globalSearch: { version: "V2", kind: "screen", id: "SCR-103", label: "글로벌 검색", source: v2Common(198), status: "policy-pending" },
+  profile: { version: "V2", kind: "screen", id: "SCR-105", label: "프로필 / 계정 설정", source: v2Common(256), status: "policy-pending" },
+  passwordReset: { version: "V2", kind: "screen", id: "SCR-106", label: "비밀번호 재설정", source: v2Common(332), status: "policy-pending" },
+  specOverlay: { version: "V2", kind: "screen", id: "SCR-107", label: "화면설계서 오버레이 (Cmd+/)", source: v2Common(395), status: "policy-pending" },
+  errorPage: { version: "V2", kind: "screen", id: "SCR-108", label: "에러 페이지", source: v2Common(450), status: "policy-pending" },
+  logout: { version: "V2", kind: "screen", id: "SCR-109", label: "로그아웃", source: v2Common(505), status: "policy-pending" },
 
   // === D02 회원관리 ===
   members: { version: "V1", kind: "screen", id: "SCR-M001", label: "회원 목록", source: v1Member(21), referenceVersion: "V2", referenceSource: v2Member() },
@@ -228,6 +237,13 @@ const dialogSource = (
 
 export const publishingDialogs: Record<string, PublishingSource> = {
   "DLG-000": dialogSource("DLG-000", "세션 만료", "common", 164),
+  // D01 V2 only 공통 DLG-001~004
+  "DLG-001": { version: "V2", kind: "dialog", id: "DLG-001", label: "로그아웃 확인", source: v2Common(616), status: "policy-pending" },
+  "DLG-002": { version: "V2", kind: "dialog", id: "DLG-002", label: "이탈 경고", source: v2Common(664), status: "policy-pending" },
+  "DLG-003": { version: "V2", kind: "dialog", id: "DLG-003", label: "삭제 확인", source: v2Common(711), status: "policy-pending" },
+  "DLG-004": { version: "V2", kind: "dialog", id: "DLG-004", label: "저장 확인", source: v2Common(759), status: "policy-pending" },
+  // D03 V2 only 신규 DLG-S016
+  "DLG-S016": { version: "V2", kind: "dialog", id: "DLG-S016", label: "결제링크 발송", source: v2Sales(1336), status: "policy-pending" },
   "DLG-M001": dialogSource("DLG-M001", "회원 상태 변경 확인", "member", 1073),
   "DLG-M002": dialogSource("DLG-M002", "회원 삭제 확인", "member", 1153),
   "DLG-M003": dialogSource("DLG-M003", "홀딩 등록", "member", 1222),

@@ -1,3 +1,4 @@
+import { d01v2Dialogs, d01v2Screens } from "./domains/d01v2";
 import { d04Dialogs, d04Screens } from "./domains/d04";
 import { d05Dialogs, d05Screens } from "./domains/d05";
 import { d06Dialogs, d06Screens } from "./domains/d06";
@@ -119,7 +120,8 @@ const coreDialogs: DialogDefinition[] = [
   { id: "DLG-S012", title: "목표 매출 설정", domain: "D03", source: "docs4/V1/D03-매출관리/매출관리.md", purpose: "월별 또는 기간별 매출 목표를 설정합니다.", components: ["기간", "목표 금액", "기준 유형"], requiredPermission: "targetManage" },
   { id: "DLG-S013", title: "환불 처리", domain: "D03", source: "docs4/V1/D03-매출관리/매출관리.md", purpose: "환불 금액과 사유를 수기 확정하고 완료 또는 승인 요청으로 저장합니다.", components: ["원 매출", "수기 입력", "승인 메모"], requiredPermission: "refundApprove", policyPending: true },
   { id: "DLG-S014", title: "환불 상세 결과", domain: "D03", source: "docs4/V1/D03-매출관리/매출관리.md", purpose: "환불 처리 완료 결과와 쿠폰 복원 상태를 표시합니다.", components: ["환불 번호", "환불 금액", "처리 담당자", "쿠폰 복원"], requiredPermission: "refundApprove" },
-  { id: "DLG-S015", title: "환불 요청", domain: "D03", source: "docs4/V1/D03-매출관리/매출관리.md", purpose: "회원 또는 직원이 환불 요청을 접수합니다.", components: ["환불 대상", "요청자", "요청 사유"], requiredPermission: "salesWrite", policyPending: true }
+  { id: "DLG-S015", title: "환불 요청", domain: "D03", source: "docs4/V1/D03-매출관리/매출관리.md", purpose: "회원 또는 직원이 환불 요청을 접수합니다.", components: ["환불 대상", "요청자", "요청 사유"], requiredPermission: "salesWrite", policyPending: true },
+  { id: "DLG-S016", title: "결제링크 발송", domain: "D03", source: "docs4/V2/D03-매출관리/매출관리.md:1336", purpose: "미수금 또는 결제 대기 건에 대해 결제링크를 SMS/카카오로 발송(V2 신규). 결제링크 발송만 된 건은 미수금 원장에 포함되지 않으며, 실제 결제 완료 시점에 매출/할부/미수금으로 분기.", components: ["수신자 회원", "결제 금액", "발송 채널(SMS/카톡)", "메시지 템플릿", "유효기간(기본 3일)"], requiredPermission: "salesWrite", policyPending: true }
 ];
 
 const coreScreens: ScreenDefinition[] = [
@@ -181,7 +183,7 @@ const coreScreens: ScreenDefinition[] = [
     purpose: "프로필, 상태 배너, 15개 탭, 계약 카드 보드와 이력 원장을 한 화면에서 확인합니다.", tabs: ["회원정보", "이용권", "출석 이력", "결제 이력", "결제내역", "예약내역", "상세내역", "체성분", "상담·메모", "레슨", "신체정보", "종합평가", "상담이력", "운동프로그램", "운동이력"],
     metrics: [{ label: "활성 상품", value: "3", hint: "이용권/락커/운동복" }, { label: "미수금", value: "120,000원", hint: "결제 처리 필요" }, { label: "최근 방문", value: "12일 전", hint: "이탈 위험" }, { label: "추천 액션", value: "5", hint: "재등록·미수·홀딩" }],
     filters: ["유효한 상품만", "계약 유형", "결제 상태", "상담 기간"], tableColumns: ["계약일", "유형", "계약", "계약금액", "결제금액", "미납", "메모"], rows: [{ 계약일: "2026-05-01", 유형: "회원권", 계약: "3개월", 계약금액: "450,000원", 결제금액: "330,000원", 미납: "120,000원", 메모: "분납 예정" }],
-    dialogs: ["DLG-M001", "DLG-M002", "DLG-M003", "DLG-M004", "DLG-M009", "DLG-M010", "DLG-M011", "DLG-M012", "DLG-M013", "DLG-M014", "DLG-M018", "DLG-M019", "DLG-M020", "DLG-M024", "DLG-M026"],
+    dialogs: ["DLG-M001", "DLG-M002", "DLG-M003", "DLG-M004", "DLG-M009", "DLG-M010", "DLG-M011", "DLG-M012", "DLG-M013", "DLG-M014", "DLG-M018", "DLG-M019", "DLG-M020", "DLG-M024", "DLG-M026", "DLG-003"],
     primaryActions: [{ label: "상태 변경", permission: "memberWrite", dialogId: "DLG-M001" }, { label: "홀딩 등록", permission: "memberWrite", dialogId: "DLG-M003" }, { label: "메모 추가", permission: "memberWrite", dialogId: "DLG-M009" }, { label: "회원 삭제", permission: "dangerMember", dialogId: "DLG-M002", danger: true }],
     roleNotes: { OWNER: "위험 구역과 삭제 버튼이 표시됩니다.", TRAINER: "체성분·운동 이력 탭을 우선 안내합니다.", FC: "상담·메모와 재등록 안내 액션을 우선 노출합니다." }
   },
@@ -350,8 +352,8 @@ const coreScreens: ScreenDefinition[] = [
       { No: "2", 회원명: "오지우", 상품명: "할부 회원권", "발생 유형": "정기 할부 미납", 원결제ID: "I-260415-007", 미수금액: "75,000원", "결제 기한": "2026-05-15", 상태: "연체", 메모: "독촉 1차", 등록일: "2026-04-15", 액션: "납입 처리/메모" },
       { No: "3", 회원명: "김지수", 상품명: "PT 10회", "발생 유형": "수기 분할", 원결제ID: "S-260510-022", 미수금액: "150,000원", "결제 기한": "2026-06-05", 상태: "미결제", 메모: "-", 등록일: "2026-05-10", 액션: "납입 처리/메모" }
     ],
-    dialogs: ["DLG-S008", "DLG-S005"],
-    primaryActions: [{ label: "납입 처리", permission: "installment", dialogId: "DLG-S008" }, { label: "메모 편집", permission: "salesWrite", dialogId: "DLG-S005" }, { label: "엑셀 내보내기", permission: "salesWrite" }],
+    dialogs: ["DLG-S008", "DLG-S005", "DLG-S016"],
+    primaryActions: [{ label: "납입 처리", permission: "installment", dialogId: "DLG-S008" }, { label: "결제링크 발송 (DLG-S016, V2)", permission: "salesWrite", dialogId: "DLG-S016", policyPending: true }, { label: "메모 편집", permission: "salesWrite", dialogId: "DLG-S005" }, { label: "엑셀 내보내기", permission: "salesWrite" }],
     roleNotes: { OWNER: "전체 처리 가능, 결제 기한 연장 권한.", MANAGER: "납입 처리·상태 변경·메모 편집 가능.", FC: "담당 회원 결제 처리·메모 편집 가능.", TRAINER: "매출 조회만(상태 변경/메모 불가).", STAFF: "매출 조회만." },
     sources: { v1: publishingScreens.unpaid, v2: { ...publishingScreens.unpaid, version: "V2", source: "share/docs4/V2/D03-매출관리/매출관리.md:635" } }
   },
@@ -418,6 +420,7 @@ const coreScreens: ScreenDefinition[] = [
 
 export const dialogs = [
   ...coreDialogs,
+  ...d01v2Dialogs,
   ...d04Dialogs,
   ...d05Dialogs,
   ...d06Dialogs,
@@ -429,6 +432,7 @@ export const dialogs = [
 ];
 export const screens = [
   ...coreScreens,
+  ...d01v2Screens,
   ...d04Screens,
   ...d05Screens,
   ...d06Screens,
@@ -498,6 +502,15 @@ const screenIdToPublishingKey: Record<string, keyof typeof publishingScreens> = 
   "SCR-100": "login",
   "SCR-104": "notifications",
   "SCR-DLG": "dialogGallery",
+  // D01 V2 only 신규 SCR-101~103, 105~109
+  "SCR-101": "dashboardCombined",
+  "SCR-102": "sidebarNav",
+  "SCR-103": "globalSearch",
+  "SCR-105": "profile",
+  "SCR-106": "passwordReset",
+  "SCR-107": "specOverlay",
+  "SCR-108": "errorPage",
+  "SCR-109": "logout",
   "SCR-M001": "members",
   "SCR-M002": "memberCreate",
   "SCR-M003": "memberEdit",
