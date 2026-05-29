@@ -1,6 +1,6 @@
 # V1 API Contracts for Development Handoff
 
-Generated: 2026-05-29T00:28:27.566Z
+Generated: 2026-05-29T00:39:03.295Z
 
 > 실제 API는 구현하지 않습니다. 아래 endpoint/request/response는 개발 연결용 mock contract입니다.
 

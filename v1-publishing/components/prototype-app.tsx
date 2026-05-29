@@ -463,6 +463,7 @@ function AdminScreen({ screen, role, branch, openDialog, notify }: { screen: Scr
   if (screen.id === "SCR-053") return <ExerciseRoomScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
   // D07 직원관리 specialized
   if (screen.id === "SCR-060") return <StaffListScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
+  if (screen.id === "SCR-062") return <StaffResignationScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
   if (screen.id === "SCR-063") return <StaffAttendanceScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
   if (screen.id === "SCR-064") return <PayrollManagementScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
   // D08 마케팅 specialized
@@ -6812,6 +6813,332 @@ function StaffListScreen({ screen, role, branch, openDialog, notify }: Specializ
           <DialogDock screen={screen} openDialog={openDialog} />
           <HandoffContractCard screen={screen} />
           <FrontStateNote screen={screen} />
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+// SCR-062 직원 퇴사 처리 — 4단계 마법사 (퇴사일·인계·스케줄·계정 비활성화)
+function StaffResignationScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [resignDate, setResignDate] = useState("2026-06-30");
+  const [immediate, setImmediate] = useState(false);
+  const [reason, setReason] = useState<"VOLUNTARY" | "RECOMMENDED" | "CONTRACT_END" | "ETC">("VOLUNTARY");
+  const [reasonDetail, setReasonDetail] = useState("");
+  const [handoffs, setHandoffs] = useState({ members: "", lessons: "", contracts: "", ot: "" });
+  const [confirmText, setConfirmText] = useState("");
+
+  const allowedOwnerPlus = ["HQ_ADMIN", "OWNER"].includes(role);
+  const targetEmployee = { name: "박트레이너", role: "트레이너", joinDate: "2024-03-15", tenure: "2년 2개월", members: 23, lessons: 18, contracts: 5, ot: 7 };
+
+  const conflicts = step === 3 ? [
+    { type: "수업 충돌", item: "PT 수업 (6/15 14:00) - 인계자 미지정", severity: "block" as const },
+    { type: "개인 일정", item: "팀 회의 (6/28 10:00) - 자동 삭제 예정", severity: "warn" as const },
+  ] : [];
+  const hasBlockingConflict = conflicts.some((c) => c.severity === "block");
+
+  const stepValid = {
+    1: resignDate.length > 0 && (reason !== "ETC" || reasonDetail.length > 0),
+    2: Object.values(handoffs).every((v) => v.length > 0),
+    3: !hasBlockingConflict,
+    4: confirmText === "퇴사처리",
+  };
+
+  const goNext = () => {
+    if (!stepValid[step]) {
+      notify(`${step}단계: 필수 입력을 모두 완료하세요`, "warning");
+      return;
+    }
+    if (step < 4) setStep((step + 1) as 1 | 2 | 3 | 4);
+  };
+
+  const reasonLabels = {
+    VOLUNTARY: "자발 퇴사",
+    RECOMMENDED: "권고 사직",
+    CONTRACT_END: "계약 만료",
+    ETC: "기타",
+  };
+
+  return (
+    <div className="space-y-5">
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="4단계 마법사" />
+
+      {!allowedOwnerPlus && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <Lock className="mr-2 inline size-4" />
+          <b>접근 권한 없음:</b> 직원 퇴사 처리는 Owner+ 권한만 실행 가능합니다. 현재 역할로는 검수 목적 조회만 가능합니다.
+        </div>
+      )}
+
+      {/* 대상 직원 카드 */}
+      <Card className="shadow-none border-rose-200 bg-rose-50/30">
+        <CardContent className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-4">
+            <div className="grid h-12 w-12 place-items-center rounded-full bg-rose-100 text-xl">👤</div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-slate-900">{targetEmployee.name}</h3>
+                <Badge variant="outline">{targetEmployee.role}</Badge>
+                <Badge variant="info">재직 중</Badge>
+              </div>
+              <p className="mt-1 text-xs text-slate-600">입사일 {targetEmployee.joinDate} · 재직 {targetEmployee.tenure} · 담당 회원 {targetEmployee.members}명</p>
+            </div>
+          </div>
+          <div className="flex gap-4 text-center text-xs">
+            <div><div className="font-bold text-slate-900">{targetEmployee.members}</div><div className="text-slate-500">회원</div></div>
+            <div><div className="font-bold text-slate-900">{targetEmployee.lessons}</div><div className="text-slate-500">수업</div></div>
+            <div><div className="font-bold text-slate-900">{targetEmployee.contracts}</div><div className="text-slate-500">계약</div></div>
+            <div><div className="font-bold text-slate-900">{targetEmployee.ot}</div><div className="text-slate-500">OT</div></div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Step indicator */}
+      <div className="flex items-center justify-between gap-2 rounded-2xl border bg-white p-4">
+        {[
+          { n: 1, label: "퇴사일 설정", icon: "📅" },
+          { n: 2, label: "인수인계", icon: "🤝" },
+          { n: 3, label: "스케줄 정리", icon: "📋" },
+          { n: 4, label: "계정 비활성화", icon: "🔒" },
+        ].map((s, idx) => (
+          <div key={s.n} className="flex flex-1 items-center gap-2">
+            <button
+              className={cn(
+                "flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors",
+                step === s.n ? "bg-sky-100 text-sky-900 font-bold" : step > s.n ? "bg-emerald-50 text-emerald-700" : "bg-slate-50 text-slate-400"
+              )}
+              onClick={() => step >= s.n && setStep(s.n as 1 | 2 | 3 | 4)}
+            >
+              <span className={cn(
+                "grid h-7 w-7 place-items-center rounded-full text-xs font-bold",
+                step === s.n ? "bg-sky-600 text-white" : step > s.n ? "bg-emerald-500 text-white" : "bg-slate-300 text-white"
+              )}>{step > s.n ? "✓" : s.n}</span>
+              <div className="text-xs">
+                <div className="font-bold">{s.label}</div>
+                <div className="text-[10px] opacity-75">{s.icon}</div>
+              </div>
+            </button>
+            {idx < 3 && <div className={cn("h-px flex-1", step > s.n ? "bg-emerald-300" : "bg-slate-200")} />}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="space-y-4">
+          {/* Step 1: 퇴사일 설정 */}
+          {step === 1 && (
+            <Card className="shadow-none">
+              <CardHeader><CardTitle className="text-sm">1단계: 퇴사일·사유 입력</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs">퇴사 예정일 *</Label>
+                    <Input type="date" value={resignDate} onChange={(e) => setResignDate(e.target.value)} disabled={immediate} />
+                    <p className="mt-1 text-[10px] text-slate-500">미래 퇴사 → 확정일까지 예약 상태</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs">즉시 퇴사 여부</Label>
+                    <label className="mt-2 flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                      <input type="checkbox" checked={immediate} onChange={(e) => setImmediate(e.target.checked)} className="h-4 w-4 accent-rose-600" />
+                      <span className="text-sm">즉시 계정 비활성·로그인 종료</span>
+                    </label>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">퇴사 사유 *</Label>
+                  <div className="mt-2 grid grid-cols-4 gap-2">
+                    {(Object.keys(reasonLabels) as Array<keyof typeof reasonLabels>).map((r) => (
+                      <button
+                        key={r}
+                        className={cn(
+                          "rounded-lg border-2 px-3 py-2 text-xs font-semibold transition-colors",
+                          reason === r ? "border-rose-500 bg-rose-50 text-rose-900" : "border-slate-200 bg-white text-slate-600"
+                        )}
+                        onClick={() => setReason(r)}
+                      >
+                        {reasonLabels[r]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {reason === "ETC" && (
+                  <div>
+                    <Label className="text-xs">기타 사유 상세 *</Label>
+                    <Textarea value={reasonDetail} onChange={(e) => setReasonDetail(e.target.value)} placeholder="기타 사유 상세 입력" rows={2} />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 2: 인수인계 */}
+          {step === 2 && (
+            <Card className="shadow-none">
+              <CardHeader><CardTitle className="text-sm">2단계: 미완료 업무 인계자 지정 *</CardTitle><CardDescription className="text-xs">시스템 자동 선택 없음. 운영자가 4종 모두 명시 지정 필요.</CardDescription></CardHeader>
+              <CardContent className="space-y-3">
+                {[
+                  { key: "members" as const, label: "담당 회원", count: targetEmployee.members, icon: "👥" },
+                  { key: "lessons" as const, label: "예정 수업", count: targetEmployee.lessons, icon: "🎓" },
+                  { key: "contracts" as const, label: "진행 계약", count: targetEmployee.contracts, icon: "📄" },
+                  { key: "ot" as const, label: "OT 일정", count: targetEmployee.ot, icon: "💪" },
+                ].map((item) => (
+                  <div key={item.key} className="grid grid-cols-[60px_1fr_180px] items-center gap-3 rounded-lg border border-slate-200 p-3">
+                    <div className="text-center"><div className="text-2xl">{item.icon}</div></div>
+                    <div>
+                      <div className="font-semibold text-slate-900">{item.label}</div>
+                      <div className="text-xs text-slate-500">{item.count}건 인계 필요</div>
+                    </div>
+                    <Select value={handoffs[item.key]} onValueChange={(v) => setHandoffs({ ...handoffs, [item.key]: v })}>
+                      <SelectTrigger className={cn(!handoffs[item.key] && "border-rose-300")}>
+                        <SelectValue placeholder="인계자 선택 *" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="staff-1">정GX</SelectItem>
+                        <SelectItem value="staff-2">최매니저</SelectItem>
+                        <SelectItem value="staff-3">이FC</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 3: 스케줄 정리 미리보기 */}
+          {step === 3 && (
+            <Card className="shadow-none">
+              <CardHeader><CardTitle className="text-sm">3단계: 스케줄 정리 미리보기</CardTitle><CardDescription className="text-xs">충돌 항목 있으면 처리 완료 차단</CardDescription></CardHeader>
+              <CardContent className="space-y-3">
+                {conflicts.map((c, idx) => (
+                  <div
+                    key={idx}
+                    className={cn(
+                      "flex items-start gap-3 rounded-lg border p-3",
+                      c.severity === "block" ? "border-rose-300 bg-rose-50" : "border-amber-300 bg-amber-50"
+                    )}
+                  >
+                    <AlertTriangle className={cn("mt-0.5 size-5 shrink-0", c.severity === "block" ? "text-rose-600" : "text-amber-600")} />
+                    <div>
+                      <div className={cn("font-semibold", c.severity === "block" ? "text-rose-900" : "text-amber-900")}>
+                        {c.severity === "block" ? "🚫 차단" : "⚠️ 경고"} - {c.type}
+                      </div>
+                      <p className="mt-1 text-xs text-slate-700">{c.item}</p>
+                      {c.severity === "block" && (
+                        <Button size="sm" variant="outline" className="mt-2" onClick={() => setStep(2)}>2단계로 돌아가 인계자 지정</Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {!hasBlockingConflict && (
+                  <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-center text-emerald-900">
+                    <CheckCircle2 className="mx-auto size-8 text-emerald-600" />
+                    <p className="mt-2 font-semibold">충돌 없음 - 4단계로 진행 가능</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 4: 계정 비활성화 확인 */}
+          {step === 4 && (
+            <Card className="shadow-none border-rose-300">
+              <CardHeader><CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="size-4 text-rose-600" /> 4단계: 계정 비활성화 최종 확인</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2 rounded-lg border border-rose-200 bg-rose-50/40 p-4 text-sm text-rose-900">
+                  <div><b>퇴사 확정 시:</b></div>
+                  <ul className="ml-4 list-disc space-y-1 text-xs">
+                    <li>{targetEmployee.name}의 계정 즉시 비활성화</li>
+                    <li>현재 로그인 세션 모두 종료 + 재로그인 차단</li>
+                    <li>담당 회원/수업/계약/OT가 지정 인계자에게 이관</li>
+                    <li>D-30 사전 알림 자동 발송 (인수인계 준비)</li>
+                    <li>퇴사 취소 가능: 24시간 이내 (Owner+ 권한)</li>
+                  </ul>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold">확인 텍스트 *</Label>
+                  <p className="mt-1 mb-2 text-[11px] text-slate-600">아래에 정확히 <code className="rounded bg-rose-100 px-1.5 py-0.5 font-mono font-bold text-rose-700">퇴사처리</code> 입력</p>
+                  <Input
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    placeholder="퇴사처리"
+                    className={cn("font-mono", confirmText && confirmText !== "퇴사처리" && "border-rose-400 text-rose-700")}
+                  />
+                  {confirmText && confirmText !== "퇴사처리" && (
+                    <p className="mt-1 text-[11px] text-rose-600">확인 텍스트가 일치하지 않습니다</p>
+                  )}
+                  {confirmText === "퇴사처리" && (
+                    <p className="mt-1 text-[11px] text-emerald-700">✓ 확인 완료 — 처리 완료 버튼 활성화</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 액션 바 */}
+          <div className="flex items-center justify-between rounded-2xl border-2 border-slate-300 bg-white p-4 shadow-md">
+            <Button variant="ghost" onClick={() => notify("취소 mock", "info")}>취소</Button>
+            <div className="flex gap-2">
+              {step > 1 && (
+                <Button variant="outline" onClick={() => setStep((step - 1) as 1 | 2 | 3 | 4)}>이전</Button>
+              )}
+              {step < 4 ? (
+                <Button onClick={goNext} disabled={!stepValid[step]}>{step}단계 완료 → 다음</Button>
+              ) : (
+                <Button
+                  variant="destructive"
+                  data-dialog-id="DLG-060-002"
+                  disabled={!stepValid[4] || !allowedOwnerPlus}
+                  onClick={() => {
+                    if (!allowedOwnerPlus) { notify("Owner+ 권한 필요", "warning"); return; }
+                    openDialog("DLG-060-002");
+                  }}
+                >
+                  처리 완료 (DLG-060-002)
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 우측: 가이드 + 정책 */}
+        <aside className="space-y-4">
+          <Card className="shadow-none border-sky-200 bg-sky-50/30">
+            <CardHeader className="pb-2"><CardTitle className="text-xs flex items-center gap-1.5">📋 현재 단계 안내</CardTitle></CardHeader>
+            <CardContent className="space-y-2 text-[11px] text-sky-900">
+              {step === 1 && <>
+                <div>• 퇴사 예정일은 미래/오늘/과거 선택 가능</div>
+                <div>• 즉시 퇴사 = 계정 즉시 잠금 (Owner+ 전용)</div>
+                <div>• 사유 4종: 자발/권고/계약만료/기타</div>
+              </>}
+              {step === 2 && <>
+                <div>• 회원·수업·계약·OT 4종 모두 지정 필수</div>
+                <div>• 시스템 자동 선택 없음</div>
+                <div>• 인계자가 알림 받음</div>
+              </>}
+              {step === 3 && <>
+                <div>• 충돌 항목 있으면 4단계 진입 차단</div>
+                <div>• 수업 자동 인계 결과 확인</div>
+                <div>• 개인 일정 자동 삭제</div>
+              </>}
+              {step === 4 && <>
+                <div>• 확인 텍스트 일치 필요</div>
+                <div>• 24시간 이내 퇴사 취소 가능</div>
+                <div>• Owner+ 권한만 실행</div>
+              </>}
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-none border-amber-200 bg-amber-50/30">
+            <CardHeader className="pb-2"><CardTitle className="text-xs">⚠ 권한 정책</CardTitle></CardHeader>
+            <CardContent className="space-y-1.5 text-[11px] text-amber-900">
+              <div><b>HQ_ADMIN/OWNER:</b> 전체 처리 가능</div>
+              <div><b>MANAGER/FC/TRAINER/STAFF:</b> 접근 불가</div>
+              <div>본 마법사는 검수용 mock으로만 동작합니다.</div>
+            </CardContent>
+          </Card>
+
+          <HandoffContractCard screen={screen} />
         </aside>
       </div>
     </div>
