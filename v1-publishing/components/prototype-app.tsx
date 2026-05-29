@@ -18,6 +18,7 @@ import {
   Edit,
   FileText,
   History,
+  Home,
   Lock,
   LogOut,
   Menu,
@@ -25,6 +26,7 @@ import {
   MoreVertical,
   Pin,
   Search,
+  Settings,
   ShieldCheck,
   ShoppingCart,
   Star,
@@ -508,6 +510,18 @@ function LoginScreen({
   );
 }
 
+type SidebarMode = "ops" | "sitemap";
+
+type SidebarLinkItem = { id: string; label: string };
+type SidebarGroup = {
+  id: string;
+  label: string;
+  icon: typeof Home;
+  items: SidebarLinkItem[];
+};
+
+const sidebarModeStorageKey = "pando-publishing-sidebar-mode";
+
 function Sidebar({
   currentRoute,
   role,
@@ -517,10 +531,17 @@ function Sidebar({
 }) {
   const roleInfo = roleById.get(role)!;
   const [sidebarQuery, setSidebarQuery] = useState("");
+  const [sidebarMode, setSidebarMode] = useState<SidebarMode>(() => {
+    if (typeof window === "undefined") return "ops";
+    const saved = window.localStorage.getItem(sidebarModeStorageKey);
+    return saved === "sitemap" ? "sitemap" : "ops";
+  });
 
-  // admin-pando 사이드바 구조 — 본부 관리 → 대시보드/도메인 그룹
-  const hqMenu: { id: string; label: string }[] = [
-    { id: "SCR-094", label: "통합 대시보드" },
+  const screenById = (id: string) => screens.find((screen) => screen.id === id);
+  const activeScreen = screens.find((screen) => screen.route === currentRoute);
+
+  const hqMenu: SidebarLinkItem[] = [
+    { id: "SCR-101", label: "통합 대시보드" },
     { id: "SCR-092", label: "지점 관리" },
     { id: "SCR-093", label: "지점 비교 리포트" },
     { id: "SCR-099", label: "자동 리포트" },
@@ -534,13 +555,151 @@ function Sidebar({
     { id: "SCR-H1005", label: "NPS 설문" },
   ];
 
-  const dashboardGroup: { id: string; label: string }[] = [
+  const dashboardGroup: SidebarLinkItem[] = [
     { id: "SCR-090", label: "지점 대시보드" },
     { id: "SCR-098", label: "오늘의 할 일" },
     { id: "SCR-095", label: "KPI 센터" },
   ];
 
-  // domain별 그룹 (D02~D11)
+  const operationalGroups: SidebarGroup[] = [
+    {
+      id: "dashboard",
+      label: "대시보드",
+      icon: Home,
+      items: dashboardGroup,
+    },
+    {
+      id: "members",
+      label: "회원",
+      icon: UserRound,
+      items: [
+        { id: "SCR-M001", label: "회원 목록" },
+        { id: "SCR-M002", label: "회원 등록" },
+        { id: "SCR-M004", label: "회원 상세" },
+        { id: "SCR-M003", label: "회원 수정" },
+        { id: "SCR-M006", label: "체성분 관리" },
+        { id: "SCR-M009", label: "등급 관리" },
+        { id: "SCR-I001", label: "출석 관리" },
+        { id: "SCR-075", label: "전자계약" },
+      ],
+    },
+    {
+      id: "classes",
+      label: "수업/캘린더",
+      icon: Calendar,
+      items: [
+        { id: "SCR-C001", label: "캘린더" },
+        { id: "SCR-C016", label: "예약 목록" },
+        { id: "SCR-C009", label: "일정 요청" },
+        { id: "SCR-C002", label: "수업 관리" },
+        { id: "SCR-C007", label: "횟수 관리" },
+        { id: "SCR-C008", label: "페널티 관리" },
+        { id: "SCR-C011", label: "유효 수업 목록" },
+        { id: "SCR-C004", label: "수업 템플릿" },
+        { id: "SCR-C003", label: "시간표 등록" },
+        { id: "SCR-C005", label: "수업 현황" },
+        { id: "SCR-C006", label: "강사 현황" },
+        { id: "SCR-C012", label: "대기열 관리" },
+        { id: "SCR-C013", label: "수업 평가" },
+        { id: "SCR-C014", label: "수업 출석" },
+        { id: "SCR-C015", label: "수업 녹화" },
+      ],
+    },
+    {
+      id: "sales",
+      label: "매출",
+      icon: TrendingUp,
+      items: [
+        { id: "SCR-S001", label: "매출 현황" },
+        { id: "SCR-S004", label: "매출 통계" },
+        { id: "SCR-S005", label: "통계 관리" },
+        { id: "SCR-095", label: "KPI 대시보드" },
+        { id: "SCR-096", label: "온보딩 현황" },
+        { id: "SCR-S006", label: "선수익금" },
+        { id: "SCR-S002", label: "POS 결제" },
+        { id: "SCR-S003", label: "결제 처리" },
+        { id: "SCR-S007", label: "환불 관리" },
+        { id: "SCR-S008", label: "미수금 관리" },
+      ],
+    },
+    {
+      id: "products",
+      label: "상품",
+      icon: ShoppingCart,
+      items: [
+        { id: "SCR-P001", label: "상품 관리" },
+        { id: "SCR-P005", label: "상품 카탈로그" },
+        { id: "SCR-P006", label: "상품 비교" },
+        { id: "SCR-P007", label: "재고 관리" },
+        { id: "SCR-P008", label: "시즌 가격" },
+        { id: "SCR-P004", label: "할인 설정" },
+      ],
+    },
+    {
+      id: "facility",
+      label: "시설",
+      icon: Building2,
+      items: [
+        { id: "SCR-050", label: "락커 관리" },
+        { id: "SCR-051", label: "사물함 관리" },
+        { id: "SCR-052", label: "밴드/카드" },
+        { id: "SCR-053", label: "운동룸" },
+        { id: "SCR-054", label: "골프 타석" },
+        { id: "SCR-I004", label: "옷 보관함" },
+        { id: "SCR-056", label: "장비 점검" },
+        { id: "SCR-057", label: "소모품 재고" },
+        { id: "SCR-058", label: "청소 스케줄" },
+        { id: "SCR-059", label: "공간 자산 관리" },
+      ],
+    },
+    {
+      id: "staff",
+      label: "직원/급여",
+      icon: ShieldCheck,
+      items: [
+        { id: "SCR-060", label: "직원 목록" },
+        { id: "SCR-061", label: "직원 등록/수정" },
+        { id: "SCR-063", label: "직원 근태" },
+        { id: "SCR-064", label: "급여 관리" },
+        { id: "SCR-065", label: "급여 명세서" },
+      ],
+    },
+    {
+      id: "marketing",
+      label: "영업/마케팅",
+      icon: MessageSquare,
+      items: [
+        { id: "SCR-070", label: "리드 관리" },
+        { id: "SCR-071", label: "메시지 발송" },
+        { id: "SCR-072", label: "자동 알림" },
+        { id: "SCR-073", label: "쿠폰 관리" },
+        { id: "SCR-076", label: "캠페인 관리" },
+        { id: "SCR-077", label: "리퍼럴 프로그램" },
+        { id: "SCR-078", label: "SMS/카카오" },
+        { id: "SCR-079", label: "A/B 테스트" },
+        { id: "SCR-074", label: "마일리지" },
+      ],
+    },
+    {
+      id: "settings",
+      label: "설정",
+      icon: Settings,
+      items: [
+        { id: "SCR-080", label: "센터 설정" },
+        { id: "SCR-081", label: "권한 설정" },
+        { id: "SCR-082", label: "키오스크" },
+        { id: "SCR-082A", label: "키오스크 IoT" },
+        { id: "SCR-083", label: "출입문/IoT" },
+        { id: "SCR-080A", label: "자동화 적용" },
+        { id: "SCR-086", label: "출석 설정" },
+        { id: "SCR-087", label: "커스텀 역할" },
+        { id: "SCR-088", label: "다국어 설정" },
+        { id: "SCR-089", label: "백업/복원" },
+        { id: "SCR-085", label: "공지사항" },
+      ],
+    },
+  ];
+
   const domainOrder: { id: DomainId; label: string }[] = [
     { id: "D02", label: "회원관리" },
     { id: "D03", label: "매출관리" },
@@ -553,11 +712,40 @@ function Sidebar({
     { id: "D11", label: "통합운영" },
   ];
 
-  const matchesQuery = (label: string) =>
-    !sidebarQuery || label.includes(sidebarQuery);
+  const activeOperationalGroup =
+    operationalGroups.find((group) =>
+      group.items.some((item) => screenById(item.id)?.route === currentRoute),
+    )?.id ?? "members";
+  const [openGroups, setOpenGroups] = useState<Set<string>>(
+    () => new Set([activeOperationalGroup]),
+  );
 
-  const renderItem = (item: { id: string; label: string }) => {
-    const screen = screens.find((s) => s.id === item.id);
+  useEffect(() => {
+    window.localStorage.setItem(sidebarModeStorageKey, sidebarMode);
+  }, [sidebarMode]);
+
+
+  const matchesQuery = (label: string, id?: string) =>
+    !sidebarQuery ||
+    label.toLowerCase().includes(sidebarQuery.toLowerCase()) ||
+    id?.toLowerCase().includes(sidebarQuery.toLowerCase());
+
+  const setMode = (mode: SidebarMode) => {
+    setSidebarMode(mode);
+    if (mode === "ops") setOpenGroups(new Set([activeOperationalGroup]));
+  };
+
+  const toggleGroup = (id: string) => {
+    setOpenGroups((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const renderItem = (item: SidebarLinkItem) => {
+    const screen = screenById(item.id);
     if (!screen) return null;
     const isActive = currentRoute === screen.route;
     return (
@@ -584,14 +772,89 @@ function Sidebar({
     );
   };
 
-  return (
-    <aside className="hidden h-full shrink-0 flex-col border-r border-line/80 bg-white/68 backdrop-blur-xl w-[268px] no-scrollbar lg:flex">
-      {/* 로고 — FitGenie CRM Publishing Workspace */}
-      <div className="flex h-[72px] items-center border-b border-line/80 px-4 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-primary to-accent text-white text-[13px] font-black shadow-[0_16px_32px_rgba(15,23,42,0.08)]">
-            FG
+  const renderOperationalGroup = (group: SidebarGroup) => {
+    const visibleItems = group.items.filter((item) =>
+      matchesQuery(item.label, item.id),
+    );
+    if (visibleItems.length === 0) return null;
+    const isOpen =
+      openGroups.has(group.id) || group.id === activeOperationalGroup || Boolean(sidebarQuery);
+    const isActive = group.id === activeOperationalGroup;
+    const Icon = group.icon;
+    return (
+      <div key={group.id} className="mb-px">
+        <button
+          type="button"
+          className={cn(
+            "group flex h-[40px] w-full items-center gap-[10px] rounded-xl px-[12px] text-[13px] font-semibold transition-all",
+            isActive
+              ? "bg-gradient-to-r from-primary-light via-primary-light to-white text-primary shadow-sm"
+              : "text-content-secondary hover:bg-white/70 hover:text-content",
+          )}
+          onClick={() => toggleGroup(group.id)}
+          aria-expanded={isOpen}
+        >
+          <Icon
+            className={cn(
+              "shrink-0",
+              isActive
+                ? "text-primary"
+                : "text-content-tertiary group-hover:text-content-secondary",
+            )}
+            size={17}
+            strokeWidth={isActive ? 2 : 1.5}
+            aria-hidden="true"
+          />
+          <span className="flex-1 truncate text-left">{group.label}</span>
+          <ChevronRight
+            className={cn(
+              "size-3.5 text-content-tertiary transition-transform",
+              isOpen && "rotate-90",
+            )}
+          />
+        </button>
+        {isOpen && (
+          <div className="ml-[20px] mt-1 space-y-1 border-l border-line/80 py-1 pl-[14px]">
+            {visibleItems.map(renderItem)}
           </div>
+        )}
+      </div>
+    );
+  };
+
+  const userFlows = [
+    {
+      label: "상담→등록→결제",
+      startId: "SCR-070",
+      steps: ["리드", "회원 등록", "결제 처리"],
+    },
+    {
+      label: "회원상세→계약→환불",
+      startId: "SCR-M004",
+      steps: ["상세", "계약", "환불"],
+    },
+    {
+      label: "상품 목록→상세 패널",
+      startId: "SCR-P001",
+      steps: ["상품", "상세", "수정"],
+    },
+    {
+      label: "예약→출석→횟수 차감",
+      startId: "SCR-C016",
+      steps: ["예약", "출석", "차감"],
+    },
+  ];
+
+  return (
+    <aside className="hidden h-full w-[268px] shrink-0 flex-col border-r border-line/80 bg-white/68 backdrop-blur-xl no-scrollbar lg:flex">
+      <div className="flex h-[72px] shrink-0 items-center border-b border-line/80 px-4">
+        <div className="flex items-center gap-2.5">
+          <Link
+            href={role === "HQ_ADMIN" ? (screenById("SCR-101")?.route ?? "/") : (screenById("SCR-090")?.route ?? "/")}
+            className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-primary to-accent text-[13px] font-black text-white shadow-[0_16px_32px_rgba(15,23,42,0.08)]"
+          >
+            FG
+          </Link>
           <div className="flex min-w-0 flex-col">
             <span className="truncate text-[13.5px] font-black tracking-tight text-content">
               FitGenie CRM
@@ -603,8 +866,35 @@ function Sidebar({
         </div>
       </div>
 
-      {/* 메뉴 검색 — 지점 선택은 상단 전역 컨트롤 1곳으로만 유지 */}
-      <div className="px-3 pt-3 pb-2 border-b border-line/60">
+      <div className="border-b border-line/60 px-3 pb-2 pt-3">
+        <div className="mb-2 grid grid-cols-2 rounded-xl border border-line/70 bg-surface-secondary p-1 text-[11px] font-black">
+          <button
+            type="button"
+            data-testid="sidebar-mode-ops"
+            onClick={() => setMode("ops")}
+            className={cn(
+              "rounded-lg px-2 py-1.5 transition",
+              sidebarMode === "ops"
+                ? "bg-white text-primary shadow-sm"
+                : "text-content-tertiary hover:text-content",
+            )}
+          >
+            운영 메뉴
+          </button>
+          <button
+            type="button"
+            data-testid="sidebar-mode-sitemap"
+            onClick={() => setMode("sitemap")}
+            className={cn(
+              "rounded-lg px-2 py-1.5 transition",
+              sidebarMode === "sitemap"
+                ? "bg-white text-primary shadow-sm"
+                : "text-content-tertiary hover:text-content",
+            )}
+          >
+            사이트맵
+          </button>
+        </div>
         <div className="relative mb-2">
           <Search
             className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-content-tertiary"
@@ -614,80 +904,129 @@ function Sidebar({
             type="text"
             value={sidebarQuery}
             onChange={(e) => setSidebarQuery(e.target.value)}
-            placeholder="메뉴 검색..."
+            placeholder={sidebarMode === "ops" ? "운영 메뉴 검색..." : "전체 문서 검색..."}
             className="h-8 w-full rounded-lg border border-line/80 bg-white/80 pl-7 pr-2 text-[12px] text-content placeholder:text-content-tertiary outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
           />
         </div>
         <div className="rounded-xl bg-surface-secondary px-3 py-2 text-[11px] leading-4 text-content-tertiary">
-          지점 기준은 상단 전역 선택에서만 변경됩니다.
+          {sidebarMode === "ops"
+            ? "admin-pando 운영 IA 기준. 지점 기준은 상단 전역 선택에서만 변경됩니다."
+            : "docs4 V1/V2 전체 화면 검수용입니다. 지점 기준은 상단 전역 선택에서만 변경됩니다."}
         </div>
       </div>
 
-      {/* 메뉴 — 본부 관리 → 대시보드 → 도메인 */}
       <nav className="flex-1 overflow-y-auto px-2 py-3 scrollbar-hide">
-        {/* 본부 관리 */}
-        <div className="mb-3">
-          <p className="px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-content-tertiary">
-            본부 관리
-          </p>
-          <div className="space-y-px">
-            {hqMenu.filter((item) => matchesQuery(item.label)).map(renderItem)}
-          </div>
-        </div>
+        {sidebarMode === "ops" ? (
+          <>
+            {role === "HQ_ADMIN" && (
+              <div className="mb-3">
+                <p className="px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-content-tertiary">
+                  본부 관리
+                </p>
+                <div className="space-y-px">
+                  {hqMenu
+                    .filter((item) => matchesQuery(item.label, item.id))
+                    .map(renderItem)}
+                </div>
+                <div className="mt-2 border-b border-line" />
+              </div>
+            )}
 
-        {/* 대시보드 */}
-        <div className="mb-3">
-          <p className="px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-content-tertiary">
-            대시보드
-          </p>
-          <div className="space-y-px">
-            {dashboardGroup
-              .filter((item) => matchesQuery(item.label))
-              .map(renderItem)}
-          </div>
-        </div>
-
-        {/* 도메인별 (D02~D11) */}
-        {domainOrder.map((dom) => {
-          const items = screens
-            .filter((s) => s.domain === dom.id)
-            .filter((s) => !hqMenu.some((h) => h.id === s.id))
-            .filter((s) => !dashboardGroup.some((d) => d.id === s.id))
-            .filter((s) => matchesQuery(s.title));
-          if (items.length === 0) return null;
-          return (
-            <div key={dom.id} className="mb-3">
-              <p className="px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-content-tertiary">
-                {dom.label}
-              </p>
-              <div className="space-y-px">
-                {items.map((s) => renderItem({ id: s.id, label: s.title }))}
+            <div className="mb-3 rounded-2xl border border-primary/15 bg-primary-light/25 p-2.5">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-[11px] font-black text-content">운영 플로우</p>
+                <Badge className="border-primary/20 bg-white text-[9px] text-primary">
+                  user-flow
+                </Badge>
+              </div>
+              <div className="space-y-1.5">
+                {userFlows.map((flow) => {
+                  const start = screenById(flow.startId);
+                  if (!start) return null;
+                  return (
+                    <Link
+                      key={flow.label}
+                      href={start.route}
+                      className="block rounded-xl border border-line/70 bg-white/80 px-2.5 py-2 text-[11px] transition hover:border-primary/30 hover:bg-white"
+                    >
+                      <div className="flex items-center justify-between gap-2 font-bold text-content">
+                        <span className="truncate">{flow.label}</span>
+                        <ChevronRight className="size-3 text-primary" />
+                      </div>
+                      <div className="mt-1 truncate text-[10px] text-content-tertiary">
+                        {flow.steps.join(" → ")}
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
-          );
-        })}
+
+            {operationalGroups.map(renderOperationalGroup)}
+          </>
+        ) : (
+          <>
+            <div className="mb-3">
+              <p className="px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-content-tertiary">
+                본부 관리
+              </p>
+              <div className="space-y-px">
+                {hqMenu.filter((item) => matchesQuery(item.label, item.id)).map(renderItem)}
+              </div>
+            </div>
+            <div className="mb-3">
+              <p className="px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-content-tertiary">
+                대시보드
+              </p>
+              <div className="space-y-px">
+                {dashboardGroup
+                  .filter((item) => matchesQuery(item.label, item.id))
+                  .map(renderItem)}
+              </div>
+            </div>
+            {domainOrder.map((dom) => {
+              const items = screens
+                .filter((screen) => screen.domain === dom.id)
+                .filter((screen) => !hqMenu.some((item) => item.id === screen.id))
+                .filter((screen) => !dashboardGroup.some((item) => item.id === screen.id))
+                .filter((screen) => matchesQuery(screen.title, screen.id));
+              if (items.length === 0) return null;
+              return (
+                <div key={dom.id} className="mb-3">
+                  <p className="px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-content-tertiary">
+                    {dom.label}
+                  </p>
+                  <div className="space-y-px">
+                    {items.map((screen) =>
+                      renderItem({ id: screen.id, label: screen.title }),
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
       </nav>
 
-      {/* 하단 프로필 — admin-pando 패턴 */}
-      <div className="border-t border-line/80 p-2.5 shrink-0">
+      <div className="shrink-0 border-t border-line/80 p-2.5">
         <div className="flex items-center gap-2.5 rounded-xl bg-primary-light/40 p-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary text-white shrink-0">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary text-white">
             <ShieldCheck size={14} />
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
               <Badge
                 variant="info"
-                className="border-primary/30 bg-white/80 text-[9px] px-1 py-0"
+                className="border-primary/30 bg-white/80 px-1 py-0 text-[9px]"
               >
-                본사
+                {role === "HQ_ADMIN" ? "본사" : "지점"}
               </Badge>
               <p className="truncate text-[12px] font-bold text-content">
                 {roleInfo.label}
               </p>
             </div>
-            <p className="text-[10.5px] text-content-tertiary truncate mt-px">
-              슈퍼관리자 · {roleInfo.branchScope}
+            <p className="mt-px truncate text-[10.5px] text-content-tertiary">
+              {activeScreen?.title ?? "운영 화면"} · {roleInfo.branchScope}
             </p>
           </div>
         </div>
