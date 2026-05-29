@@ -453,6 +453,8 @@ function AdminScreen({ screen, role, branch, openDialog, notify }: { screen: Scr
   if (screen.id === "SCR-C016") return <ReservationListScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
   // D05 상품관리 specialized
   if (screen.id === "SCR-P001") return <ProductManagementScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
+  if (screen.id === "SCR-P002") return <ProductRegistrationScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
+  if (screen.id === "SCR-P003") return <ProductDetailPanelScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
   if (screen.id === "SCR-P004") return <DiscountSettingsScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
   if (screen.id === "SCR-P005") return <ProductCatalogScreen screen={screen} role={role} branch={branch} openDialog={openDialog} notify={notify} />;
   // D06 시설관리 specialized
@@ -480,35 +482,19 @@ function AdminScreen({ screen, role, branch, openDialog, notify }: { screen: Scr
 
   return (
     <div className="space-y-5">
-      <section className="admin-surface p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="info" className="border-primary/30 bg-primary-light text-primary">{screen.id}</Badge>
-              <Badge variant="outline" className="border-line/80 bg-white/80 text-content-secondary">{screen.feature}</Badge>
-              {screen.policyPending && <Badge variant="warning" className="border-warning/30 bg-warning/10 text-warning">정책 확인 필요</Badge>}
-              <Badge variant="secondary" className="border-line bg-surface-tertiary text-content-secondary">{screen.source}</Badge>
-              <Badge variant={contract.handoffStatus === "production-ready" ? "success" : contract.handoffStatus === "template-ready" ? "info" : "warning"} className={cn(
-                contract.handoffStatus === "production-ready" && "border-success/30 bg-success/10 text-success",
-                contract.handoffStatus === "template-ready" && "border-info/30 bg-info/10 text-info",
-                contract.handoffStatus !== "production-ready" && contract.handoffStatus !== "template-ready" && "border-warning/30 bg-warning/10 text-warning"
-              )}>{contract.handoffStatus}</Badge>
-            </div>
-            <h1 className="mt-3 text-[26px] font-black tracking-tight text-content">{screen.title}</h1>
-            <p className="mt-2 max-w-4xl text-[13.5px] leading-6 text-content-secondary">{screen.purpose}</p>
-          </div>
-          <div className="min-w-72 rounded-2xl border border-line/80 bg-gradient-to-br from-primary-light/60 to-accent-light/40 p-4 text-sm">
-            <div className="flex items-center gap-2 font-bold text-content"><UserRound className="size-4 text-primary" /> {roleInfo.label}</div>
-            <div className="mt-1 text-content-secondary"><Building2 className="mr-1 inline size-4 text-accent" /> {branch} · {roleInfo.branchScope}</div>
-            <p className="mt-2 text-xs leading-5 text-content-tertiary">{screen.roleNotes[role] ?? roleInfo.description}</p>
-          </div>
-        </div>
-      </section>
+      <DeliveryHeader screen={screen} role={role} branch={branch} />
 
       <section className="grid grid-cols-4 gap-3">
-        {screen.metrics.map((metric) => (
-          <button key={metric.label} type="button" onClick={() => { setSelectedMetric(metric.label); notify(`${metric.label} 지표 필터 mock 적용`, "info"); }} className={cn("text-left transition hover:-translate-y-0.5", selectedMetric === metric.label && "ring-2 ring-blue-400 rounded-xl")}><Card className="h-full shadow-none"><CardHeader className="pb-2"><CardDescription>{metric.label}</CardDescription><CardTitle className="text-xl">{metric.value}</CardTitle></CardHeader><CardContent><p className="text-xs text-content-tertiary">{metric.hint}</p></CardContent></Card></button>
-        ))}
+        {screen.metrics.map((metric, idx) => {
+          const tones = ["from-rose-50 to-rose-100/40 border-rose-200/60", "from-amber-50 to-amber-100/40 border-amber-200/60", "from-sky-50 to-sky-100/40 border-sky-200/60", "from-emerald-50 to-emerald-100/40 border-emerald-200/60"];
+          return (
+            <button key={metric.label} type="button" onClick={() => { setSelectedMetric(metric.label); notify(`${metric.label} 지표 필터 mock 적용`, "info"); }} className={cn("rounded-2xl border bg-gradient-to-br p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md", tones[idx % 4], selectedMetric === metric.label && "ring-2 ring-sky-400")}>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">{metric.label}</p>
+              <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">{metric.value}</p>
+              <p className="mt-1 text-[11px] text-slate-500">{metric.hint}</p>
+            </button>
+          );
+        })}
         {screen.metrics.length === 0 && <Card className="col-span-4"><CardContent className="pt-5 text-sm text-content-secondary">로그인 화면은 별도 폼 중심으로 구성됩니다.</CardContent></Card>}
       </section>
 
@@ -645,23 +631,30 @@ function DeliveryHeader({ screen, role, branch, titleSuffix }: { screen: ScreenD
   const status = getScreenContract(screen).handoffStatus;
   const sourceLabel = getScreenSourceLabel(screen);
   return (
-    <section className="rounded-2xl border bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2"><Badge variant="info">{screen.id}</Badge><Badge variant="outline">{screen.feature}</Badge><Badge variant={status === "production-ready" ? "success" : status === "template-ready" ? "info" : "warning"}>{status}</Badge><Badge variant={sourceLabel === "V1+V2" ? "success" : sourceLabel === "V2" ? "secondary" : "info"}>{sourceLabel}</Badge>{screen.policyPending && <Badge variant="warning">정책 확인 필요</Badge>}<Badge variant="secondary" className="font-mono text-[10px]">{screen.source}</Badge></div>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight">{screen.title}{titleSuffix ? ` · ${titleSuffix}` : ""}</h1>
-          <p className="mt-2 max-w-5xl text-sm leading-6 text-content-secondary">{screen.purpose}</p>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
-            <Badge variant="success">2026-05-28 반영</Badge>
-            <Badge variant="info">DLG 컴포넌트화</Badge>
-            <Badge variant="outline">API 호출 없는 퍼블리싱</Badge>
-            <Button asChild variant="link" size="sm" className="h-auto px-0 py-0 text-xs"><Link href="/dialogs">DLG 갤러리 보기</Link></Button>
+    <section className="relative overflow-hidden rounded-2xl border bg-white shadow-sm">
+      <div className="h-1.5 bg-gradient-to-r from-rose-300 via-amber-200 to-sky-300" aria-hidden />
+      <div className="flex flex-wrap items-start justify-between gap-5 p-6">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+            <span className="rounded-full bg-slate-900 px-2.5 py-0.5 font-semibold text-white">Screen Publishing</span>
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono font-semibold text-slate-600">{sourceLabel}</span>
+            <span className="rounded-full bg-sky-50 px-2 py-0.5 font-mono font-semibold text-sky-700">{screen.id}</span>
+            <span className="text-slate-500">{screen.feature}</span>
+          </div>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900">{screen.title}{titleSuffix ? <span className="ml-2 text-xl font-semibold text-slate-500">· {titleSuffix}</span> : null}</h1>
+          <p className="mt-2 max-w-5xl text-sm leading-6 text-slate-600">{screen.purpose}</p>
+          <div className="mt-4 flex flex-wrap items-center gap-1.5 text-[11px]">
+            <Badge variant={status === "production-ready" ? "success" : status === "template-ready" ? "info" : "warning"}>{status}</Badge>
+            {screen.policyPending && <Badge variant="warning">정책 확인 필요</Badge>}
+            <Badge variant="outline">DLG 컴포넌트화</Badge>
+            <Badge variant="outline">API 호출 없음</Badge>
+            <Button asChild variant="link" size="sm" className="h-auto px-1 py-0 text-[11px] text-sky-700"><Link href="/dialogs">DLG 갤러리 →</Link></Button>
           </div>
         </div>
-        <div className="min-w-72 rounded-xl border bg-surface-secondary p-3 text-sm">
-          <div className="flex items-center gap-2 font-semibold"><UserRound className="size-4" /> {roleInfo.label}</div>
-          <div className="mt-1 text-content-secondary"><Building2 className="mr-1 inline size-4" /> {branch} · {roleInfo.branchScope}</div>
-          <p className="mt-2 text-xs leading-5 text-content-tertiary">{screen.roleNotes[role] ?? roleInfo.description}</p>
+        <div className="min-w-64 rounded-xl border border-slate-200 bg-slate-50/60 p-4 text-sm">
+          <div className="flex items-center gap-2 font-semibold text-slate-800"><UserRound className="size-4" /> {roleInfo.label}</div>
+          <div className="mt-1 flex items-center gap-1 text-xs text-slate-600"><Building2 className="size-3.5" /> {branch} · {roleInfo.branchScope}</div>
+          <p className="mt-2 text-xs leading-5 text-slate-500">{screen.roleNotes[role] ?? roleInfo.description}</p>
         </div>
       </div>
     </section>
@@ -3008,23 +3001,19 @@ function DomainOperationsScreen({ screen, role, branch, openDialog, notify }: Sp
   const secondaryDialog = screen.dialogs[1] ?? primaryDialog;
   return (
     <div className="space-y-5">
-      <section className={cn("overflow-hidden rounded-2xl bg-gradient-to-br p-5 text-white shadow-sm", accent.panel)}>
-        <div className="flex flex-wrap items-start justify-between gap-5">
-          <div className="max-w-4xl">
-            <div className="flex flex-wrap items-center gap-2"><Badge className="border-white/20 bg-white/10 text-white">{screen.id}</Badge><Badge className="border-white/20 bg-white/10 text-white">{config.eyebrow}</Badge><Badge className="border-white/20 bg-white/10 text-white">{screen.feature}</Badge></div>
-            <h1 className="mt-4 text-3xl font-bold tracking-tight">{screen.title}</h1>
-            <p className="mt-3 text-sm leading-6 text-white/80">{config.hero}</p>
-            <p className="mt-2 text-xs leading-5 text-white/65">문서 목적: {screen.purpose}</p>
-          </div>
-          <div className="min-w-72 rounded-xl border border-white/15 bg-white/10 p-3 text-sm backdrop-blur">
-            <div className="font-semibold">{roleById.get(role)?.label} · {branch}</div>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-white/75"><span>Mock state</span><span>API excluded</span><span>권한 표시</span><span>DLG 연결</span></div>
-          </div>
-        </div>
-      </section>
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix={config.eyebrow} />
 
       <section className="grid grid-cols-4 gap-3">
-        {screen.metrics.slice(0, 4).map((metric) => <button key={metric.label} type="button" className="text-left" onClick={() => { setActiveLane(metric.label); notify(`${metric.label} 지표 기준으로 보드 필터 적용`, "info"); }}><Card className={cn("h-full shadow-none", activeLane === metric.label && accent.ring)}><CardHeader><CardDescription>{metric.label}</CardDescription><CardTitle className="text-xl">{metric.value}</CardTitle></CardHeader><CardContent><p className="text-xs text-content-tertiary">{metric.hint}</p></CardContent></Card></button>)}
+        {screen.metrics.slice(0, 4).map((metric, idx) => {
+          const tones = ["from-rose-50 to-rose-100/40 border-rose-200/60", "from-amber-50 to-amber-100/40 border-amber-200/60", "from-sky-50 to-sky-100/40 border-sky-200/60", "from-emerald-50 to-emerald-100/40 border-emerald-200/60"];
+          return (
+            <button key={metric.label} type="button" className={cn("rounded-2xl border bg-gradient-to-br p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md", tones[idx % 4], activeLane === metric.label && "ring-2 ring-sky-400")} onClick={() => { setActiveLane(metric.label); notify(`${metric.label} 지표 기준으로 보드 필터 적용`, "info"); }}>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">{metric.label}</p>
+              <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">{metric.value}</p>
+              <p className="mt-1 text-[11px] text-slate-500">{metric.hint}</p>
+            </button>
+          );
+        })}
         {!screen.metrics.length && config.lanes.map((lane, index) => <Card key={lane} className="shadow-none"><CardHeader><CardDescription>{lane}</CardDescription><CardTitle className="text-xl">{index + 3}</CardTitle></CardHeader></Card>)}
       </section>
 
@@ -5640,6 +5629,483 @@ function ProductManagementScreen({ screen, role, branch, openDialog, notify }: S
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <HandoffContractCard screen={screen} />
         <DialogDock screen={screen} openDialog={openDialog} />
+      </div>
+    </div>
+  );
+}
+
+// SCR-P002 상품 등록 — 4단계 가이드 폼 + 좌측 카테고리 + 우측 입력
+function ProductRegistrationScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
+  const [category, setCategory] = useState<"MEMBERSHIP" | "LESSON_PASS" | "LOCKER" | "WEAR" | "GENERAL">("LESSON_PASS");
+  const [productName, setProductName] = useState("");
+  const [cashPrice, setCashPrice] = useState("");
+  const [cardPrice, setCardPrice] = useState("");
+  const [lessonType, setLessonType] = useState<"PT" | "GX" | "GOLF" | "ETC">("PT");
+  const [gxSubType, setGxSubType] = useState("YOGA");
+  const [capacity, setCapacity] = useState("1");
+  const [validDays, setValidDays] = useState({ mon: true, tue: true, wed: true, thu: true, fri: true, sat: false, sun: false });
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState("18:00");
+  const [holdingAllowed, setHoldingAllowed] = useState(true);
+  const [transferAllowed, setTransferAllowed] = useState(true);
+  const [pointEnabled, setPointEnabled] = useState(false);
+  const [active, setActive] = useState(true);
+  const [dirty, setDirty] = useState(false);
+
+  const categories = [
+    { id: "MEMBERSHIP" as const, label: "회원권", icon: "🎟", color: "border-sky-300 bg-sky-50 text-sky-700" },
+    { id: "LESSON_PASS" as const, label: "수강권", icon: "🎓", color: "border-violet-300 bg-violet-50 text-violet-700" },
+    { id: "LOCKER" as const, label: "락커", icon: "🔒", color: "border-amber-300 bg-amber-50 text-amber-700" },
+    { id: "WEAR" as const, label: "운동복", icon: "👕", color: "border-rose-300 bg-rose-50 text-rose-700" },
+    { id: "GENERAL" as const, label: "일반", icon: "📦", color: "border-slate-300 bg-slate-50 text-slate-700" },
+  ];
+
+  const canSave = productName.trim().length > 0 && Number(cashPrice.replace(/,/g, "")) > 0;
+  const allowed = hasPermission(role, "memberWrite");
+
+  // 카드가 검증
+  const cardPriceNumber = Number(cardPrice.replace(/,/g, "")) || 0;
+  const cashPriceNumber = Number(cashPrice.replace(/,/g, "")) || 0;
+  const cardPriceError = cardPrice && cardPriceNumber < cashPriceNumber ? "카드가는 현금가보다 작을 수 없습니다" : "";
+
+  return (
+    <div className="space-y-5">
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="신규 상품 등록" />
+
+      {/* 진행 상태 안내 */}
+      <div className="flex items-center justify-between rounded-2xl border border-sky-200 bg-sky-50/40 px-5 py-3 text-sm">
+        <div className="flex items-center gap-3">
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-sky-600 text-white text-xs font-bold">1</span>
+          <div>
+            <div className="font-bold text-slate-900">신규 상품 등록</div>
+            <div className="text-xs text-slate-600">상품 구분 → 기본 입력 → 이용 조건 → 옵션 순으로 입력합니다</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {dirty && <Badge variant="warning">미저장 변경 있음</Badge>}
+          <Button variant="outline" size="sm" onClick={() => openDialog("DLG-P008-상품가져오기")}>상품 가져오기</Button>
+          <Button variant="outline" size="sm" onClick={() => openDialog("DLG-P012-상품이미지업로드")}>이미지 업로드</Button>
+        </div>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
+        {/* 좌측: 카테고리 선택 */}
+        <aside className="space-y-4">
+          <Card className="shadow-none">
+            <CardHeader className="pb-3"><CardTitle className="text-sm">1. 상품 구분</CardTitle><CardDescription className="text-xs">상품 대분류 선택</CardDescription></CardHeader>
+            <CardContent className="space-y-2">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-xl border-2 p-3 text-left transition-colors",
+                    category === cat.id ? cat.color + " font-semibold shadow-sm" : "border-slate-200 bg-white hover:border-slate-300"
+                  )}
+                  onClick={() => { setCategory(cat.id); setDirty(true); }}
+                >
+                  <span className="text-xl">{cat.icon}</span>
+                  <span className="flex-1">{cat.label}</span>
+                  {category === cat.id && <CheckCircle2 className="size-4" />}
+                </button>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-none border-amber-200 bg-amber-50/40">
+            <CardHeader className="pb-2"><CardTitle className="text-xs flex items-center gap-1.5"><AlertTriangle className="size-3.5" /> 필수 입력 검증</CardTitle></CardHeader>
+            <CardContent className="space-y-1.5 text-[11px] text-amber-900">
+              <div className={productName ? "text-emerald-700" : ""}>{productName ? "✓" : "○"} 상품명</div>
+              <div className={cashPriceNumber > 0 ? "text-emerald-700" : ""}>{cashPriceNumber > 0 ? "✓" : "○"} 현금가 (0 초과)</div>
+              <div className={Object.values(validDays).some(Boolean) ? "text-emerald-700" : ""}>{Object.values(validDays).some(Boolean) ? "✓" : "○"} 요일 1개 이상</div>
+              {category === "LESSON_PASS" && <div className={capacity ? "text-emerald-700" : ""}>{capacity ? "✓" : "○"} 사용인원 (수강권 필수)</div>}
+            </CardContent>
+          </Card>
+        </aside>
+
+        {/* 우측: 입력 폼 */}
+        <div className="space-y-5">
+          {/* 2. 기본 입력 */}
+          <Card className="shadow-none">
+            <CardHeader><CardTitle className="text-sm">2. 기본 입력</CardTitle></CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <Label className="text-xs">상품명 *</Label>
+                <Input value={productName} onChange={(e) => { setProductName(e.target.value); setDirty(true); }} placeholder="예) PT 20회권" />
+                <p className="mt-1 text-[10px] text-slate-500">동일 지점 + 동일 상품그룹 내 중복 불가</p>
+              </div>
+              <div>
+                <Label className="text-xs">현금가 *</Label>
+                <Input value={cashPrice} onChange={(e) => { setCashPrice(e.target.value); setDirty(true); }} placeholder="1,200,000" />
+              </div>
+              <div>
+                <Label className="text-xs">카드가</Label>
+                <Input value={cardPrice} onChange={(e) => { setCardPrice(e.target.value); setDirty(true); }} placeholder="현금가와 동일 시 미입력" className={cardPriceError ? "border-rose-400" : ""} />
+                {cardPriceError && <p className="mt-1 text-[10px] text-rose-600">{cardPriceError}</p>}
+              </div>
+              <div>
+                <Label className="text-xs">상품그룹</Label>
+                <Select defaultValue="default" onValueChange={() => setDirty(true)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">기본 그룹</SelectItem>
+                    <SelectItem value="vip">VIP 패키지</SelectItem>
+                    <SelectItem value="new">신규 한정</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">태그</Label>
+                <Input placeholder="시즌특가, 추천 (쉼표 구분)" onChange={() => setDirty(true)} />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 3. 수강권 세부 (LESSON_PASS만) */}
+          {category === "LESSON_PASS" && (
+            <Card className="shadow-none border-violet-200">
+              <CardHeader><CardTitle className="text-sm flex items-center gap-2">🎓 3. 수강권 세부</CardTitle></CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <Label className="text-xs">1단계: 수강권 종류</Label>
+                  <Select value={lessonType} onValueChange={(v) => { setLessonType(v as typeof lessonType); setDirty(true); }}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PT">PT</SelectItem>
+                      <SelectItem value="GX">GX (그룹)</SelectItem>
+                      <SelectItem value="GOLF">골프</SelectItem>
+                      <SelectItem value="ETC">기타</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {lessonType === "GX" && (
+                  <div>
+                    <Label className="text-xs">2단계: GX 세부종목</Label>
+                    <Select value={gxSubType} onValueChange={(v) => { setGxSubType(v); setDirty(true); }}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="YOGA">요가</SelectItem>
+                        <SelectItem value="PILATES">필라테스</SelectItem>
+                        <SelectItem value="SPINNING">스피닝</SelectItem>
+                        <SelectItem value="ZUMBA">줌바</SelectItem>
+                        <SelectItem value="ETC">GX 기타</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div>
+                  <Label className="text-xs">사용인원 *</Label>
+                  <Input value={capacity} onChange={(e) => { setCapacity(e.target.value); setDirty(true); }} placeholder="1" />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 4. 이용 조건 — 요일/시간 */}
+          <Card className="shadow-none">
+            <CardHeader><CardTitle className="text-sm">4. 이용 조건 (요일·시간)</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="text-xs">이용 가능 요일</Label>
+                <div className="mt-2 flex gap-1.5">
+                  {(["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const).map((d, i) => (
+                    <button
+                      key={d}
+                      type="button"
+                      className={cn(
+                        "h-10 w-10 rounded-lg border-2 text-sm font-semibold transition-colors",
+                        validDays[d]
+                          ? "border-sky-500 bg-sky-100 text-sky-700"
+                          : "border-slate-200 bg-white text-slate-400 hover:border-slate-300"
+                      )}
+                      onClick={() => { setValidDays({ ...validDays, [d]: !validDays[d] }); setDirty(true); }}
+                    >
+                      {["월", "화", "수", "목", "금", "토", "일"][i]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs">시작 시간</Label>
+                  <Input value={startTime} onChange={(e) => { setStartTime(e.target.value); setDirty(true); }} placeholder="09:00" />
+                  <p className="mt-1 text-[10px] text-slate-500">10분 단위 입력</p>
+                </div>
+                <div>
+                  <Label className="text-xs">종료 시간</Label>
+                  <Input value={endTime} onChange={(e) => { setEndTime(e.target.value); setDirty(true); }} placeholder="18:00" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 5. 옵션 토글 */}
+          <Card className="shadow-none">
+            <CardHeader><CardTitle className="text-sm">5. 옵션</CardTitle></CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-2">
+              {[
+                { label: "홀딩 가능", value: holdingAllowed, setter: setHoldingAllowed },
+                { label: "양도 가능", value: transferAllowed, setter: setTransferAllowed },
+                { label: "포인트 적립", value: pointEnabled, setter: setPointEnabled },
+                { label: "활성 상태", value: active, setter: setActive },
+              ].map((opt) => (
+                <label key={opt.label} className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm">
+                  <span className="font-medium text-slate-700">{opt.label}</span>
+                  <input
+                    type="checkbox"
+                    checked={opt.value}
+                    onChange={() => { opt.setter(!opt.value); setDirty(true); }}
+                    className="h-4 w-4 rounded accent-sky-600"
+                  />
+                </label>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* 액션 바 */}
+          <div className="sticky bottom-0 flex items-center justify-between rounded-2xl border-2 border-slate-300 bg-white p-4 shadow-lg">
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="font-mono">{categories.find((c) => c.id === category)?.label}</span>
+              <span>·</span>
+              <span>{productName || "(상품명 미입력)"}</span>
+              <span>·</span>
+              <span className={cashPriceNumber > 0 ? "text-slate-900 font-bold" : "text-rose-600"}>{cashPriceNumber > 0 ? `${cashPrice}원` : "가격 필수"}</span>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" data-dialog-id="DLG-P003-작업취소확인" onClick={() => dirty ? openDialog("DLG-P003-작업취소확인") : notify("취소 mock", "info")}>취소</Button>
+              <Button
+                disabled={!canSave || !!cardPriceError || !allowed}
+                onClick={() => {
+                  if (!allowed) { notify("권한이 없습니다", "warning"); return; }
+                  notify(`${productName} 상품 등록 완료 (mock)`, "success");
+                  setDirty(false);
+                }}
+              >
+                {allowed ? "등록" : "권한 필요"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 핸드오프 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <HandoffContractCard screen={screen} />
+        <DialogDock screen={screen} openDialog={openDialog} />
+      </div>
+    </div>
+  );
+}
+
+// SCR-P003 상품 상세/수정 패널 — 슬라이드 패널 시뮬레이션 + 기존 값 + 판매 이력
+function ProductDetailPanelScreen({ screen, role, branch, openDialog, notify }: SpecializedScreenProps) {
+  const [activeTab, setActiveTab] = useState<"basic" | "lesson" | "usage" | "schedule" | "options" | "sales">("basic");
+  const [active, setActive] = useState(true);
+  const [dirty, setDirty] = useState(false);
+
+  const allowed = hasPermission(role, "memberWrite");
+  const salesCount = 32;
+
+  const tabs = [
+    { id: "basic" as const, label: "기본 정보" },
+    { id: "lesson" as const, label: "수강권 상세" },
+    { id: "usage" as const, label: "이용 조건" },
+    { id: "schedule" as const, label: "요일/시간" },
+    { id: "options" as const, label: "옵션" },
+    { id: "sales" as const, label: "판매/운영" },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <DeliveryHeader screen={screen} role={role} branch={branch} titleSuffix="상품 수정 슬라이드 패널" />
+
+      {/* 패널 헤더 — 슬라이드 패널 시뮬레이션 */}
+      <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50/40 to-white p-5 shadow-md">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="grid h-12 w-12 place-items-center rounded-xl bg-violet-100 text-2xl">🎓</div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold text-slate-900">상품수정 · PT 20회권</h2>
+                <Badge variant={active ? "success" : "secondary"}>{active ? "활성" : "비활성"}</Badge>
+                {dirty && <Badge variant="warning">미저장</Badge>}
+              </div>
+              <p className="mt-1 text-xs text-slate-600">수강권 · PT · 사용인원 1명 · 180일 / 20회 · 1,200,000원</p>
+            </div>
+          </div>
+          <button
+            className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+            onClick={() => dirty ? openDialog("DLG-P003-작업취소확인") : notify("패널 닫기 mock", "info")}
+            aria-label="닫기"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {/* 탭 네비게이션 */}
+      <div className="flex gap-1 border-b border-slate-200">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            className={cn(
+              "relative px-4 py-2.5 text-sm font-medium transition-colors",
+              activeTab === tab.id ? "text-violet-700" : "text-slate-600 hover:text-slate-900"
+            )}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+            {activeTab === tab.id && <div className="absolute -bottom-px left-0 right-0 h-0.5 bg-violet-600" />}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="space-y-4">
+          {activeTab === "basic" && (
+            <Card className="shadow-none">
+              <CardHeader><CardTitle className="text-sm">기본 정보</CardTitle></CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <div><Label className="text-xs">상품명</Label><Input defaultValue="PT 20회권" onChange={() => setDirty(true)} /></div>
+                <div><Label className="text-xs">상품그룹</Label><Input defaultValue="VIP 패키지" onChange={() => setDirty(true)} /></div>
+                <div><Label className="text-xs">현금가</Label><Input defaultValue="1,200,000" onChange={() => setDirty(true)} /></div>
+                <div><Label className="text-xs">카드가</Label><Input defaultValue="1,250,000" onChange={() => setDirty(true)} /></div>
+                <div className="md:col-span-2"><Label className="text-xs">설명</Label><Textarea defaultValue="20회 PT 패키지 · 양도/홀딩 가능 · 포인트 적립" onChange={() => setDirty(true)} /></div>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === "lesson" && (
+            <Card className="shadow-none">
+              <CardHeader><CardTitle className="text-sm">수강권 상세</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-3 gap-3">
+                  <div><Label className="text-xs">1단계</Label><Input defaultValue="PT" disabled /></div>
+                  <div><Label className="text-xs">2단계</Label><Input defaultValue="-" disabled /></div>
+                  <div><Label className="text-xs">수업시간</Label><Input defaultValue="50분" onChange={() => setDirty(true)} /></div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div><Label className="text-xs">유효기간</Label><Input defaultValue="180일" onChange={() => setDirty(true)} /></div>
+                  <div><Label className="text-xs">횟수</Label><Input defaultValue="20회" onChange={() => setDirty(true)} /></div>
+                  <div><Label className="text-xs">수업구분</Label><Input defaultValue="개인" disabled /></div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === "usage" && (
+            <Card className="shadow-none">
+              <CardHeader><CardTitle className="text-sm">이용 조건</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label className="text-xs">이용구분</Label><Input defaultValue="횟수+기간" disabled /></div>
+                  <div><Label className="text-xs">기간</Label><Input defaultValue="180일" onChange={() => setDirty(true)} /></div>
+                  <div><Label className="text-xs">횟수/포인트</Label><Input defaultValue="20회" onChange={() => setDirty(true)} /></div>
+                  <div><Label className="text-xs">횟수 제한</Label><Input defaultValue="일 1회" onChange={() => setDirty(true)} /></div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === "schedule" && (
+            <Card className="shadow-none">
+              <CardHeader><CardTitle className="text-sm">요일·시간</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-1.5">
+                  {["월", "화", "수", "목", "금", "토", "일"].map((d) => (
+                    <span key={d} className={cn("grid h-10 w-10 place-items-center rounded-lg border-2 text-sm font-semibold", ["월", "화", "수", "목", "금"].includes(d) ? "border-sky-500 bg-sky-100 text-sky-700" : "border-slate-200 bg-white text-slate-400")}>{d}</span>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label className="text-xs">시작 시간</Label><Input defaultValue="06:00" onChange={() => setDirty(true)} /></div>
+                  <div><Label className="text-xs">종료 시간</Label><Input defaultValue="22:00" onChange={() => setDirty(true)} /></div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === "options" && (
+            <Card className="shadow-none">
+              <CardHeader><CardTitle className="text-sm">옵션</CardTitle></CardHeader>
+              <CardContent className="grid gap-3 md:grid-cols-2">
+                {[
+                  { label: "예약 가능", checked: true },
+                  { label: "시설 이용", checked: true },
+                  { label: "홀딩 가능", checked: true },
+                  { label: "양도 가능", checked: true },
+                  { label: "포인트 적립", checked: false },
+                  { label: "휴회 가능", checked: true },
+                  { label: "키오스크 노출", checked: true },
+                  { label: "활성 상태", checked: active },
+                ].map((opt) => (
+                  <label key={opt.label} className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm">
+                    <span className="font-medium text-slate-700">{opt.label}</span>
+                    <input type="checkbox" defaultChecked={opt.checked} onChange={() => { if (opt.label === "활성 상태") setActive(!active); setDirty(true); }} className="h-4 w-4 rounded accent-sky-600" />
+                  </label>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === "sales" && (
+            <Card className="shadow-none">
+              <CardHeader><CardTitle className="text-sm">판매·운영 정보</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                    <div className="text-xs text-emerald-700">판매 건수</div>
+                    <div className="mt-1 text-2xl font-bold text-emerald-900">{salesCount}건</div>
+                  </div>
+                  <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
+                    <div className="text-xs text-sky-700">가격 변경 이력</div>
+                    <div className="mt-1 text-2xl font-bold text-sky-900">5건</div>
+                    <button className="mt-1 text-[10px] font-semibold text-sky-700 hover:underline" onClick={() => openDialog("DLG-P014-가격이력조회")}>전체 보기 →</button>
+                  </div>
+                  <div className="rounded-lg border border-violet-200 bg-violet-50 p-3">
+                    <div className="text-xs text-violet-700">패키지 구성</div>
+                    <div className="mt-1 text-2xl font-bold text-violet-900">2개</div>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                  <b>판매 이력 있음 (32건)</b>: 삭제 시 DLG-P006(비활성화 안내)로 전환됩니다. 즉시 삭제 불가.
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* 우측: 액션 */}
+        <aside className="space-y-4">
+          <Card className="shadow-none">
+            <CardHeader><CardTitle className="text-sm">패널 액션</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              <Button className="w-full" disabled={!allowed} onClick={() => { notify("저장 완료 (mock)", "success"); setDirty(false); }}>{allowed ? "저장" : "권한 필요"}</Button>
+              <Button className="w-full" variant="outline" data-dialog-id="DLG-P014-가격이력조회" onClick={() => openDialog("DLG-P014-가격이력조회")}>가격 이력 전체 보기</Button>
+              <Button className="w-full" variant="outline" data-dialog-id="DLG-P006-비활성화안내" onClick={() => openDialog("DLG-P006-비활성화안내")}>비활성화</Button>
+              <Button
+                className="w-full"
+                variant="destructive"
+                data-dialog-id="DLG-P005-상품삭제확인"
+                disabled={!allowed}
+                onClick={() => allowed ? openDialog(salesCount > 0 ? "DLG-P006-비활성화안내" : "DLG-P005-상품삭제확인") : notify("권한 필요", "warning")}
+              >
+                삭제
+              </Button>
+              <Button className="w-full" variant="ghost" onClick={() => dirty ? openDialog("DLG-P003-작업취소확인") : notify("취소 mock", "info")}>취소</Button>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-none border-amber-200 bg-amber-50/40">
+            <CardHeader className="pb-2"><CardTitle className="text-xs flex items-center gap-1.5"><AlertTriangle className="size-3.5" /> 삭제 정책</CardTitle></CardHeader>
+            <CardContent className="space-y-1.5 text-[11px] text-amber-900">
+              <div>판매 이력 0건 → DLG-P005 (즉시 삭제 확인)</div>
+              <div>판매 이력 1건 이상 → DLG-P006 (비활성화 안내)</div>
+              <div>본사 정의 상품 → 지점에서 수정/삭제 불가</div>
+            </CardContent>
+          </Card>
+
+          <HandoffContractCard screen={screen} />
+        </aside>
       </div>
     </div>
   );
