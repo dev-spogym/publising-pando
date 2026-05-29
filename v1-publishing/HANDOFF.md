@@ -1,6 +1,6 @@
 # V1 Publishing Handoff
 
-Generated: 2026-05-29T08:26:08.943Z
+Generated: 2026-05-29T11:37:46.632Z
 
 ## 실행
 

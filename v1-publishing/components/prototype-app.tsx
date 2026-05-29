@@ -724,7 +724,6 @@ function Sidebar({
     window.localStorage.setItem(sidebarModeStorageKey, sidebarMode);
   }, [sidebarMode]);
 
-
   const matchesQuery = (label: string, id?: string) =>
     !sidebarQuery ||
     label.toLowerCase().includes(sidebarQuery.toLowerCase()) ||
@@ -778,7 +777,9 @@ function Sidebar({
     );
     if (visibleItems.length === 0) return null;
     const isOpen =
-      openGroups.has(group.id) || group.id === activeOperationalGroup || Boolean(sidebarQuery);
+      openGroups.has(group.id) ||
+      group.id === activeOperationalGroup ||
+      Boolean(sidebarQuery);
     const isActive = group.id === activeOperationalGroup;
     const Icon = group.icon;
     return (
@@ -850,7 +851,11 @@ function Sidebar({
       <div className="flex h-[72px] shrink-0 items-center border-b border-line/80 px-4">
         <div className="flex items-center gap-2.5">
           <Link
-            href={role === "HQ_ADMIN" ? (screenById("SCR-101")?.route ?? "/") : (screenById("SCR-090")?.route ?? "/")}
+            href={
+              role === "HQ_ADMIN"
+                ? (screenById("SCR-101")?.route ?? "/")
+                : (screenById("SCR-090")?.route ?? "/")
+            }
             className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-primary to-accent text-[13px] font-black text-white shadow-[0_16px_32px_rgba(15,23,42,0.08)]"
           >
             FG
@@ -904,7 +909,9 @@ function Sidebar({
             type="text"
             value={sidebarQuery}
             onChange={(e) => setSidebarQuery(e.target.value)}
-            placeholder={sidebarMode === "ops" ? "운영 메뉴 검색..." : "전체 문서 검색..."}
+            placeholder={
+              sidebarMode === "ops" ? "운영 메뉴 검색..." : "전체 문서 검색..."
+            }
             className="h-8 w-full rounded-lg border border-line/80 bg-white/80 pl-7 pr-2 text-[12px] text-content placeholder:text-content-tertiary outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
           />
         </div>
@@ -934,7 +941,9 @@ function Sidebar({
 
             <div className="mb-3 rounded-2xl border border-primary/15 bg-primary-light/25 p-2.5">
               <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="text-[11px] font-black text-content">운영 플로우</p>
+                <p className="text-[11px] font-black text-content">
+                  운영 플로우
+                </p>
                 <Badge className="border-primary/20 bg-white text-[9px] text-primary">
                   user-flow
                 </Badge>
@@ -971,7 +980,9 @@ function Sidebar({
                 본부 관리
               </p>
               <div className="space-y-px">
-                {hqMenu.filter((item) => matchesQuery(item.label, item.id)).map(renderItem)}
+                {hqMenu
+                  .filter((item) => matchesQuery(item.label, item.id))
+                  .map(renderItem)}
               </div>
             </div>
             <div className="mb-3">
@@ -987,8 +998,13 @@ function Sidebar({
             {domainOrder.map((dom) => {
               const items = screens
                 .filter((screen) => screen.domain === dom.id)
-                .filter((screen) => !hqMenu.some((item) => item.id === screen.id))
-                .filter((screen) => !dashboardGroup.some((item) => item.id === screen.id))
+                .filter(
+                  (screen) => !hqMenu.some((item) => item.id === screen.id),
+                )
+                .filter(
+                  (screen) =>
+                    !dashboardGroup.some((item) => item.id === screen.id),
+                )
                 .filter((screen) => matchesQuery(screen.title, screen.id));
               if (items.length === 0) return null;
               return (
@@ -2093,15 +2109,13 @@ const memberDirectoryRows = [
 ];
 
 type MemberDirectoryRow = (typeof memberDirectoryRows)[number];
-type MemberActionPanel =
-  | {
-      kind: "message" | "bulk-message" | "favorite" | "export" | "daily-focus";
-      title: string;
-      member?: MemberDirectoryRow;
-      rows: MemberDirectoryRow[];
-      body: string;
-    }
-  | null;
+type MemberActionPanel = {
+  kind: "message" | "bulk-message" | "favorite" | "export" | "daily-focus";
+  title: string;
+  member?: MemberDirectoryRow;
+  rows: MemberDirectoryRow[];
+  body: string;
+} | null;
 
 const salesLedgerRows = [
   {
@@ -3381,10 +3395,10 @@ function MemberListScreen({
                             ? "text-primary"
                             : "text-content-secondary hover:text-content",
                         )}
-                  onClick={() => {
-                    setActiveStatusTab(tab.key);
-                    setLastFlow(`${tab.label} 상태 필터 적용`);
-                  }}
+                        onClick={() => {
+                          setActiveStatusTab(tab.key);
+                          setLastFlow(`${tab.label} 상태 필터 적용`);
+                        }}
                       >
                         {tab.label}
                         <span
@@ -4040,9 +4054,7 @@ function MemberListScreen({
                   </Link>
                 </Button>
               ) : (
-                <Button onClick={() => setActionPanel(null)}>
-                  상태 확인
-                </Button>
+                <Button onClick={() => setActionPanel(null)}>상태 확인</Button>
               )}
             </>
           ) : null
@@ -4060,7 +4072,10 @@ function MemberListScreen({
                   ["현재 지점", branch],
                   ["담당 역할", roleById.get(role)?.label ?? role],
                   ["선택 회원", `${actionPanel.rows.length}명`],
-                  ["연결 정책", "API 호출 없음 · local state/route/dialog만 표시"],
+                  [
+                    "연결 정책",
+                    "API 호출 없음 · local state/route/dialog만 표시",
+                  ],
                 ].map(([label, value]) => (
                   <div
                     key={label}
@@ -4078,7 +4093,7 @@ function MemberListScreen({
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">대상 회원</CardTitle>
                 <CardDescription>
-                  개발 연결 시 memberIds preselect payload로 넘길 목록입니다.
+                  구현사 연동 시 memberIds preselect payload로 넘길 목록입니다.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -4368,6 +4383,7 @@ function MemberDetailScreen({
   branch,
   openDialog,
 }: SpecializedScreenProps) {
+  const router = useRouter();
   const member = memberDirectoryRows[0];
   const [favorite, setFavorite] = useState(true);
   const [tab, setTab] = useState("info");
@@ -4565,66 +4581,71 @@ function MemberDetailScreen({
             </div>
           ))}
           <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
-          <Button
-            size="sm"
-            className="bg-primary text-white hover:bg-primary/90"
-            disabled={!canOperate}
-            onClick={() => openDialog("DLG-M022")}
-          >
-            <CheckCircle2 className="size-3.5" />
-            수동출석
+            <Button
+              size="sm"
+              className="bg-primary text-white hover:bg-primary/90"
+              disabled={!canOperate}
+              onClick={() => openDialog("DLG-M022")}
+            >
+              <CheckCircle2 className="size-3.5" />
+              수동출석
             </Button>
             <Button asChild variant="outline" size="sm">
-            <Link href={`/members/edit?memberId=${member.no}`}>
-              <Edit className="size-3.5" />
-              수정
-            </Link>
-            </Button>
-            <Button asChild variant="secondary" size="sm">
-            <Link href={`/sales/payment?memberId=${member.no}`}>
-            <ShoppingCart className="size-3.5" />
-            상품구매
-            </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm">
-            <Link href={`/message?memberId=${member.no}`}>
-            <MessageSquare className="size-3.5" />
-            메시지
-            </Link>
+              <Link href={`/members/edit?memberId=${member.no}`}>
+                <Edit className="size-3.5" />
+                수정
+              </Link>
             </Button>
             <Button
-            variant="outline"
-            size="sm"
-            onClick={() => openDialog("DLG-M021")}
-          >
-            <Star className="size-3.5" />
-            마일리지 조정
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                router.push(`/sales/payment?memberId=${member.no}`)
+              }
+            >
+              <ShoppingCart className="size-3.5" />
+              상품구매
             </Button>
             <Button
-            variant="outline"
-            size="sm"
-            onClick={() => openDialog("DLG-M025")}
-          >
-            <Dumbbell className="size-3.5" />
-            운동 프로그램 배정
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/message?memberId=${member.no}`)}
+            >
+              <MessageSquare className="size-3.5" />
+              메시지
             </Button>
             <Button
-            variant="outline"
-            size="sm"
-            onClick={() => openDialog("DLG-M023")}
-          >
-            <ArrowRightLeft className="size-3.5" />
-            지점이관
+              variant="outline"
+              size="sm"
+              onClick={() => openDialog("DLG-M021")}
+            >
+              <Star className="size-3.5" />
+              마일리지 조정
             </Button>
             <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => openDialog("DLG-M005")}
-          >
-            <UserMinus className="size-3.5" />
-            탈퇴
+              variant="outline"
+              size="sm"
+              onClick={() => openDialog("DLG-M025")}
+            >
+              <Dumbbell className="size-3.5" />
+              운동 프로그램 배정
             </Button>
-
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openDialog("DLG-M023")}
+            >
+              <ArrowRightLeft className="size-3.5" />
+              지점이관
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => openDialog("DLG-M005")}
+            >
+              <UserMinus className="size-3.5" />
+              탈퇴
+            </Button>
           </div>
         </div>
 
@@ -4682,16 +4703,23 @@ function MemberDetailScreen({
                 Next Actions
               </p>
               <div className="grid gap-2">
-                <Button asChild className="justify-start bg-primary text-white hover:bg-primary/90">
-                  <Link href={`/message?memberId=${member.no}&template=retention`}>
-                  <MessageSquare className="size-3.5" />
-                  리텐션 메시지 발송
+                <Button
+                  asChild
+                  className="justify-start bg-primary text-white hover:bg-primary/90"
+                >
+                  <Link
+                    href={`/message?memberId=${member.no}&template=retention`}
+                  >
+                    <MessageSquare className="size-3.5" />
+                    리텐션 메시지 발송
                   </Link>
                 </Button>
                 <Button asChild variant="outline" className="justify-start">
-                  <Link href={`/sales/payment?memberId=${member.no}&mode=recommend`}>
-                  <ShoppingCart className="size-3.5" />
-                  추가 상품 제안
+                  <Link
+                    href={`/sales/payment?memberId=${member.no}&mode=recommend`}
+                  >
+                    <ShoppingCart className="size-3.5" />
+                    추가 상품 제안
                   </Link>
                 </Button>
                 <Button
@@ -5298,6 +5326,21 @@ function MemberEditScreen({
   const [phone, setPhone] = useState("010-1234-5678");
   const [memberType, setMemberType] = useState("일반");
   const [memo, setMemo] = useState("재등록 의향 있음");
+  const [phoneChecked, setPhoneChecked] = useState(true);
+  const [addressChecked, setAddressChecked] = useState(true);
+  const [saveResult, setSaveResult] = useState("");
+  const [conflictMode, setConflictMode] = useState(false);
+  const editValidation = {
+    name: name.trim().length >= 2,
+    phone: /^010-\d{4}-\d{4}$/.test(phone),
+    phoneChecked,
+    addressChecked,
+    memoSafe: !/\d{6}-\d{7}/.test(memo),
+  };
+  const canMoveNext =
+    editValidation.name && editValidation.phone && editValidation.phoneChecked;
+  const canSave =
+    canMoveNext && editValidation.addressChecked && editValidation.memoSafe;
   return (
     <div className="space-y-5">
       <DeliveryHeader
@@ -5351,16 +5394,36 @@ function MemberEditScreen({
                   <div className="flex gap-2">
                     <Input
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+                        setPhoneChecked(false);
+                      }}
                     />
                     <Button
                       data-dialog-id="DLG-M006"
                       variant="outline"
-                      onClick={() => openDialog("DLG-M006")}
+                      onClick={() => {
+                        setPhoneChecked(true);
+                        openDialog("DLG-M006");
+                      }}
                     >
                       중복 확인
                     </Button>
                   </div>
+                  <p
+                    className={cn(
+                      "text-xs",
+                      editValidation.phone && phoneChecked
+                        ? "text-emerald-600"
+                        : "text-rose-600",
+                    )}
+                  >
+                    {editValidation.phone
+                      ? phoneChecked
+                        ? "전화번호 형식·중복 확인 완료"
+                        : "연락처 변경 후 DLG-M006 중복 확인 필요"
+                      : "010-0000-0000 형식으로 입력"}
+                  </p>
                 </div>
                 <div className="space-y-1">
                   <Label>회원구분 *</Label>
@@ -5418,7 +5481,10 @@ function MemberEditScreen({
                   <Button
                     data-dialog-id="DLG-M027"
                     variant="outline"
-                    onClick={() => openDialog("DLG-M027")}
+                    onClick={() => {
+                      setAddressChecked(true);
+                      openDialog("DLG-M027");
+                    }}
                   >
                     주소 검색
                   </Button>
@@ -5436,6 +5502,11 @@ function MemberEditScreen({
                   <p className="text-xs text-content-tertiary">
                     {memo.length} / 500
                   </p>
+                  {!editValidation.memoSafe && (
+                    <p className="text-xs text-rose-600">
+                      주민번호 패턴은 저장할 수 없습니다.
+                    </p>
+                  )}
                 </div>
                 <label className="col-span-2 flex items-center gap-2 rounded-lg border bg-surface-secondary p-3 text-sm">
                   <input type="checkbox" defaultChecked /> 광고성 정보 수신 동의
@@ -5461,23 +5532,96 @@ function MemberEditScreen({
                 </Button>
               </div>
               {step === 1 ? (
-                <Button onClick={() => setStep(2)}>다음</Button>
+                <Button
+                  disabled={!canMoveNext}
+                  onClick={() => {
+                    if (!canMoveNext) {
+                      notify(
+                        "필수값/전화번호 중복 확인이 필요합니다.",
+                        "warning",
+                      );
+                      return;
+                    }
+                    setStep(2);
+                  }}
+                >
+                  다음
+                </Button>
               ) : (
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setStep(1)}>
                     이전
                   </Button>
                   <Button
-                    onClick={() =>
+                    disabled={!canSave}
+                    onClick={() => {
+                      if (!canSave) {
+                        notify(
+                          "주소/메모/중복확인 검증을 완료해주세요.",
+                          "warning",
+                        );
+                        return;
+                      }
+                      if (conflictMode) {
+                        setSaveResult(
+                          "409 동시편집 감지 · 최신본 새로고침 후 다시 저장 필요",
+                        );
+                        return;
+                      }
+                      setSaveResult(
+                        "회원 정보 수정 완료 · 감사로그 ADM-260529-004 기록 · 회원 상세 반영 대기",
+                      );
                       notify(
                         "회원 정보가 수정되었습니다. 회원 상세로 이동합니다.",
-                      )
-                    }
+                      );
+                    }}
                   >
                     저장
                   </Button>
                 </div>
               )}
+            </div>
+            <div className="grid gap-3 rounded-xl border border-line bg-surface-secondary p-4 text-sm md:grid-cols-2">
+              <div>
+                <b className="text-content">검증 게이트</b>
+                <div className="mt-2 space-y-1 text-xs text-content-secondary">
+                  <div>
+                    이름 2자 이상: {editValidation.name ? "OK" : "필요"}
+                  </div>
+                  <div>
+                    전화번호 형식: {editValidation.phone ? "OK" : "필요"}
+                  </div>
+                  <div>
+                    중복 확인:{" "}
+                    {editValidation.phoneChecked ? "OK" : "DLG-M006 필요"}
+                  </div>
+                  <div>
+                    주소 검색:{" "}
+                    {editValidation.addressChecked ? "OK" : "DLG-M027 필요"}
+                  </div>
+                  <div>
+                    개인정보 패턴 차단:{" "}
+                    {editValidation.memoSafe ? "OK" : "차단"}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <b className="text-content">동시편집/저장 결과</b>
+                <label className="mt-2 flex items-center gap-2 text-xs text-content-secondary">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    checked={conflictMode}
+                    onChange={(e) => setConflictMode(e.target.checked)}
+                  />
+                  저장 충돌(409) 시뮬레이션
+                </label>
+                {saveResult && (
+                  <div className="mt-2 rounded-lg border bg-white p-2 text-xs text-content-secondary">
+                    {saveResult}
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -5496,6 +5640,56 @@ function MemberTransferScreen({
   const member = memberDirectoryRows[0];
   const [targetBranch, setTargetBranch] = useState("서초점");
   const [reason, setReason] = useState("");
+  const [acknowledged, setAcknowledged] = useState<Record<string, boolean>>({
+    unpaid: false,
+    locker: false,
+    holding: false,
+    pt: false,
+    coupon: false,
+  });
+  const [transferResult, setTransferResult] = useState("");
+  const blockers = [
+    {
+      key: "unpaid",
+      tone: "danger",
+      title: "미납금 80,000원",
+      body: "이관 전 미수금 정산 또는 본사 예외 승인이 필요합니다.",
+      required: true,
+    },
+    {
+      key: "locker",
+      tone: "danger",
+      title: "락커 A-12 보유",
+      body: "락커 회수/이전 등록 후 이관 가능합니다.",
+      required: true,
+    },
+    {
+      key: "holding",
+      tone: "warning",
+      title: "홀딩 이력 존재",
+      body: "이관 시 홀딩 잔여일 재계산 안내가 자동 노출됩니다.",
+      required: false,
+    },
+    {
+      key: "pt",
+      tone: "warning",
+      title: "PT 잔여 8회",
+      body: "트레이너 재배정과 인센티브 귀속자를 함께 확인합니다.",
+      required: false,
+    },
+    {
+      key: "coupon",
+      tone: "info",
+      title: "지점 한정 쿠폰 2건",
+      body: "타 지점 이관 시 쿠폰 소멸 예정 안내가 필요합니다.",
+      required: false,
+    },
+  ];
+  const unresolvedRequired = blockers.filter(
+    (item) => item.required && !acknowledged[item.key],
+  );
+  const canTransfer =
+    reason.trim().length >= 10 && unresolvedRequired.length === 0;
   const rebindRows = [
     {
       필드: "소속지점",
@@ -5610,18 +5804,21 @@ function MemberTransferScreen({
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex gap-2">
-                {["서초점", "잠실점"].map((b) => (
-                  <Button
-                    key={b}
-                    variant={targetBranch === b ? "default" : "outline"}
-                    onClick={() => {
-                      setTargetBranch(b);
-                      notify(`이관 대상 지점: ${b}`, "info");
-                    }}
-                  >
-                    {b}
-                  </Button>
-                ))}
+                {branches
+                  .filter((b) => b !== member.branch)
+                  .slice(0, 5)
+                  .map((b) => (
+                    <Button
+                      key={b}
+                      variant={targetBranch === b ? "default" : "outline"}
+                      onClick={() => {
+                        setTargetBranch(b);
+                        notify(`이관 대상 지점: ${b}`, "info");
+                      }}
+                    >
+                      {b}
+                    </Button>
+                  ))}
               </div>
               <div className="overflow-hidden rounded-xl border">
                 <Table>
@@ -5653,6 +5850,33 @@ function MemberTransferScreen({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
               />
+              <div className="grid gap-2 rounded-xl border border-line bg-surface-secondary p-3 text-xs">
+                <div className="font-bold text-content">이관 전 검증 상태</div>
+                <div
+                  className={
+                    reason.trim().length >= 10
+                      ? "text-emerald-700"
+                      : "text-rose-700"
+                  }
+                >
+                  사유 10자 이상:{" "}
+                  {reason.trim().length >= 10
+                    ? "충족"
+                    : `${reason.trim().length}/10`}
+                </div>
+                <div
+                  className={
+                    unresolvedRequired.length === 0
+                      ? "text-emerald-700"
+                      : "text-rose-700"
+                  }
+                >
+                  필수 차단 해소:{" "}
+                  {unresolvedRequired.length === 0
+                    ? "완료"
+                    : `${unresolvedRequired.length}건 남음`}
+                </div>
+              </div>
               <div className="flex justify-end gap-2">
                 <Button
                   variant="outline"
@@ -5662,7 +5886,13 @@ function MemberTransferScreen({
                 </Button>
                 <Button
                   data-dialog-id="DLG-M023"
-                  onClick={() => openDialog("DLG-M023")}
+                  disabled={!canTransfer}
+                  onClick={() => {
+                    setTransferResult(
+                      `${member.name} → ${targetBranch} 이관 검증 완료 · DLG-M023 최종 확인 대기`,
+                    );
+                    openDialog("DLG-M023");
+                  }}
                 >
                   이관 확인
                 </Button>
@@ -5676,21 +5906,45 @@ function MemberTransferScreen({
               <CardTitle>차단 / 경고 조건</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-xs">
-              <div className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-rose-700">
-                미납금 존재 → block, 정산 후 재진입
-              </div>
-              <div className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-rose-700">
-                락커 보유 → block, 회수 후 재진입
-              </div>
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-amber-800">
-                홀딩 중 → 이관 시 자동 해제
-              </div>
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-amber-800">
-                PT 잔여 → 유형별 처리 안내
-              </div>
-              <div className="rounded-lg border border-blue-200 bg-blue-50 p-2 text-blue-800">
-                지점 한정 쿠폰 → N건 소멸 예정
-              </div>
+              {blockers.map((item) => (
+                <label
+                  key={item.key}
+                  className={cn(
+                    "block rounded-lg border p-2",
+                    item.tone === "danger" &&
+                      "border-rose-200 bg-rose-50 text-rose-700",
+                    item.tone === "warning" &&
+                      "border-amber-200 bg-amber-50 text-amber-800",
+                    item.tone === "info" &&
+                      "border-blue-200 bg-blue-50 text-blue-800",
+                  )}
+                >
+                  <div className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4 accent-primary"
+                      checked={acknowledged[item.key]}
+                      onChange={(e) =>
+                        setAcknowledged((current) => ({
+                          ...current,
+                          [item.key]: e.target.checked,
+                        }))
+                      }
+                    />
+                    <span>
+                      <b>{item.title}</b>
+                      {item.required && " · 필수 해소"}
+                      <br />
+                      {item.body}
+                    </span>
+                  </div>
+                </label>
+              ))}
+              {transferResult && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-emerald-700">
+                  {transferResult}
+                </div>
+              )}
             </CardContent>
           </Card>
           <DialogDock screen={screen} openDialog={openDialog} />
@@ -5714,7 +5968,13 @@ function BodyCompositionScreen({
     골격근량: true,
     체지방률: true,
   });
-  const rows = [
+  const [selectedMember, setSelectedMember] = useState(
+    memberDirectoryRows[0].name,
+  );
+  const [bodyActionPanel, setBodyActionPanel] = useState<
+    null | "csv" | "manual-match" | "goal"
+  >(null);
+  const [rows, setRows] = useState([
     {
       날짜: "2026-05-28",
       체중: "68.4kg",
@@ -5745,8 +6005,11 @@ function BodyCompositionScreen({
       체수분: "41.8L",
       action: "-",
     },
-  ];
+  ]);
   const hasGraph = Object.values(toggles).some(Boolean) && rows.length >= 2;
+  const activeMember =
+    memberDirectoryRows.find((member) => member.name === selectedMember) ??
+    memberDirectoryRows[0];
   return (
     <div className="space-y-5">
       <DeliveryHeader
@@ -5803,7 +6066,7 @@ function BodyCompositionScreen({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-2">
-              <Select defaultValue={memberDirectoryRows[0].name}>
+              <Select value={selectedMember} onValueChange={setSelectedMember}>
                 <SelectTrigger className="max-w-xs">
                   <SelectValue />
                 </SelectTrigger>
@@ -5832,6 +6095,27 @@ function BodyCompositionScreen({
                   onClick={() => openDialog("DLG-M015")}
                 >
                   측정 추가
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setRows((current) => [
+                      {
+                        날짜: "2026-05-29",
+                        체중: "67.9kg",
+                        골격근량: "30.1kg",
+                        체지방률: "20.8%",
+                        BMI: "22.5",
+                        기초대사량: "1,536kcal",
+                        체수분: "43.0L",
+                        action: "수정 (본인 24h)",
+                      },
+                      ...current,
+                    ]);
+                  }}
+                >
+                  수동 측정 반영
                 </Button>
               </div>
             </div>
@@ -5974,12 +6258,33 @@ function BodyCompositionScreen({
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() =>
-                  notify("CSV 내보내기 mock (V2 권한자만)", "info")
-                }
+                onClick={() => setBodyActionPanel("csv")}
               >
                 CSV 내보내기
               </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setBodyActionPanel("manual-match")}
+              >
+                InBody 수동 매칭 큐
+              </Button>
+            </CardContent>
+          </Card>
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle>선택 회원 요약</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-xs text-content-secondary">
+              <div className="rounded-lg border bg-white p-2">
+                {activeMember.name} · {activeMember.phone}
+              </div>
+              <div className="rounded-lg border bg-white p-2">
+                목표: 체지방률 19% 이하 · 골격근량 30kg 이상
+              </div>
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-700">
+                최근 변화: 체중 -0.5kg, 골격근량 +0.3kg
+              </div>
             </CardContent>
           </Card>
           <Card className="shadow-none">
@@ -5997,6 +6302,60 @@ function BodyCompositionScreen({
           <HandoffContractCard screen={screen} />
         </aside>
       </div>
+      <AdminSlidePanel
+        open={Boolean(bodyActionPanel)}
+        onClose={() => setBodyActionPanel(null)}
+        eyebrow="SCR-M006 BODY FLOW"
+        title={
+          bodyActionPanel === "csv"
+            ? "체성분 CSV 내보내기"
+            : bodyActionPanel === "manual-match"
+              ? "InBody 수동 매칭 큐"
+              : "목표 설정"
+        }
+        testId="body-composition-action-panel"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setBodyActionPanel(null)}>
+              닫기
+            </Button>
+            <Button
+              onClick={() => {
+                notify(
+                  bodyActionPanel === "csv"
+                    ? "CSV 내보내기 요청 완료"
+                    : "수동 매칭 상태 반영",
+                  "success",
+                );
+                setBodyActionPanel(null);
+              }}
+            >
+              상태 반영
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3 text-sm">
+          <InfoCell
+            label="회원"
+            value={`${activeMember.name} · ${activeMember.no}`}
+          />
+          <InfoCell label="측정 이력" value={`${rows.length}건`} />
+          <InfoCell
+            label="구현 연결"
+            value={
+              bodyActionPanel === "csv"
+                ? "GET /body-composition/export?memberId="
+                : "POST /inbody/manual-match"
+            }
+          />
+          <div className="rounded-xl border border-line bg-white p-4 text-content-secondary">
+            {bodyActionPanel === "csv"
+              ? "현재 선택 회원, 기간, 표시 지표 토글을 내보내기 payload로 넘깁니다. 파일 생성은 퍼블리싱 범위 밖입니다."
+              : "장비에서 넘어온 미매칭 측정값을 회원/측정일 기준으로 수동 연결하는 운영 큐입니다."}
+          </div>
+        </div>
+      </AdminSlidePanel>
     </div>
   );
 }
@@ -6010,46 +6369,58 @@ function MemberMergeScreen({
 }: SpecializedScreenProps) {
   const [primary, setPrimary] = useState<string>("");
   const [secondary, setSecondary] = useState<string>("");
+  const [fieldPolicy, setFieldPolicy] = useState<Record<string, string>>({
+    이름: "주 계정",
+    연락처: "주 계정",
+    "프로필 사진": "최신값",
+    이용권: "합산 이전",
+    등록일: "최초 등록일",
+    "최근 방문일": "최신값",
+  });
+  const [mergeResult, setMergeResult] = useState("");
+  const [rollbackStatus, setRollbackStatus] =
+    useState("병합 전 · 롤백 타이머 대기");
   const candidates = memberDirectoryRows.slice(0, 3);
   const compareRows = [
     {
       항목: "이름",
       "주 계정": "김민준",
       "부 계정": "김민준A",
-      채택: "주 계정",
+      채택: fieldPolicy.이름,
     },
     {
       항목: "연락처",
       "주 계정": "010-1234-5678",
       "부 계정": "010-9876-5432",
-      채택: "주 계정",
+      채택: fieldPolicy.연락처,
     },
     {
       항목: "프로필 사진",
       "주 계정": "최신 (2026-05)",
       "부 계정": "구형 (2025-08)",
-      채택: "주 계정",
+      채택: fieldPolicy["프로필 사진"],
     },
     {
       항목: "이용권",
       "주 계정": "PT 20회 잔여 8",
       "부 계정": "회원권 3개월",
-      채택: "합산 이전",
+      채택: fieldPolicy.이용권,
     },
     {
       항목: "등록일",
       "주 계정": "2026-01-12",
       "부 계정": "2025-08-04",
-      채택: "주 계정",
+      채택: fieldPolicy.등록일,
     },
     {
       항목: "최근 방문일",
       "주 계정": "오늘 09:20",
       "부 계정": "2025-12-30",
-      채택: "주 계정",
+      채택: fieldPolicy["최근 방문일"],
     },
   ];
   const bothSelected = primary && secondary && primary !== secondary;
+  const conflictResolved = compareRows.every((row) => Boolean(row.채택));
   return (
     <div className="space-y-5">
       <DeliveryHeader
@@ -6164,7 +6535,33 @@ function MemberMergeScreen({
                         <TableCell>{row["주 계정"]}</TableCell>
                         <TableCell>{row["부 계정"]}</TableCell>
                         <TableCell>
-                          <Badge variant="info">{row.채택}</Badge>
+                          <Select
+                            value={row.채택}
+                            onValueChange={(value) =>
+                              setFieldPolicy((current) => ({
+                                ...current,
+                                [row.항목]: value,
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="h-8 w-36">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[
+                                "주 계정",
+                                "부 계정",
+                                "최신값",
+                                "최초 등록일",
+                                "합산 이전",
+                                "수동 검토",
+                              ].map((option) => (
+                                <SelectItem key={option} value={option}>
+                                  {option}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -6175,12 +6572,25 @@ function MemberMergeScreen({
                 <Button
                   data-dialog-id="DLG-M028"
                   variant="destructive"
-                  disabled={!bothSelected}
-                  onClick={() =>
-                    bothSelected
-                      ? openDialog("DLG-M028")
-                      : notify("주/부 계정 두 개 모두 선택해주세요.", "warning")
-                  }
+                  disabled={!bothSelected || !conflictResolved}
+                  onClick={() => {
+                    if (!bothSelected) {
+                      notify("주/부 계정 두 개 모두 선택해주세요.", "warning");
+                      return;
+                    }
+                    if (!conflictResolved) {
+                      notify(
+                        "필드별 채택 정책을 모두 결정해주세요.",
+                        "warning",
+                      );
+                      return;
+                    }
+                    setMergeResult(
+                      "병합 검증 완료 · 부 계정 비활성 전환 · 5분 롤백 가능",
+                    );
+                    setRollbackStatus("04:59 남음 · 롤백 가능");
+                    openDialog("DLG-M028");
+                  }}
                 >
                   회원 병합 확인 (위험)
                 </Button>
@@ -6199,6 +6609,25 @@ function MemberMergeScreen({
               <div>병합 5분 경과 후 취소 불가</div>
               <div>가족 그룹 대표가 부 계정인 경우 그룹 해체</div>
               <div>등급 즉시 재계산, 세그먼트 D+1 갱신</div>
+              {mergeResult && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-700">
+                  {mergeResult}
+                </div>
+              )}
+              <div className="rounded-lg border border-line bg-white p-2">
+                롤백 상태: {rollbackStatus}
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!mergeResult || rollbackStatus.includes("만료")}
+                onClick={() => {
+                  setRollbackStatus("롤백 요청 접수 · DLG-M028 감사로그 연결");
+                  notify("병합 롤백 요청 접수", "info");
+                }}
+              >
+                병합 롤백 요청
+              </Button>
             </CardContent>
           </Card>
           <DialogDock screen={screen} openDialog={openDialog} />
@@ -6216,13 +6645,14 @@ function FamilyMembersScreen({
   openDialog,
   notify,
 }: SpecializedScreenProps) {
-  const groups = [
+  const initialFamilyGroups = [
     {
       이름: "김씨 가족",
       대표: "김민준",
       구성원: 3,
       활성: 2,
       "최근 결제": "2026-05-28",
+      상태: "정상",
     },
     {
       이름: "박씨 가족",
@@ -6230,6 +6660,7 @@ function FamilyMembersScreen({
       구성원: 4,
       활성: 3,
       "최근 결제": "2026-05-20",
+      상태: "정원주의",
     },
     {
       이름: "정씨 가족",
@@ -6237,9 +6668,13 @@ function FamilyMembersScreen({
       구성원: 2,
       활성: 1,
       "최근 결제": "2026-04-15",
+      상태: "정산잠금",
     },
   ];
+  const [groups, setGroups] = useState(initialFamilyGroups);
   const [activeGroup, setActiveGroup] = useState(groups[0]);
+  const [familyResult, setFamilyResult] = useState("");
+  const [pendingInvite, setPendingInvite] = useState("한유나");
   const members = [
     {
       이름: "김민준(대표)",
@@ -6290,7 +6725,21 @@ function FamilyMembersScreen({
           <CardContent className="space-y-2">
             <Button
               className="w-full"
-              onClick={() => notify("새 그룹 만들기 모달 mock", "info")}
+              onClick={() => {
+                const newGroup = {
+                  이름: "신규 가족 그룹",
+                  대표: "한유나",
+                  구성원: 1,
+                  활성: 1,
+                  "최근 결제": "없음",
+                  상태: "초안",
+                };
+                setGroups((current) => [newGroup, ...current]);
+                setActiveGroup(newGroup);
+                setFamilyResult(
+                  "새 그룹 초안 생성 · 대표 회원/약관 동의 확인 필요",
+                );
+              }}
             >
               + 새 그룹 만들기
             </Button>
@@ -6313,6 +6762,9 @@ function FamilyMembersScreen({
                 </div>
                 <div className="mt-1 text-xs text-content-tertiary">
                   최근 결제 {g["최근 결제"]}
+                </div>
+                <div className="mt-1 text-xs font-semibold text-content-secondary">
+                  상태 {g.상태}
                 </div>
               </button>
             ))}
@@ -6356,21 +6808,61 @@ function FamilyMembersScreen({
                 </Table>
               </div>
               <div className="mt-3 flex gap-2">
+                <Select value={pendingInvite} onValueChange={setPendingInvite}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {memberDirectoryRows
+                      .filter((member) => !member.name.includes("김민준"))
+                      .map((member) => (
+                        <SelectItem key={member.no} value={member.name}>
+                          {member.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
                 <Button
                   data-dialog-id="DLG-M029"
-                  onClick={() => openDialog("DLG-M029")}
+                  onClick={() => {
+                    if (activeGroup.구성원 >= 10) {
+                      setFamilyResult("정원 10명 초과로 가족 연결 차단");
+                      return;
+                    }
+                    setFamilyResult(
+                      `${pendingInvite} 가족 연결 검증 완료 · DLG-M029 확인 대기`,
+                    );
+                    openDialog("DLG-M029");
+                  }}
                 >
                   가족 연결 (구성원 추가)
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => notify("구성원 제거 mock", "info")}
+                  onClick={() => {
+                    setFamilyResult(
+                      `${activeGroup.이름} 구성원 제거 사유 입력 대기 · 대표/정산잠금이면 차단`,
+                    );
+                    openDialog("DLG-M029");
+                  }}
                 >
                   구성원 제거
                 </Button>
                 <Button
                   variant="destructive"
-                  onClick={() => notify("그룹 삭제는 권한자만 가능", "warning")}
+                  onClick={() => {
+                    if (activeGroup.구성원 > 0) {
+                      setFamilyResult(
+                        "그룹 삭제 차단 · 구성원/포인트/약관 동의 상태 먼저 정리 필요",
+                      );
+                      notify(
+                        "구성원이 있는 그룹은 바로 삭제할 수 없습니다.",
+                        "warning",
+                      );
+                      return;
+                    }
+                    setFamilyResult("그룹 삭제 대기 · 복구 불가 확인 필요");
+                  }}
                 >
                   그룹 삭제
                 </Button>
@@ -6385,6 +6877,10 @@ function FamilyMembersScreen({
               <InfoCell label="가족 전체 이용권" value="활성 2 · 임박 1" />
               <InfoCell label="활성 회원" value="2명" />
               <InfoCell label="총 마일리지" value="3,400 (합산 정책 ON)" />
+              <div className="col-span-3 rounded-xl border border-line bg-surface-secondary p-3 text-xs text-content-secondary">
+                {familyResult ||
+                  "가족 연결/제거/삭제 액션을 누르면 정원·중복·잠금·약관 정책 결과가 여기에 표시됩니다."}
+              </div>
             </CardContent>
           </Card>
           <DialogDock screen={screen} openDialog={openDialog} />
@@ -6402,13 +6898,30 @@ function MemberSegmentsScreen({
   openDialog,
   notify,
 }: SpecializedScreenProps) {
-  const autoSegments = [
+  type SegmentRow = {
+    세그먼트: string;
+    "조건 설명": string;
+    "현재 회원 수": string;
+    "마지막 업데이트": string;
+    "자동 갱신 주기": string;
+    상태: string;
+  };
+  type PreviewRow = {
+    회원: string;
+    상태: string;
+    조건근거: string;
+    최근방문: string;
+    동의: string;
+  };
+
+  const autoSegments: SegmentRow[] = [
     {
       세그먼트: "신규(자동)",
       "조건 설명": "첫 정상 결제 +30일 이내",
       "현재 회원 수": "52",
       "마지막 업데이트": "오늘 04:00",
       "자동 갱신 주기": "매일/이벤트",
+      상태: "자동 잠금",
     },
     {
       세그먼트: "이탈위험(자동)",
@@ -6416,6 +6929,7 @@ function MemberSegmentsScreen({
       "현재 회원 수": "86",
       "마지막 업데이트": "오늘 04:00",
       "자동 갱신 주기": "매일/이벤트",
+      상태: "자동 잠금",
     },
     {
       세그먼트: "만료임박(자동)",
@@ -6423,6 +6937,7 @@ function MemberSegmentsScreen({
       "현재 회원 수": "184",
       "마지막 업데이트": "오늘 04:00",
       "자동 갱신 주기": "매일/이벤트",
+      상태: "자동 잠금",
     },
     {
       세그먼트: "활발(자동)",
@@ -6430,6 +6945,7 @@ function MemberSegmentsScreen({
       "현재 회원 수": "112",
       "마지막 업데이트": "오늘 04:00",
       "자동 갱신 주기": "매일/이벤트",
+      상태: "자동 잠금",
     },
     {
       세그먼트: "관심필요(자동)",
@@ -6437,6 +6953,7 @@ function MemberSegmentsScreen({
       "현재 회원 수": "73",
       "마지막 업데이트": "오늘 04:00",
       "자동 갱신 주기": "매일/이벤트",
+      상태: "자동 잠금",
     },
     {
       세그먼트: "만료후미등록(자동)",
@@ -6444,6 +6961,7 @@ function MemberSegmentsScreen({
       "현재 회원 수": "48",
       "마지막 업데이트": "오늘 04:00",
       "자동 갱신 주기": "매일/이벤트",
+      상태: "자동 잠금",
     },
     {
       세그먼트: "충성(보조)",
@@ -6451,9 +6969,108 @@ function MemberSegmentsScreen({
       "현재 회원 수": "42",
       "마지막 업데이트": "오늘 04:00",
       "자동 갱신 주기": "매일",
+      상태: "보조 라벨",
     },
   ];
   const [tab, setTab] = useState<"자동" | "사용자" | "빌더">("자동");
+  const [userSegments, setUserSegments] = useState<SegmentRow[]>([
+    {
+      세그먼트: "재등록 캠페인 대상",
+      "조건 설명": "만료 45일 이내 + 광고 동의 + 최근 상담 없음",
+      "현재 회원 수": "31",
+      "마지막 업데이트": "오늘 10:12",
+      "자동 갱신 주기": "수동/매주 월",
+      상태: "운영중",
+    },
+    {
+      세그먼트: "PT 업셀 우선",
+      "조건 설명": "헬스 이용권 활성 + PT 구매 이력 없음 + 방문 6회+",
+      "현재 회원 수": "24",
+      "마지막 업데이트": "어제 18:20",
+      "자동 갱신 주기": "매일 04:00",
+      상태: "검수 완료",
+    },
+  ]);
+  const [builderName, setBuilderName] = useState("5월 이탈 회복 캠페인");
+  const [conditionMode, setConditionMode] = useState("AND");
+  const [refreshCycle, setRefreshCycle] = useState("매일 04:00");
+  const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
+  const [selectedSegment, setSelectedSegment] = useState<SegmentRow | null>(
+    autoSegments[1],
+  );
+  const [segmentResult, setSegmentResult] = useState(
+    "세그먼트를 선택하거나 조건 빌더 미리보기를 실행하면 대상·동의·중복 정책 결과가 여기에 표시됩니다.",
+  );
+  const [syncState, setSyncState] = useState(
+    "마지막 캐시 재계산: 오늘 04:00 · 이벤트 동기화 정상",
+  );
+  const visibleSegments = tab === "자동" ? autoSegments : userSegments;
+  const canSaveBuilder =
+    builderName.trim().length >= 4 && previewRows.length > 0;
+
+  const runPreview = () => {
+    const rows: PreviewRow[] = [
+      {
+        회원: "박서연 / 010-23**-91**",
+        상태: "만료 18일 경과",
+        조건근거: "무방문 31일 · 광고 SMS 동의",
+        최근방문: "2026-04-28",
+        동의: "SMS 가능",
+      },
+      {
+        회원: "이도현 / 010-77**-34**",
+        상태: "활성+이탈위험",
+        조건근거: "결제 정상 · 무방문 36일",
+        최근방문: "2026-04-22",
+        동의: "카카오만 가능",
+      },
+      {
+        회원: "최민지 / 010-88**-10**",
+        상태: "상담필요",
+        조건근거: "상담 없음 92일 · 락커 만료 임박",
+        최근방문: "2026-05-01",
+        동의: "광고 제외",
+      },
+    ];
+    setPreviewRows(rows);
+    setSelectedSegment({
+      세그먼트: builderName || "새 세그먼트",
+      "조건 설명": `${conditionMode} 조건 · ${screen.filters.slice(0, 3).join(" · ")}`,
+      "현재 회원 수": "86",
+      "마지막 업데이트": "미리보기 방금",
+      "자동 갱신 주기": refreshCycle,
+      상태: "저장 전 미리보기",
+    });
+    setSegmentResult(
+      "미리보기 완료 · 대상 86명 · 광고 제외 11명 자동 차단 · 중복 라벨 7명 우선순위 적용 · 샘플 명단 PII 마스킹",
+    );
+    setSyncState("미리보기 캐시 생성: 방금 · 저장 전 실제 발송/쿠폰 연결 없음");
+  };
+
+  const saveBuilder = () => {
+    const next: SegmentRow = {
+      세그먼트: builderName,
+      "조건 설명": `${conditionMode} 조건 · ${screen.filters.slice(0, 3).join(" · ")}`,
+      "현재 회원 수": "86",
+      "마지막 업데이트": "방금 저장",
+      "자동 갱신 주기": refreshCycle,
+      상태: "검수 대기",
+    };
+    setUserSegments((prev) => [
+      next,
+      ...prev.filter((s) => s.세그먼트 !== next.세그먼트),
+    ]);
+    setSelectedSegment(next);
+    setSegmentResult(
+      `${next.세그먼트} 저장 완료 · 사용자 정의 탭 반영 · 수정/삭제는 DLG-M010 확인 후 가능`,
+    );
+    setTab("사용자");
+    notify(
+      "사용자 정의 세그먼트가 mock/local state에 저장되었습니다.",
+      "success",
+    );
+  };
+
   return (
     <div className="space-y-5">
       <DeliveryHeader
@@ -6475,13 +7092,13 @@ function MemberSegmentsScreen({
           </Card>
         ))}
       </div>
-      <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-5">
+      <div className="grid grid-cols-[minmax(0,1fr)_360px] gap-5">
         <Card className="shadow-none">
           <CardHeader>
             <CardTitle>세그먼트 목록</CardTitle>
             <CardDescription>
-              자동 7종은 시스템 정의로 수정/삭제 버튼이 hidden. 매일 04:00
-              재계산 + 이벤트 실시간.
+              자동 7종은 시스템 정의라 수정/삭제가 hidden이고, 사용자 정의는
+              mock/local state로 생성·미리보기·저장 흐름을 완성합니다.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -6496,47 +7113,161 @@ function MemberSegmentsScreen({
                   {t === "자동"
                     ? "자동 7종"
                     : t === "사용자"
-                      ? "사용자 정의"
+                      ? `사용자 정의 ${userSegments.length}`
                       : "조건 빌더"}
                 </Button>
               ))}
               <Button
                 size="sm"
                 className="ml-auto"
-                onClick={() => notify("새 세그먼트 만들기 mock", "info")}
+                onClick={() => {
+                  setTab("빌더");
+                  setBuilderName("5월 이탈 회복 캠페인");
+                  setPreviewRows([]);
+                  setSegmentResult(
+                    "새 세그먼트 작성 시작 · 조건 선택 후 미리보기를 먼저 실행해야 저장 가능합니다.",
+                  );
+                }}
               >
                 + 새 세그먼트
               </Button>
             </div>
             {tab === "빌더" ? (
-              <div className="space-y-3 rounded-xl border bg-surface-secondary p-4">
-                <p className="text-sm font-semibold">
-                  조건 빌더 (AND/OR, 최대 3단계 중첩)
-                </p>
-                {screen.filters.map((f) => (
-                  <div
-                    key={f}
-                    className="rounded-lg bg-white p-3 text-xs text-content-secondary"
-                  >
-                    • {f}
+              <div className="space-y-4 rounded-xl border bg-surface-secondary p-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>세그먼트명</Label>
+                    <Input
+                      value={builderName}
+                      onChange={(event) => setBuilderName(event.target.value)}
+                    />
                   </div>
-                ))}
+                  <div className="space-y-2">
+                    <Label>조건 결합</Label>
+                    <Select
+                      value={conditionMode}
+                      onValueChange={setConditionMode}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AND">AND · 모두 만족</SelectItem>
+                        <SelectItem value="OR">OR · 하나 이상</SelectItem>
+                        <SelectItem value="NESTED">
+                          중첩 · 최대 3단계
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>자동 갱신 주기</Label>
+                    <Select
+                      value={refreshCycle}
+                      onValueChange={setRefreshCycle}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="매일 04:00">매일 04:00</SelectItem>
+                        <SelectItem value="매주 월 04:00">
+                          매주 월 04:00
+                        </SelectItem>
+                        <SelectItem value="수동 갱신">수동 갱신</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>운영 메모</Label>
+                    <Input
+                      placeholder="캠페인 목적 / 제외 조건"
+                      defaultValue="발송 전 광고동의 재검증"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {screen.filters.map((f) => (
+                    <label
+                      key={f}
+                      className="flex items-center gap-2 rounded-lg bg-white p-3 text-xs text-content-secondary"
+                    >
+                      <input
+                        type="checkbox"
+                        defaultChecked={
+                          f.includes("방문") || f.includes("이용권")
+                        }
+                      />
+                      <span>{f}</span>
+                    </label>
+                  ))}
+                </div>
                 <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      notify("미리보기 결과: 86명, 샘플 명단 표시 mock", "info")
-                    }
-                  >
+                  <Button size="sm" onClick={runPreview}>
                     미리보기
                   </Button>
-                  <Button size="sm" variant="outline">
-                    자동 갱신 주기 설정
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setSyncState(
+                        "캐시 새로고침 요청됨 · 2h 중복 방지 큐 대기",
+                      )
+                    }
+                  >
+                    캐시 새로고침
                   </Button>
-                  <Button size="sm" variant="outline">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!canSaveBuilder}
+                    onClick={saveBuilder}
+                  >
                     저장
                   </Button>
                 </div>
+                {previewRows.length > 0 && (
+                  <div className="overflow-hidden rounded-xl border bg-white">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          {["회원", "상태", "조건근거", "최근방문", "동의"].map(
+                            (c) => (
+                              <TableHead key={c}>{c}</TableHead>
+                            ),
+                          )}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {previewRows.map((row) => (
+                          <TableRow key={row.회원}>
+                            <TableCell className="font-semibold">
+                              {row.회원}
+                            </TableCell>
+                            <TableCell>{row.상태}</TableCell>
+                            <TableCell className="text-xs text-content-secondary">
+                              {row.조건근거}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {row.최근방문}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  row.동의.includes("제외")
+                                    ? "warning"
+                                    : "success"
+                                }
+                              >
+                                {row.동의}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="overflow-hidden rounded-xl border">
@@ -6549,6 +7280,7 @@ function MemberSegmentsScreen({
                         "현재 회원 수",
                         "마지막 업데이트",
                         "자동 갱신 주기",
+                        "상태",
                         "액션",
                       ].map((c) => (
                         <TableHead key={c}>{c}</TableHead>
@@ -6556,7 +7288,7 @@ function MemberSegmentsScreen({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(tab === "자동" ? autoSegments : []).map((row) => (
+                    {visibleSegments.map((row) => (
                       <TableRow key={row.세그먼트}>
                         <TableCell className="font-semibold">
                           {row.세그먼트}
@@ -6574,19 +7306,40 @@ function MemberSegmentsScreen({
                           {row["자동 갱신 주기"]}
                         </TableCell>
                         <TableCell>
+                          <Badge
+                            variant={
+                              row.상태.includes("잠금")
+                                ? "secondary"
+                                : "success"
+                            }
+                          >
+                            {row.상태}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
                           <div className="flex gap-1">
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() =>
-                                notify(
-                                  `${row.세그먼트} 회원 보기 모달 mock`,
-                                  "info",
-                                )
-                              }
+                              onClick={() => {
+                                setSelectedSegment(row);
+                                setSegmentResult(
+                                  `${row.세그먼트} 대상 ${row["현재 회원 수"]}명 조회 · 샘플 PII 마스킹 · 광고 미동의 자동 제외`,
+                                );
+                              }}
                             >
                               보기
                             </Button>
+                            {tab === "사용자" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                data-dialog-id="DLG-M010"
+                                onClick={() => openDialog("DLG-M010")}
+                              >
+                                삭제
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               data-dialog-id="DLG-M009"
@@ -6601,7 +7354,7 @@ function MemberSegmentsScreen({
                     ))}
                   </TableBody>
                 </Table>
-                {tab === "사용자" && (
+                {tab === "사용자" && userSegments.length === 0 && (
                   <div className="grid place-items-center p-10 text-sm text-content-tertiary">
                     사용자 정의 세그먼트가 없습니다. + 새 세그먼트 만들기로
                     시작하세요.
@@ -6614,33 +7367,64 @@ function MemberSegmentsScreen({
         <aside className="min-w-0 space-y-5">
           <Card className="shadow-none">
             <CardHeader>
+              <CardTitle>선택 세그먼트 운영 패널</CardTitle>
+              <CardDescription>
+                설명은 사이드에서 고정 노출하고, 버튼은 실제 라우트/다이얼로그로
+                연결합니다.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <InfoCell
+                label="선택"
+                value={selectedSegment?.세그먼트 || "미선택"}
+              />
+              <InfoCell
+                label="대상"
+                value={
+                  selectedSegment?.["현재 회원 수"]
+                    ? `${selectedSegment["현재 회원 수"]}명`
+                    : "-"
+                }
+              />
+              <InfoCell
+                label="조건"
+                value={selectedSegment?.["조건 설명"] || "-"}
+              />
+              <div className="rounded-xl border border-line bg-surface-secondary p-3 text-xs text-content-secondary">
+                {segmentResult}
+              </div>
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
+                {syncState}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-none">
+            <CardHeader>
               <CardTitle>액션 연결</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
+              <Button asChild className="w-full">
+                <Link
+                  href={`/message?segment=${encodeURIComponent(selectedSegment?.세그먼트 || "")}`}
+                >
+                  메시지 발송 (SCR-071)
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link
+                  href={`/message/coupon?segment=${encodeURIComponent(selectedSegment?.세그먼트 || "")}`}
+                >
+                  쿠폰 발급 (SCR-073)
+                </Link>
+              </Button>
               <Button
+                variant="outline"
                 className="w-full"
                 onClick={() =>
-                  notify(
-                    "SCR-071 메시지 발송 화면으로 이동 mock (광고 동의 자동 필터)",
-                    "info",
+                  setSegmentResult(
+                    "이용권 혜택 적용 준비 · 활성권/만료권/가족권 중복 정책 검토 필요",
                   )
                 }
-              >
-                메시지 발송 (SCR-071)
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() =>
-                  notify("SCR-073 쿠폰 발급 화면으로 이동 mock", "info")
-                }
-              >
-                쿠폰 발급 (SCR-073)
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => notify("이용권 혜택 적용 mock", "info")}
               >
                 이용권 혜택 적용
               </Button>
@@ -6658,13 +7442,14 @@ function MemberSegmentsScreen({
             <CardHeader>
               <CardTitle>자동 라벨 우선순위</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-1 text-xs text-content-secondary">
+            <CardContent className="space-y-2 text-xs text-content-secondary">
               <div>
                 이탈위험 &gt; 만료임박 &gt; 신규 &gt; 활발 &gt; 관심필요 &gt;
                 만료후미등록
               </div>
               <div>충성은 보조 라벨 (기본 라벨과 중복 표시 가능)</div>
               <div>FC는 메시지 발송만 가능, 샘플 명단 PII 마스킹</div>
+              <div>저장/삭제는 실제 API 없이 local state와 DLG-M010만 수행</div>
             </CardContent>
           </Card>
           <DialogDock screen={screen} openDialog={openDialog} />
@@ -10548,11 +11333,7 @@ const denseMockStatuses = [
 function isSparseMockValue(value: unknown) {
   const text = String(value ?? "").trim();
   return (
-    !text ||
-    text === "—" ||
-    text === "-" ||
-    text === "…" ||
-    text.includes("…")
+    !text || text === "—" || text === "-" || text === "…" || text.includes("…")
   );
 }
 
@@ -10575,15 +11356,18 @@ function mockCellValue(
   if (/지점 코드|코드/.test(column)) return branchInfo.code;
   if (/주소/.test(column)) return branchInfo.address;
   if (/연락처|전화|휴대폰/.test(column)) return branchInfo.phone;
-  if (/회원 수|회원수/.test(column)) return String([842, 1126, 615, 538, 412, 356, 284, 128][index % 8]);
-  if (/직원 수|직원수/.test(column)) return String([18, 24, 14, 12, 10, 9, 8, 6][index % 8]);
+  if (/회원 수|회원수/.test(column))
+    return String([842, 1126, 615, 538, 412, 356, 284, 128][index % 8]);
+  if (/직원 수|직원수/.test(column))
+    return String([18, 24, 14, 12, 10, 9, 8, 6][index % 8]);
   if (/운영 상태/.test(column))
     return ["운영 중", "운영 중", "운영 중", "점검", "오픈 예정", "임시휴업"][
       index % 6
     ];
   if (/등록일|신청일|생성일|일자|날짜|기간/.test(column))
     return `2026-05-${String(29 - (index % 9)).padStart(2, "0")}`;
-  if (/시간|시각/.test(column)) return `${String(9 + (index % 9)).padStart(2, "0")}:30`;
+  if (/시간|시각/.test(column))
+    return `${String(9 + (index % 9)).padStart(2, "0")}:30`;
   if (/상태|분류/.test(column)) return status;
   if (/담당|승인자|처리자|직원|매니저|Owner|owner/.test(column)) return owner;
   if (/회원명|회원|이름|대상자/.test(column)) return member;
@@ -10595,10 +11379,14 @@ function mockCellValue(
   if (/금액|매출|결제|미수|정산|환불|단가/.test(column))
     return `${amount.toLocaleString()}원`;
   if (/수량|횟수|회차|잔여|건수/.test(column)) return String((index + 1) * 3);
-  if (/권한|역할/.test(column)) return roleById.get(defaultRole)?.label ?? "Owner";
+  if (/권한|역할/.test(column))
+    return roleById.get(defaultRole)?.label ?? "Owner";
   if (/지점/.test(column)) return branchInfo.name;
   if (/액션|바로가기|처리/.test(column))
-    return screen.primaryActions.map((action) => action.label).join(" / ") || "상세 / 수정";
+    return (
+      screen.primaryActions.map((action) => action.label).join(" / ") ||
+      "상세 / 수정"
+    );
   if (/메모|사유|내용|설명/.test(column))
     return `${screen.title} 운영 기준 ${index + 1}번 mock 기록`;
   if (/출처|문서/.test(column)) return getScreenSourceLabel(screen);
@@ -10670,7 +11458,11 @@ function DomainOperationsScreen({
   const accent = accentClasses[config.accent] ?? accentClasses.slate;
   const [activeLane, setActiveLane] = useState(config.lanes[0]);
   const [query, setQuery] = useState("");
-  const rows = buildDenseMockRows(screen, branch, screen.id === "SCR-092" ? 10 : 8);
+  const rows = buildDenseMockRows(
+    screen,
+    branch,
+    screen.id === "SCR-092" ? 10 : 8,
+  );
   const denseMetrics = buildDenseMockMetrics(screen, rows);
   const filteredRows = rows.filter((row) =>
     Object.values(row).join(" ").includes(query),
@@ -10727,7 +11519,7 @@ function DomainOperationsScreen({
         "선택 lane": activeLane,
         "적용 필터": activeFilters.length ? activeFilters.join(" · ") : "없음",
         "처리 방식": "퍼블리싱 mock/local state 패널로 연결",
-        "개발 연결점": `${screen.id}.action.${label}`,
+        "구현 연결점": `${screen.id}.action.${label}`,
       },
       "action",
     );
@@ -10810,7 +11602,7 @@ function DomainOperationsScreen({
                           "선택 lane": lane,
                           "연결 보드": config.boardTitle,
                           "표시 row": `${filteredRows.length}건`,
-                          "개발 연결점": `${screen.id}.lane.${lane}`,
+                          "구현 연결점": `${screen.id}.lane.${lane}`,
                         },
                         "lane",
                       );
@@ -10915,54 +11707,58 @@ function DomainOperationsScreen({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredRows.slice(0, visibleRowLimit).map((row, index) => (
-                      <TableRow key={index}>
-                        {visibleColumns.map((column) => (
-                          <TableCell key={column}>
+                    {filteredRows
+                      .slice(0, visibleRowLimit)
+                      .map((row, index) => (
+                        <TableRow key={index}>
+                          {visibleColumns.map((column) => (
+                            <TableCell key={column}>
+                              {statusAwareValue(
+                                String(
+                                  row[column] ??
+                                    row[Object.keys(row)[0]] ??
+                                    "-",
+                                ),
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell>
                             {statusAwareValue(
                               String(
-                                row[column] ?? row[Object.keys(row)[0]] ?? "-",
+                                row.상태 ??
+                                  row.status ??
+                                  (screen.policyPending ? "확인 필요" : "정상"),
                               ),
                             )}
                           </TableCell>
-                        ))}
-                        <TableCell>
-                          {statusAwareValue(
-                            String(
-                              row.상태 ??
-                                row.status ??
-                                (screen.policyPending ? "확인 필요" : "정상"),
-                            ),
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() =>
-                              openStatePanel(
-                                String(
-                                  row[visibleColumns[0]] ??
-                                    row[Object.keys(row)[0]] ??
-                                    `${screen.title} ${index + 1}`,
-                                ),
-                                {
-                                  ...row,
-                                  "선택 lane": activeLane,
-                                  "적용 필터": activeFilters.length
-                                    ? activeFilters.join(" · ")
-                                    : "없음",
-                                  "개발 연결점": `${screen.id}.row.${index + 1}`,
-                                },
-                                "table",
-                              )
-                            }
-                          >
-                            상세
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                openStatePanel(
+                                  String(
+                                    row[visibleColumns[0]] ??
+                                      row[Object.keys(row)[0]] ??
+                                      `${screen.title} ${index + 1}`,
+                                  ),
+                                  {
+                                    ...row,
+                                    "선택 lane": activeLane,
+                                    "적용 필터": activeFilters.length
+                                      ? activeFilters.join(" · ")
+                                      : "없음",
+                                    "구현 연결점": `${screen.id}.row.${index + 1}`,
+                                  },
+                                  "table",
+                                )
+                              }
+                            >
+                              상세
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                 </Table>
               </div>
@@ -11002,7 +11798,8 @@ function DomainOperationsScreen({
                     item.tone === "danger" && "border-rose-200 bg-rose-50",
                     item.tone === "warning" && "border-amber-200 bg-amber-50",
                     item.tone === "info" && "border-sky-200 bg-sky-50",
-                    item.tone === "success" && "border-emerald-200 bg-emerald-50",
+                    item.tone === "success" &&
+                      "border-emerald-200 bg-emerald-50",
                   )}
                   onClick={() => setSelectedQueue(item)}
                 >
@@ -11158,14 +11955,18 @@ function DomainOperationsScreen({
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-content-secondary">
                 <div className="rounded-xl border bg-white p-3">
-                  <p className="font-black text-content">{getScreenSourceLabel(screen)}</p>
+                  <p className="font-black text-content">
+                    {getScreenSourceLabel(screen)}
+                  </p>
                   <p className="mt-1 break-words text-xs">{screen.source}</p>
                 </div>
                 <ul className="space-y-2 text-xs leading-5">
                   <li>• API 호출 없음 · mock/local state만 실행</li>
                   <li>• 클릭 시 상세 사이드 패널 → 필요한 경우 DLG 연결</li>
                   <li>• 처리/배정/CTA는 사이드 패널 또는 dialog로 검수 가능</li>
-                  <li>• 권한 차단·empty/loading/error 상태는 화면 계약에 포함</li>
+                  <li>
+                    • 권한 차단·empty/loading/error 상태는 화면 계약에 포함
+                  </li>
                 </ul>
               </CardContent>
             </Card>
@@ -11235,22 +12036,24 @@ function DomainOperationsScreen({
             </Card>
             <Card className="shadow-none">
               <CardHeader>
-                <CardTitle>개발 핸드오프</CardTitle>
+                <CardTitle>퍼블리싱 인계</CardTitle>
                 <CardDescription>
-                  실제 API가 아니라 화면 연결·상태 변화·DLG 연결 기준을 명확히 보여줍니다.
+                  실제 API가 아니라 화면 연결·상태 변화·DLG 연결 기준을 명확히
+                  보여줍니다.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2 text-xs leading-5 text-content-secondary">
                 <p>
-                  <b className="text-content">문서:</b> {getScreenSourceLabel(screen)}
+                  <b className="text-content">문서:</b>{" "}
+                  {getScreenSourceLabel(screen)}
                 </p>
                 <p>
-                  <b className="text-content">범위:</b> API 호출 없음 · mock/local
-                  state · 사이드 패널/필터/테이블 연결만 구현
+                  <b className="text-content">범위:</b> API 호출 없음 ·
+                  mock/local state · 사이드 패널/필터/테이블 연결만 구현
                 </p>
                 <p>
-                  <b className="text-content">검수:</b> 클릭 → 화면 상태 변화 → 상세 패널
-                  또는 DLG 연결까지 확인
+                  <b className="text-content">검수:</b> 클릭 → 화면 상태 변화 →
+                  상세 패널 또는 DLG 연결까지 확인
                 </p>
               </CardContent>
             </Card>
@@ -11317,7 +12120,7 @@ function DataPanel({ screen }: { screen: ScreenDefinition }) {
                 "작업 상태": selectedRows.length
                   ? "일괄 작업 bar 표시"
                   : "선택된 행 없음",
-                "개발 연결점": `${screen.id}.bulkAction`,
+                "구현 연결점": `${screen.id}.bulkAction`,
               },
             })
           }
@@ -11379,7 +12182,7 @@ function DataPanel({ screen }: { screen: ScreenDefinition }) {
                         rows: {
                           ...row,
                           "선택 상태": selected ? "선택됨" : "미선택",
-                          "개발 연결점": `${screen.id}.row.${absoluteIndex + 1}`,
+                          "구현 연결점": `${screen.id}.row.${absoluteIndex + 1}`,
                         },
                       })
                     }
@@ -11455,7 +12258,8 @@ function DataPanel({ screen }: { screen: ScreenDefinition }) {
               <CardHeader>
                 <CardTitle>테이블 상세</CardTitle>
                 <CardDescription>
-                  행 액션과 일괄 작업이 toast가 아니라 상세 패널 상태로 연결됩니다.
+                  행 액션과 일괄 작업이 toast가 아니라 상세 패널 상태로
+                  연결됩니다.
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-3 sm:grid-cols-2">
@@ -13703,7 +14507,8 @@ function PaymentDialogBody({ dialog, setDirty, contract }: DialogBodyProps) {
           <ul className="mt-3 space-y-2 text-xs leading-5">
             <li>· 실제 카드/PG/세금계산서/환불 처리는 호출하지 않습니다.</li>
             <li>
-              · 버튼은 contract key 기준으로 mock 동작만 표시합니다. 실제 service/API 연결은 퍼블리싱 범위 밖입니다.
+              · 버튼은 contract key 기준으로 mock 동작만 표시합니다. 실제
+              service/API 연결은 퍼블리싱 범위 밖입니다.
             </li>
             <li>· 정책 미확정 산식은 수기 입력/확인 필요 배지로 남깁니다.</li>
             {isRefund && (
@@ -14260,9 +15065,14 @@ function MockActionPanel({
               ["문서", panel.source],
               ["시각", panel.timestamp],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-xl border border-line bg-white p-3">
+              <div
+                key={label}
+                className="rounded-xl border border-line bg-white p-3"
+              >
                 <p className="font-bold text-content-tertiary">{label}</p>
-                <p className="mt-1 break-words font-semibold text-content">{value}</p>
+                <p className="mt-1 break-words font-semibold text-content">
+                  {value}
+                </p>
               </div>
             ))}
           </CardContent>
@@ -14277,7 +15087,8 @@ function MockActionPanel({
               액션의 화면 반응을 mock/local state로 보여주는 기준입니다.
             </p>
             <div className="rounded-xl bg-primary-light/40 p-3 text-xs font-semibold text-primary">
-              개발 연결점: {panel.screenId}.interaction.{normalizedMessage || panel.message}
+              구현 연결점: {panel.screenId}.interaction.
+              {normalizedMessage || panel.message}
             </div>
           </CardContent>
         </Card>
@@ -15900,7 +16711,10 @@ function ProductManagementScreen({
       {topTab === "products" && (
         <>
           {/* 상태 탭 5개 — admin-pando 1:1 */}
-          <div className="flex gap-6 overflow-x-auto border-b border-line" data-allow-horizontal-scroll="true">
+          <div
+            className="flex gap-6 overflow-x-auto border-b border-line"
+            data-allow-horizontal-scroll="true"
+          >
             {statusTabs.map((tab) => (
               <button
                 key={tab.key}
@@ -16217,10 +17031,14 @@ function ProductManagementScreen({
                     className="flex h-full flex-col p-1.5 text-[11px]"
                     role="dialog"
                     aria-modal="false"
-                    aria-label={isNewPanel ? "상품 등록 모달" : "상품 상세/수정 패널"}
+                    aria-label={
+                      isNewPanel ? "상품 등록 모달" : "상품 상세/수정 패널"
+                    }
                   >
                     <span className="sr-only">
-                      {isNewPanel ? "DLG-P001-상품등록모달 상품 등록 모달" : "SCR-P003 상품 상세/수정 패널"}
+                      {isNewPanel
+                        ? "DLG-P001-상품등록모달 상품 등록 모달"
+                        : "SCR-P003 상품 상세/수정 패널"}
                     </span>
                     <div className="mx-auto flex h-full w-full max-w-[980px] flex-col overflow-hidden rounded-sm border border-[#9ca7b6] bg-[#f4f4f4] shadow-sm">
                       <div className="flex items-center justify-between border-b border-[#9ca7b6] bg-[linear-gradient(180deg,#fdfefe_0%,#dfe6ef_100%)] px-2.5 py-1">

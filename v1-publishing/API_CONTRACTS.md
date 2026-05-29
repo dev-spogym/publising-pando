@@ -1,6 +1,6 @@
 # V1 Publishing Mock Contracts
 
-Generated: 2026-05-29T08:26:08.943Z
+Generated: 2026-05-29T11:37:46.632Z
 
 > 실제 API/DB/비즈니스 로직은 구현하지 않습니다. 아래 endpoint/request/response는 개발사가 후속 구현 범위를 이해할 수 있도록 표시한 mock contract입니다.
 
@@ -1400,7 +1400,7 @@ Generated: 2026-05-29T08:26:08.943Z
 ### SCR-092 지점 관리
 - Route: `/branches`
 - Handoff: template-ready
-- Query Params: `지점명-주소-키워드`, `운영-상태-전체-운영-중-오픈-예정-임시휴업-폐점`
+- Query Params: `지점명-주소-키워드`, `운영-상태-전체-운영-중-오픈-예정-임시휴업-폐점`, `권역`, `점주-매니저`, `iot-동기화-상태`, `계약-정산-상태`
 - States: loading skeleton, empty state, filtered result, validation error, permission blocked, policy pending, mock success toast
 
 | Key | Method | Endpoint | Purpose | Response |

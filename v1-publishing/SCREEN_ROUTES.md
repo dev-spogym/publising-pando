@@ -1,6 +1,6 @@
 # V1 Screen Routes
 
-Generated: 2026-05-29T08:26:08.943Z
+Generated: 2026-05-29T11:37:46.632Z
 
 | ID | 화면 | Domain | Route | Handoff | DLG | Source |
 |---|---|---|---|---|---:|---|

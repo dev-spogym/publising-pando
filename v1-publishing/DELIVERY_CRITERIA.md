@@ -1,6 +1,6 @@
 # V1 Publishing Delivery Criteria
 
-Generated: 2026-05-29T08:26:08.943Z
+Generated: 2026-05-29T11:37:46.632Z
 
 ## 퍼블리싱 정의
 - 모든 버튼/탭/필터/모달/폼은 클릭 가능해야 한다.
