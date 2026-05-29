@@ -1,11 +1,11 @@
 # V1 Publishing Delivery Criteria
 
-Generated: 2026-05-29T00:39:03.295Z
+Generated: 2026-05-29T08:26:08.943Z
 
 ## 퍼블리싱 정의
 - 모든 버튼/탭/필터/모달/폼은 클릭 가능해야 한다.
 - 실제 API/DB/결제/알림 발송은 제외하지만, 화면 안에서는 mock state, toast, validation, disabled reason, policy notice로 피드백을 제공해야 한다.
-- 개발사는 본 산출물의 contract 문서를 기준으로 API와 비즈니스 로직을 연결한다.
+- 본 산출물은 퍼블리싱/목데이터 기준의 화면 계약이며, API와 비즈니스 로직 구현은 범위 밖이다.
 
 ## Done 기준
 1. SCR/DLG 문서 커버리지 100%.

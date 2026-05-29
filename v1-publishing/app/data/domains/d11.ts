@@ -144,7 +144,7 @@ export const d11Screens: ScreenDefinition[] = [
     id: "SCR-I005",
     title: "고정 물품 락커 관리",
     domain: "D11",
-    route: "/locker/management",
+    route: "/locker/fixed-assets",
     source: "share/docs4/V1/D11-통합운영/통합운영.md:351",
     feature: "FAC-EXT-01, IOT-04",
     purpose:

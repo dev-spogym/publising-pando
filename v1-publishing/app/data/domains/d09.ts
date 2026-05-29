@@ -118,8 +118,8 @@ export const d09Screens: ScreenDefinition[] = [
     roleNotes: { HQ_ADMIN: "전체 지점 설정 조회·본사 정책 항목 수정.", OWNER: "소속 지점 기기 설정·출입 규칙 수정.", MANAGER: "조회만 가능.", TRAINER: "접근 불가.", FC: "접근 불가.", STAFF: "접근 불가." }
   },
   {
-    id: "SCR-083", title: "IoT 출입 관리", domain: "D09", route: "/settings/iot", source: v1Source, feature: "IOT-EXT",
-    purpose: "IoT 출입 관련 기기 설정값·출입 방식 관리. 고정 기기 4종(출입 게이트/키오스크/락커 컨트롤러/InBody) + 출입 인증 수단(밴드/QR/얼굴/핀번호). 헬스체크 5분 주기. SCR-082A와 동일 `/settings/iot` 페이지 탭.",
+    id: "SCR-083", title: "IoT 출입 관리", domain: "D09", route: "/settings/iot/access", source: v1Source, feature: "IOT-EXT",
+    purpose: "IoT 출입 관련 기기 설정값·출입 방식 관리. 고정 기기 4종(출입 게이트/키오스크/락커 컨트롤러/InBody) + 출입 인증 수단(밴드/QR/얼굴/핀번호). 헬스체크 5분 주기. SCR-082A와 같은 IoT 설정군이지만 전수 검수를 위해 /settings/iot/access 독립 route로 분리.",
     tabs: ["키오스크 IoT 설정(SCR-082A)", "IoT 출입 관리(현재)"],
     metrics: [{ label: "연결 기기", value: "12대 OK", hint: "헬스체크 5분 주기" }, { label: "출입 수단", value: "RFID·QR·얼굴·핀 4종", hint: "복수 활성" }, { label: "중복 출입 방지", value: "30분", hint: "동일 회원 재입장" }, { label: "이력 보관", value: "90일", hint: "법정 최소 30일" }],
     filters: ["연결 상태(OK/불안정/오류)", "기기 종류 4종", "출입 수단 4종"],

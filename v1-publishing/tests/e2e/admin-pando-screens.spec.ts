@@ -3,6 +3,28 @@ import { expect, test } from "@playwright/test";
 // admin-pando 1:1 이식 + docs4 V1+V2 컨텐츠 + 모든 mock 인터랙션 동작 검증.
 // 작업한 7개 화면(POS/공지/직원/급여/KPI/출석/리드/메시지)의 핵심 인터랙션 검증.
 
+test.describe("퍼블리싱 UX 산출물 기준", () => {
+  test("설명/DLG/핸드오프 정보는 본문이 아니라 닫히는 문서/계약 사이드바에만 노출된다", async ({ page }) => {
+    await page.goto("/members/edit");
+
+    const main = page.getByRole("main");
+    await expect(main.getByText("문서 연결 DLG")).not.toBeVisible();
+    await expect(main.getByText("퍼블리싱 인수 기준")).not.toBeVisible();
+    await expect(main.getByText("변경 감지 / 동시 편집")).not.toBeVisible();
+
+    await page.getByRole("button", { name: "문서/계약" }).click();
+    await expect(page.getByTestId("screen-support-drawer")).toBeVisible();
+    await expect(page.getByText("문서 연결 DLG")).toBeVisible();
+    await expect(page.getByTestId("screen-support-drawer")).toContainText("퍼블리싱 인수 기준");
+    await expect(page.getByText("변경 감지 / 동시 편집")).toBeVisible();
+    await page.getByRole("button", { name: "닫기", exact: true }).click();
+    await expect(page.getByTestId("screen-support-drawer")).not.toBeVisible();
+
+    await page.goto("/settings");
+    await expect(page.getByRole("main").getByText("프론트 상태 명세")).not.toBeVisible();
+  });
+});
+
 test.describe("SCR-S002 POS 판매", () => {
   test("카테고리 탭 4종 + 상품 그리드 + 장바구니 추가 mock 동작", async ({ page }) => {
     await page.goto("/sales/pos");
@@ -32,6 +54,10 @@ test.describe("SCR-085 공지사항", () => {
     await page.getByRole("button", { name: /^등록$/ }).first().click();
     // 닫기
     await page.getByRole("button", { name: /^취소$/ }).first().click();
+    // 목록 클릭 시 docs4 V2 우측 상세 패널
+    await page.getByText(/시설 점검 안내/).first().click();
+    await expect(page.getByTestId("notice-detail-slide-panel")).toBeVisible();
+    await expect(page.getByText(/docs4 V2 SCR-085/).first()).toBeVisible();
   });
 });
 
@@ -103,6 +129,11 @@ test.describe("SCR-070 리드 관리", () => {
     }
     // 목록 뷰 전환
     await page.getByRole("button", { name: /^목록$/ }).first().click();
+    // 행 클릭 시 docs4 V1 우측 상세 패널
+    await page.getByRole("row", { name: /강민지/ }).click();
+    await expect(page.getByTestId("lead-detail-slide-panel")).toBeVisible();
+    await expect(page.getByText(/docs4 V1 SCR-070/).first()).toBeVisible();
+    await page.getByTestId("lead-detail-slide-panel").getByRole("button", { name: /^닫기$/ }).last().click();
     // 등록 모달
     await page.getByRole("button", { name: /\+ 리드 등록|\+ 새 리드 등록/ }).first().click();
     await expect(page.getByText("새 리드 등록").first()).toBeVisible();
@@ -122,5 +153,70 @@ test.describe("SCR-071 메시지 발송", () => {
     await expect(page.getByText("새 메시지 발송").first()).toBeVisible();
     // 비용 안내 (카카오/SMS 가격 라벨)
     await expect(page.getByText(/15원|30원/).first()).toBeVisible();
+  });
+});
+
+test.describe("SCR-M004 회원 상세", () => {
+  test("admin-pando 목업처럼 운영 코크핏, 헤더 액션, 15개 탭, 주요 탭 콘텐츠가 보인다", async ({ page }) => {
+    await page.goto("/members/detail");
+
+    await expect(page.getByTestId("member-detail-screen")).toBeVisible();
+    await expect(page.getByTestId("member-detail-cockpit")).toBeVisible();
+    await expect(page.getByText("Operation Cockpit").first()).toBeVisible();
+    await expect(page.getByText("지금 바로 처리할 운영 이슈").first()).toBeVisible();
+    await expect(page.getByText("Recent Signals").first()).toBeVisible();
+
+    for (const action of ["수동출석", "상품구매", "메시지", "마일리지 조정", "운동 프로그램 배정", "지점이관", "탈퇴"]) {
+      await expect(page.getByRole("button", { name: new RegExp(action) }).first()).toBeVisible();
+    }
+    await expect(page.getByRole("link", { name: /수정/ }).first()).toBeVisible();
+
+    for (const tab of ["회원정보", "이용권", "출석 이력", "결제 이력", "결제내역", "예약내역", "상세내역", "체성분", "상담·메모", "레슨", "신체정보", "종합평가", "상담이력", "운동프로그램", "운동이력"]) {
+      await expect(page.getByRole("tab", { name: new RegExp(tab) }).first()).toBeVisible();
+    }
+
+    await expect(page.getByText("기본 정보").first()).toBeVisible();
+    await expect(page.getByText("운영 정보").first()).toBeVisible();
+
+    await page.getByRole("tab", { name: /결제내역/ }).click();
+    await expect(page.getByText("결제내역 상세").first()).toBeVisible();
+    await expect(page.getByText("환불 숨김").first()).toBeVisible();
+
+    await page.getByRole("tab", { name: /체성분/ }).click();
+    await expect(page.getByText("체성분 기록").first()).toBeVisible();
+    await page.getByRole("button", { name: /측정 추가/ }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByText(/체성분/).first()).toBeVisible();
+  });
+});
+
+test.describe("문서/계약 사이드바와 운영 큐", () => {
+  test("문서/계약은 docs4 V1/V2 출처, 화면 구현 기준, 액션 계약, DLG 근거를 보여준다", async ({ page }) => {
+    await page.goto("/members/detail");
+    await page.getByRole("button", { name: "문서/계약" }).click();
+
+    await expect(page.getByTestId("screen-support-drawer")).toBeVisible();
+    await expect(page.getByText("docs4 V1/V2 출처")).toBeVisible();
+    await expect(page.getByText("화면 구현 기준")).toBeVisible();
+    await expect(page.getByText("문서 기준 액션 계약")).toBeVisible();
+    await expect(page.getByText("역할별 표시/권한 메모")).toBeVisible();
+    await expect(page.getByText("DLG별 목적/근거")).toBeVisible();
+    await expect(page.getByText(/DLG-M003|DLG-M004|DLG-M009/).first()).toBeVisible();
+  });
+
+  test("본사 검토 큐는 사유·대상·담당·마감이 있는 상세 사이드 패널로 열린다", async ({ page }) => {
+    await page.goto("/dashboard/builder");
+
+    await expect(page.getByText("본사 검토 큐")).toBeVisible();
+    await expect(page.getByText("KPI 예외 검토")).toBeVisible();
+    await expect(page.getByText("강남점 매출 전월대비 -12%")).toBeVisible();
+    await expect(page.getByText("오늘 리포트 전")).toBeVisible();
+
+    await page.getByRole("button", { name: /KPI 예외 검토/ }).click();
+    await expect(page.getByTestId("scr-h1002-queue-detail-panel")).toBeVisible();
+    await expect(page.getByText("처리 근거")).toBeVisible();
+    await expect(page.getByText("docs4 근거 / 퍼블리싱 계약")).toBeVisible();
+    await expect(page.getByTestId("scr-h1002-queue-detail-panel").getByText("커스텀 대시보드 지표 임계값 초과")).toBeVisible();
+    await expect(page.getByRole("button", { name: "KPI 상세" })).toBeVisible();
   });
 });

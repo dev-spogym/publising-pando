@@ -1,6 +1,6 @@
 # V1 Screen Routes
 
-Generated: 2026-05-29T00:39:03.295Z
+Generated: 2026-05-29T08:26:08.943Z
 
 | ID | 화면 | Domain | Route | Handoff | DLG | Source |
 |---|---|---|---|---|---:|---|
@@ -10,7 +10,7 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-M001 | 회원 목록 | D02 | `/members` | production-ready | 4 | docs4/V1/D02-회원관리/회원관리.md |
 | SCR-M002 | 회원 등록 | D02 | `/members/new` | production-ready | 4 | docs4/V1/D02-회원관리/회원관리.md |
 | SCR-M003 | 회원 수정 | D02 | `/members/edit` | production-ready | 4 | docs4/V1/D02-회원관리/회원관리.md:265 |
-| SCR-M004 | 회원 상세 | D02 | `/members/detail` | production-ready | 15 | docs4/V1/D02-회원관리/회원관리.md |
+| SCR-M004 | 회원 상세 | D02 | `/members/detail` | production-ready | 16 | docs4/V1/D02-회원관리/회원관리.md |
 | SCR-M005 | 회원 이관 | D02 | `/members/transfer` | production-ready | 1 | docs4/V1/D02-회원관리/회원관리.md:434 |
 | SCR-M006 | 체성분 관리 | D02 | `/body-composition` | production-ready | 3 | docs4/V1/D02-회원관리/회원관리.md:545 |
 | SCR-M007 | 회원 병합 | D02 | `/members/merge` | production-ready | 1 | docs4/V1/D02-회원관리/회원관리.md:658 |
@@ -24,11 +24,19 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-S005 | 통계 관리 | D03 | `/sales/statistics-admin` | policy-pending | 1 | docs4/V1/D03-매출관리/매출관리.md |
 | SCR-S006 | 선수익금 조회 | D03 | `/sales/deferred-revenue` | policy-pending | 1 | docs4/V1/D03-매출관리/매출관리.md:457 |
 | SCR-S007 | 환불 관리 | D03 | `/sales/refunds` | policy-pending | 4 | docs4/V1/D03-매출관리/매출관리.md:550 |
-| SCR-S008 | 미수금 관리 | D03 | `/sales/receivables` | production-ready | 2 | docs4/V1/D03-매출관리/매출관리.md:635 |
+| SCR-S008 | 미수금 관리 | D03 | `/sales/receivables` | production-ready | 3 | docs4/V1/D03-매출관리/매출관리.md:635 |
 | SCR-S009 | 할부결제 관리 | D03 | `/sales/installments` | production-ready | 3 | docs4/V1/D03-매출관리/매출관리.md:711 |
 | SCR-S010 | 세금계산서 발행 | D03 | `/sales/tax-invoice` | policy-pending | 2 | docs4/V1/D03-매출관리/매출관리.md:872 |
 | SCR-S011 | 매출 예측 | D03 | `/sales/forecast` | policy-pending | 1 | docs4/V1/D03-매출관리/매출관리.md |
 | SCR-S012 | 결제 취소 / 부분 환불 | D03 | `/sales/refund-partial` | policy-pending | 3 | docs4/V1/D03-매출관리/매출관리.md:1105 |
+| SCR-101 | 대시보드 통합 | D01 | `/hq/super-dashboard` | policy-pending | 2 | share/docs4/V2/D01-공통/공통.md |
+| SCR-102 | 사이드바 네비게이션 | D01 | `/components/sidebar` | policy-pending | 1 | share/docs4/V2/D01-공통/공통.md |
+| SCR-103 | 글로벌 검색 | D01 | `/search` | policy-pending | 0 | share/docs4/V2/D01-공통/공통.md |
+| SCR-105 | 프로필 / 계정 설정 | D01 | `/profile` | policy-pending | 3 | share/docs4/V2/D01-공통/공통.md |
+| SCR-106 | 비밀번호 재설정 | D01 | `/password-reset` | policy-pending | 1 | share/docs4/V2/D01-공통/공통.md |
+| SCR-107 | 화면설계서 오버레이 (Cmd+/) | D01 | `/spec-overlay` | policy-pending | 0 | share/docs4/V2/D01-공통/공통.md |
+| SCR-108 | 에러 페이지 | D01 | `/error` | policy-pending | 0 | share/docs4/V2/D01-공통/공통.md |
+| SCR-109 | 로그아웃 | D01 | `/logout` | policy-pending | 1 | share/docs4/V2/D01-공통/공통.md |
 | SCR-C001 | 수업 캘린더 | D04 | `/classes/c001` | template-ready | 4 | docs4/V1/D04-수업관리/수업관리.md |
 | SCR-C002 | 수업 관리 | D04 | `/lessons` | template-ready | 3 | docs4/V1/D04-수업관리/수업관리.md |
 | SCR-C003 | 시간표 일괄 등록 | D04 | `/class-schedule` | template-ready | 1 | docs4/V1/D04-수업관리/수업관리.md |
@@ -62,7 +70,7 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-056 | 장비 점검 일정 | D06 | `/equipment-check` | policy-pending | 3 | docs4/V2/D06-시설관리/시설관리.md |
 | SCR-057 | 소모품 재고 관리 | D06 | `/consumables` | policy-pending | 3 | docs4/V2/D06-시설관리/시설관리.md |
 | SCR-058 | 청소 스케줄 | D06 | `/cleaning-schedule` | policy-pending | 1 | docs4/V2/D06-시설관리/시설관리.md |
-| SCR-059 | 공간 자산 관리 | D06 | `/rooms` | policy-pending | 0 | docs4/V2/D06-시설관리/시설관리.md |
+| SCR-059 | 공간 자산 관리 | D06 | `/rooms/assets` | policy-pending | 0 | docs4/V2/D06-시설관리/시설관리.md |
 | SCR-060 | 직원 목록 | D07 | `/staff` | template-ready | 2 | docs4/V1/D07-직원관리/직원관리.md |
 | SCR-061 | 직원 등록/수정 | D07 | `/staff/new` | template-ready | 1 | docs4/V1/D07-직원관리/직원관리.md |
 | SCR-062 | 직원 퇴사 처리 | D07 | `/staff/resignation` | template-ready | 1 | docs4/V1/D07-직원관리/직원관리.md |
@@ -72,7 +80,7 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-070 | 리드 관리 | D08 | `/leads` | template-ready | 2 | docs4/V1/D08-마케팅/마케팅.md |
 | SCR-071 | 메시지 발송 | D08 | `/message` | template-ready | 2 | docs4/V1/D08-마케팅/마케팅.md |
 | SCR-072 | 자동 알림 설정 | D08 | `/message/auto-alarm` | template-ready | 2 | docs4/V1/D08-마케팅/마케팅.md |
-| SCR-072A | 자동알림 운영현황 | D08 | `/message/auto-alarm` | template-ready | 1 | docs4/V1/D08-마케팅/마케팅.md |
+| SCR-072A | 자동알림 운영현황 | D08 | `/message/auto-alarm/operations` | template-ready | 1 | docs4/V1/D08-마케팅/마케팅.md |
 | SCR-073 | 쿠폰 관리 | D08 | `/message/coupon` | template-ready | 3 | docs4/V1/D08-마케팅/마케팅.md |
 | SCR-074 | 마일리지 관리 | D08 | `/mileage` | template-ready | 2 | docs4/V1/D08-마케팅/마케팅.md |
 | SCR-075 | 전자 계약 | D08 | `/contracts/new` | template-ready | 0 | docs4/V1/D08-마케팅/마케팅.md |
@@ -85,7 +93,7 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-081 | 권한 설정 | D09 | `/settings/permissions` | template-ready | 6 | docs4/V1/D09-설정관리/설정관리.md |
 | SCR-082 | 키오스크 설정 | D09 | `/settings/082` | template-ready | 1 | docs4/V1/D09-설정관리/설정관리.md |
 | SCR-082A | 키오스크 IoT 설정 | D09 | `/settings/iot` | template-ready | 0 | docs4/V1/D09-설정관리/설정관리.md |
-| SCR-083 | IoT 출입 관리 | D09 | `/settings/iot` | template-ready | 0 | docs4/V1/D09-설정관리/설정관리.md |
+| SCR-083 | IoT 출입 관리 | D09 | `/settings/iot/access` | template-ready | 0 | docs4/V1/D09-설정관리/설정관리.md |
 | SCR-084 | 구독 결제 관리 | D09 | `/subscription` | template-ready | 2 | docs4/V1/D09-설정관리/설정관리.md |
 | SCR-085 | 공지사항 관리 | D09 | `/notices` | policy-pending | 2 | docs4/V2/D09-설정관리/설정관리.md |
 | SCR-086 | 출석 관리 설정 | D09 | `/settings/attendance` | template-ready | 1 | docs4/V1/D09-설정관리/설정관리.md |
@@ -109,6 +117,8 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-H1004 | 예측 분석 | D10 | `/analytics/forecast` | policy-pending | 0 | share/docs4/V1/D10-본사관리/본사관리.md:600 |
 | SCR-I001 | 통합 출석 관리 | D11 | `/attendance` | template-ready | 2 | share/docs4/V1/D11-통합운영/통합운영.md:32 |
 | SCR-I004 | 옷 락커 운영 관리 | D11 | `/clothing-locker` | template-ready | 1 | share/docs4/V1/D11-통합운영/통합운영.md:240 |
-| SCR-I005 | 고정 물품 락커 관리 | D11 | `/locker/management` | template-ready | 0 | share/docs4/V1/D11-통합운영/통합운영.md:351 |
+| SCR-I005 | 고정 물품 락커 관리 | D11 | `/locker/fixed-assets` | template-ready | 0 | share/docs4/V1/D11-통합운영/통합운영.md:351 |
 | SCR-I006 | 체성분 통합 관리 | D11 | `/body-composition-2` | template-ready | 1 | share/docs4/V1/D11-통합운영/통합운영.md:470 |
+| SCR-I003 | IoT 연동 관리 | D11 | `/iot-overview` | policy-pending | 0 | share/docs4/V1/D11-통합운영/통합운영.md:196 |
 | SCR-I007 | 회원 건강 연동 요약 | D11 | `/members/health` | template-ready | 1 | share/docs4/V1/D11-통합운영/통합운영.md:584 |
+| SCR-I008 | 키오스크 운영 현황 | D11 | `/kiosk-ops` | policy-pending | 0 | share/docs4/V1/D11-통합운영/통합운영.md:718 |

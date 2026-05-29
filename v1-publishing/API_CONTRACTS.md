@@ -1,8 +1,8 @@
-# V1 API Contracts for Development Handoff
+# V1 Publishing Mock Contracts
 
-Generated: 2026-05-29T00:39:03.295Z
+Generated: 2026-05-29T08:26:08.943Z
 
-> 실제 API는 구현하지 않습니다. 아래 endpoint/request/response는 개발 연결용 mock contract입니다.
+> 실제 API/DB/비즈니스 로직은 구현하지 않습니다. 아래 endpoint/request/response는 개발사가 후속 구현 범위를 이해할 수 있도록 표시한 mock contract입니다.
 
 ## Screen Contracts
 ### SCR-100 로그인
@@ -271,6 +271,7 @@ Generated: 2026-05-29T00:39:03.295Z
 |---|---|---|---|---|
 | SCR-S008.list | GET | `/api/admin/sales/receivables` | 미수금 관리 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-S008", rows, metrics, permissions, policyFlags }` |
 | SCR-S008.납입-처리 | PATCH | `/api/admin/sales/receivables/actions/납입-처리` | 미수금 관리 - 납입 처리 처리 | `{ ok: true, toast: "납입 처리 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-S008.결제링크-발송-s016-v2 | PATCH | `/api/admin/sales/receivables/actions/결제링크-발송-s016-v2` | 미수금 관리 - 결제링크 발송 (DLG-S016, V2) 처리 | `{ ok: true, toast: "결제링크 발송 (DLG-S016, V2) mock 처리 완료", updatedRows?, nextState? }` |
 | SCR-S008.메모-편집 | PATCH | `/api/admin/sales/receivables/actions/메모-편집` | 미수금 관리 - 메모 편집 처리 | `{ ok: true, toast: "메모 편집 mock 처리 완료", updatedRows?, nextState? }` |
 | SCR-S008.엑셀-내보내기 | PATCH | `/api/admin/sales/receivables/actions/엑셀-내보내기` | 미수금 관리 - 엑셀 내보내기 처리 | `{ ok: true, toast: "엑셀 내보내기 mock 처리 완료", updatedRows?, nextState? }` |
 
@@ -326,6 +327,116 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-S012.환불-처리-owner-완료 | POST | `/api/admin/sales/refund-partial/actions/환불-처리-owner-완료` | 결제 취소 / 부분 환불 - 환불 처리 (Owner 완료) 처리 | `{ ok: true, toast: "환불 처리 (Owner 완료) mock 처리 완료", updatedRows?, nextState? }` |
 | SCR-S012.처리-결과-보기 | PATCH | `/api/admin/sales/refund-partial/actions/처리-결과-보기` | 결제 취소 / 부분 환불 - 처리 결과 보기 처리 | `{ ok: true, toast: "처리 결과 보기 mock 처리 완료", updatedRows?, nextState? }` |
 | SCR-S012.전체-취소-부분-환불-선택 | POST | `/api/admin/sales/refund-partial/actions/전체-취소-부분-환불-선택` | 결제 취소 / 부분 환불 - 전체 취소 / 부분 환불 선택 처리 | `{ ok: true, toast: "전체 취소 / 부분 환불 선택 mock 처리 완료", updatedRows?, nextState? }` |
+
+### SCR-101 대시보드 통합
+- Route: `/hq/super-dashboard`
+- Handoff: policy-pending
+- Query Params: `지점-필터-전체-특정-지점`, `역할-빠른-액션-패널`, `실시간-출석-카드-새로고침`
+- States: loading skeleton, empty state, filtered result, validation error, permission blocked, policy pending, mock success toast
+
+| Key | Method | Endpoint | Purpose | Response |
+|---|---|---|---|---|
+| SCR-101.list | GET | `/api/admin/hq/super-dashboard` | 대시보드 통합 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-101", rows, metrics, permissions, policyFlags }` |
+| SCR-101.지점-필터-변경 | PATCH | `/api/admin/hq/super-dashboard/actions/지점-필터-변경` | 대시보드 통합 - 지점 필터 변경 처리 | `{ ok: true, toast: "지점 필터 변경 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-101.오늘-집중-업무-우선순위-보기 | PATCH | `/api/admin/hq/super-dashboard/actions/오늘-집중-업무-우선순위-보기` | 대시보드 통합 - 오늘 집중 업무 우선순위 보기 처리 | `{ ok: true, toast: "오늘 집중 업무 우선순위 보기 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-101.엑셀-내보내기 | PATCH | `/api/admin/hq/super-dashboard/actions/엑셀-내보내기` | 대시보드 통합 - 엑셀 내보내기 처리 | `{ ok: true, toast: "엑셀 내보내기 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-101.로그아웃 | PATCH | `/api/admin/hq/super-dashboard/actions/로그아웃` | 대시보드 통합 - 로그아웃 처리 | `{ ok: true, toast: "로그아웃 mock 처리 완료", updatedRows?, nextState? }` |
+
+### SCR-102 사이드바 네비게이션
+- Route: `/components/sidebar`
+- Handoff: policy-pending
+- Query Params: `역할-선택`, `펼침-접힘-토글`, `모바일-시뮬레이션`
+- States: loading skeleton, empty state, filtered result, validation error, permission blocked, policy pending, mock success toast
+
+| Key | Method | Endpoint | Purpose | Response |
+|---|---|---|---|---|
+| SCR-102.list | GET | `/api/admin/components/sidebar` | 사이드바 네비게이션 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-102", rows, metrics, permissions, policyFlags }` |
+| SCR-102.역할-전환-시뮬레이션 | PATCH | `/api/admin/components/sidebar/actions/역할-전환-시뮬레이션` | 사이드바 네비게이션 - 역할 전환 시뮬레이션 처리 | `{ ok: true, toast: "역할 전환 시뮬레이션 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-102.펼침-접힘-토글 | PATCH | `/api/admin/components/sidebar/actions/펼침-접힘-토글` | 사이드바 네비게이션 - 펼침/접힘 토글 처리 | `{ ok: true, toast: "펼침/접힘 토글 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-102.모바일-햄버거-메뉴-열기 | PATCH | `/api/admin/components/sidebar/actions/모바일-햄버거-메뉴-열기` | 사이드바 네비게이션 - 모바일 햄버거 메뉴 열기 처리 | `{ ok: true, toast: "모바일 햄버거 메뉴 열기 mock 처리 완료", updatedRows?, nextState? }` |
+
+### SCR-103 글로벌 검색
+- Route: `/search`
+- Handoff: policy-pending
+- Query Params: `검색-카테고리-토글`, `최근-검색어-표시-on-off`
+- States: loading skeleton, empty state, filtered result, validation error, permission blocked, policy pending, mock success toast
+
+| Key | Method | Endpoint | Purpose | Response |
+|---|---|---|---|---|
+| SCR-103.list | GET | `/api/admin/search` | 글로벌 검색 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-103", rows, metrics, permissions, policyFlags }` |
+| SCR-103.검색-오버레이-열기-cmd-k | PATCH | `/api/admin/search/actions/검색-오버레이-열기-cmd-k` | 글로벌 검색 - 검색 오버레이 열기 (Cmd+K) 처리 | `{ ok: true, toast: "검색 오버레이 열기 (Cmd+K) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-103.최근-검색어-삭제 | POST | `/api/admin/search/actions/최근-검색어-삭제` | 글로벌 검색 - 최근 검색어 삭제 처리 | `{ ok: true, toast: "최근 검색어 삭제 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-103.결과-클릭-상세-이동 | PATCH | `/api/admin/search/actions/결과-클릭-상세-이동` | 글로벌 검색 - 결과 클릭 → 상세 이동 처리 | `{ ok: true, toast: "결과 클릭 → 상세 이동 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-103.esc로-닫기 | PATCH | `/api/admin/search/actions/esc로-닫기` | 글로벌 검색 - ESC로 닫기 처리 | `{ ok: true, toast: "ESC로 닫기 mock 처리 완료", updatedRows?, nextState? }` |
+
+### SCR-105 프로필 / 계정 설정
+- Route: `/profile`
+- Handoff: policy-pending
+- Query Params: `탭-전환`, `비밀번호-변경`, `다른-기기-로그아웃`
+- States: loading skeleton, empty state, filtered result, validation error, permission blocked, policy pending, mock success toast
+
+| Key | Method | Endpoint | Purpose | Response |
+|---|---|---|---|---|
+| SCR-105.list | GET | `/api/admin/profile` | 프로필 / 계정 설정 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-105", rows, metrics, permissions, policyFlags }` |
+| SCR-105.저장-004 | PATCH | `/api/admin/profile/actions/저장-004` | 프로필 / 계정 설정 - 저장 (DLG-004) 처리 | `{ ok: true, toast: "저장 (DLG-004) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-105.비밀번호-변경-106 | PATCH | `/api/admin/profile/actions/비밀번호-변경-106` | 프로필 / 계정 설정 - 비밀번호 변경 → SCR-106 처리 | `{ ok: true, toast: "비밀번호 변경 → SCR-106 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-105.다른-기기-로그아웃 | PATCH | `/api/admin/profile/actions/다른-기기-로그아웃` | 프로필 / 계정 설정 - 다른 기기 로그아웃 처리 | `{ ok: true, toast: "다른 기기 로그아웃 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-105.이탈-경고-002 | PATCH | `/api/admin/profile/actions/이탈-경고-002` | 프로필 / 계정 설정 - 이탈 경고 (DLG-002) 처리 | `{ ok: true, toast: "이탈 경고 (DLG-002) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-105.로그아웃-001 | PATCH | `/api/admin/profile/actions/로그아웃-001` | 프로필 / 계정 설정 - 로그아웃 (DLG-001) 처리 | `{ ok: true, toast: "로그아웃 (DLG-001) mock 처리 완료", updatedRows?, nextState? }` |
+
+### SCR-106 비밀번호 재설정
+- Route: `/password-reset`
+- Handoff: policy-pending
+- Query Params: `첫-로그인-강제-모드-본인-변경-모드`
+- States: loading skeleton, empty state, filtered result, validation error, permission blocked, policy pending, mock success toast
+
+| Key | Method | Endpoint | Purpose | Response |
+|---|---|---|---|---|
+| SCR-106.list | GET | `/api/admin/password-reset` | 비밀번호 재설정 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-106", rows, metrics, permissions, policyFlags }` |
+| SCR-106.비밀번호-변경-004 | PATCH | `/api/admin/password-reset/actions/비밀번호-변경-004` | 비밀번호 재설정 - 비밀번호 변경 (DLG-004) 처리 | `{ ok: true, toast: "비밀번호 변경 (DLG-004) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-106.취소-105 | PATCH | `/api/admin/password-reset/actions/취소-105` | 비밀번호 재설정 - 취소 → SCR-105 처리 | `{ ok: true, toast: "취소 → SCR-105 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-106.첫-로그인-모드-강제-변경-차단 | PATCH | `/api/admin/password-reset/actions/첫-로그인-모드-강제-변경-차단` | 비밀번호 재설정 - 첫 로그인 모드 강제 변경 차단 처리 | `{ ok: true, toast: "첫 로그인 모드 강제 변경 차단 mock 처리 완료", updatedRows?, nextState? }` |
+
+### SCR-107 화면설계서 오버레이 (Cmd+/)
+- Route: `/spec-overlay`
+- Handoff: policy-pending
+- Query Params: `오버레이-on-off`, `탭-전환`
+- States: loading skeleton, empty state, filtered result, validation error, permission blocked, policy pending, mock success toast
+
+| Key | Method | Endpoint | Purpose | Response |
+|---|---|---|---|---|
+| SCR-107.list | GET | `/api/admin/spec-overlay` | 화면설계서 오버레이 (Cmd+/) 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-107", rows, metrics, permissions, policyFlags }` |
+| SCR-107.오버레이-토글-cmd | PATCH | `/api/admin/spec-overlay/actions/오버레이-토글-cmd` | 화면설계서 오버레이 (Cmd+/) - 오버레이 토글 (Cmd+/) 처리 | `{ ok: true, toast: "오버레이 토글 (Cmd+/) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-107.docs4-출처-파일-열기-외부-링크 | PATCH | `/api/admin/spec-overlay/actions/docs4-출처-파일-열기-외부-링크` | 화면설계서 오버레이 (Cmd+/) - docs4 출처 파일 열기(외부 링크) 처리 | `{ ok: true, toast: "docs4 출처 파일 열기(외부 링크) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-107.dlg-출처로-이동 | PATCH | `/api/admin/spec-overlay/actions/dlg-출처로-이동` | 화면설계서 오버레이 (Cmd+/) - DLG 출처로 이동 처리 | `{ ok: true, toast: "DLG 출처로 이동 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-107.현재-권한-매트릭스-펼침 | POST | `/api/admin/spec-overlay/actions/현재-권한-매트릭스-펼침` | 화면설계서 오버레이 (Cmd+/) - 현재 권한 매트릭스 펼침 처리 | `{ ok: true, toast: "현재 권한 매트릭스 펼침 mock 처리 완료", updatedRows?, nextState? }` |
+
+### SCR-108 에러 페이지
+- Route: `/error`
+- Handoff: policy-pending
+- Query Params: `에러-코드-시뮬레이션`
+- States: loading skeleton, empty state, filtered result, validation error, permission blocked, policy pending, mock success toast
+
+| Key | Method | Endpoint | Purpose | Response |
+|---|---|---|---|---|
+| SCR-108.list | GET | `/api/admin/error` | 에러 페이지 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-108", rows, metrics, permissions, policyFlags }` |
+| SCR-108.홈으로-이동 | PATCH | `/api/admin/error/actions/홈으로-이동` | 에러 페이지 - 홈으로 이동 처리 | `{ ok: true, toast: "홈으로 이동 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-108.다시-시도 | PATCH | `/api/admin/error/actions/다시-시도` | 에러 페이지 - 다시 시도 처리 | `{ ok: true, toast: "다시 시도 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-108.관리자-문의-에러-id-복사 | PATCH | `/api/admin/error/actions/관리자-문의-에러-id-복사` | 에러 페이지 - 관리자 문의 (에러 ID 복사) 처리 | `{ ok: true, toast: "관리자 문의 (에러 ID 복사) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-108.이전-페이지 | PATCH | `/api/admin/error/actions/이전-페이지` | 에러 페이지 - 이전 페이지 처리 | `{ ok: true, toast: "이전 페이지 mock 처리 완료", updatedRows?, nextState? }` |
+
+### SCR-109 로그아웃
+- Route: `/logout`
+- Handoff: policy-pending
+- Query Params: `다른-기기-세션-함께-종료-on-off`
+- States: loading skeleton, empty state, filtered result, validation error, permission blocked, policy pending, mock success toast
+
+| Key | Method | Endpoint | Purpose | Response |
+|---|---|---|---|---|
+| SCR-109.list | GET | `/api/admin/logout` | 로그아웃 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-109", rows, metrics, permissions, policyFlags }` |
+| SCR-109.로그아웃-확인-001 | PATCH | `/api/admin/logout/actions/로그아웃-확인-001` | 로그아웃 - 로그아웃 확인 (DLG-001) 처리 | `{ ok: true, toast: "로그아웃 확인 (DLG-001) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-109.다른-기기-세션-함께-종료 | PATCH | `/api/admin/logout/actions/다른-기기-세션-함께-종료` | 로그아웃 - 다른 기기 세션 함께 종료 처리 | `{ ok: true, toast: "다른 기기 세션 함께 종료 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-109.로그인-화면으로-즉시-이동 | PATCH | `/api/admin/logout/actions/로그인-화면으로-즉시-이동` | 로그아웃 - 로그인 화면으로 즉시 이동 처리 | `{ ok: true, toast: "로그인 화면으로 즉시 이동 mock 처리 완료", updatedRows?, nextState? }` |
 
 ### SCR-C001 수업 캘린더
 - Route: `/classes/c001`
@@ -795,18 +906,18 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-058.이력-조회 | PATCH | `/api/admin/cleaning-schedule/actions/이력-조회` | 청소 스케줄 - 이력 조회 처리 | `{ ok: true, toast: "이력 조회 mock 처리 완료", updatedRows?, nextState? }` |
 
 ### SCR-059 공간 자산 관리
-- Route: `/rooms`
+- Route: `/rooms/assets`
 - Handoff: policy-pending
 - Query Params: `탭-운동룸-골프-타석-기타-공간`
 - States: loading skeleton, empty state, filtered result, validation error, permission blocked, policy pending, mock success toast
 
 | Key | Method | Endpoint | Purpose | Response |
 |---|---|---|---|---|
-| SCR-059.list | GET | `/api/admin/rooms` | 공간 자산 관리 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-059", rows, metrics, permissions, policyFlags }` |
-| SCR-059.탭-전환-운동룸-골프-타석-기타 | PATCH | `/api/admin/rooms/actions/탭-전환-운동룸-골프-타석-기타` | 공간 자산 관리 - 탭 전환(운동룸/골프 타석/기타) 처리 | `{ ok: true, toast: "탭 전환(운동룸/골프 타석/기타) mock 처리 완료", updatedRows?, nextState? }` |
-| SCR-059.상태-변경-운영중-점검중-고장-미사용 | PATCH | `/api/admin/rooms/actions/상태-변경-운영중-점검중-고장-미사용` | 공간 자산 관리 - 상태 변경(운영중→점검중→고장→미사용) 처리 | `{ ok: true, toast: "상태 변경(운영중→점검중→고장→미사용) mock 처리 완료", updatedRows?, nextState? }` |
-| SCR-059.예약-현황-확인 | PATCH | `/api/admin/rooms/actions/예약-현황-확인` | 공간 자산 관리 - 예약 현황 확인 처리 | `{ ok: true, toast: "예약 현황 확인 mock 처리 완료", updatedRows?, nextState? }` |
-| SCR-059.자산-삭제는-fac-04-fac-05-원-도메인에서-처리 | POST | `/api/admin/rooms/actions/자산-삭제는-fac-04-fac-05-원-도메인에서-처리` | 공간 자산 관리 - 자산 삭제는 FAC-04/FAC-05 원 도메인에서 처리 처리 | `{ ok: true, toast: "자산 삭제는 FAC-04/FAC-05 원 도메인에서 처리 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-059.list | GET | `/api/admin/rooms/assets` | 공간 자산 관리 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-059", rows, metrics, permissions, policyFlags }` |
+| SCR-059.탭-전환-운동룸-골프-타석-기타 | PATCH | `/api/admin/rooms/assets/actions/탭-전환-운동룸-골프-타석-기타` | 공간 자산 관리 - 탭 전환(운동룸/골프 타석/기타) 처리 | `{ ok: true, toast: "탭 전환(운동룸/골프 타석/기타) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-059.상태-변경-운영중-점검중-고장-미사용 | PATCH | `/api/admin/rooms/assets/actions/상태-변경-운영중-점검중-고장-미사용` | 공간 자산 관리 - 상태 변경(운영중→점검중→고장→미사용) 처리 | `{ ok: true, toast: "상태 변경(운영중→점검중→고장→미사용) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-059.예약-현황-확인 | PATCH | `/api/admin/rooms/assets/actions/예약-현황-확인` | 공간 자산 관리 - 예약 현황 확인 처리 | `{ ok: true, toast: "예약 현황 확인 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-059.자산-삭제는-fac-04-fac-05-원-도메인에서-처리 | POST | `/api/admin/rooms/assets/actions/자산-삭제는-fac-04-fac-05-원-도메인에서-처리` | 공간 자산 관리 - 자산 삭제는 FAC-04/FAC-05 원 도메인에서 처리 처리 | `{ ok: true, toast: "자산 삭제는 FAC-04/FAC-05 원 도메인에서 처리 mock 처리 완료", updatedRows?, nextState? }` |
 
 ### SCR-060 직원 목록
 - Route: `/staff`
@@ -937,17 +1048,17 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-072.전체-자동-알림-on-off-owner | PATCH | `/api/admin/message/auto-alarm/actions/전체-자동-알림-on-off-owner` | 자동 알림 설정 - 전체 자동 알림 ON/OFF (Owner+) 처리 | `{ ok: true, toast: "전체 자동 알림 ON/OFF (Owner+) mock 처리 완료", updatedRows?, nextState? }` |
 
 ### SCR-072A 자동알림 운영현황
-- Route: `/message/auto-alarm`
+- Route: `/message/auto-alarm/operations`
 - Handoff: template-ready
 - Query Params: `기간-주간-월간`, `정책-유형`, `발송-채널`, `성공-실패`
 - States: loading skeleton, empty state, filtered result, validation error, permission blocked, policy pending, mock success toast
 
 | Key | Method | Endpoint | Purpose | Response |
 |---|---|---|---|---|
-| SCR-072A.list | GET | `/api/admin/message/auto-alarm` | 자동알림 운영현황 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-072A", rows, metrics, permissions, policyFlags }` |
-| SCR-072A.fc-후속-액션-연결-실패-미응답 | PATCH | `/api/admin/message/auto-alarm/actions/fc-후속-액션-연결-실패-미응답` | 자동알림 운영현황 - FC 후속 액션 연결 (실패·미응답) 처리 | `{ ok: true, toast: "FC 후속 액션 연결 (실패·미응답) mock 처리 완료", updatedRows?, nextState? }` |
-| SCR-072A.발송-이력-상세-mkt-01-통합-이력 | PATCH | `/api/admin/message/auto-alarm/actions/발송-이력-상세-mkt-01-통합-이력` | 자동알림 운영현황 - 발송 이력 상세 (MKT-01 통합 이력) 처리 | `{ ok: true, toast: "발송 이력 상세 (MKT-01 통합 이력) mock 처리 완료", updatedRows?, nextState? }` |
-| SCR-072A.엑셀-다운로드 | PATCH | `/api/admin/message/auto-alarm/actions/엑셀-다운로드` | 자동알림 운영현황 - 엑셀 다운로드 처리 | `{ ok: true, toast: "엑셀 다운로드 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-072A.list | GET | `/api/admin/message/auto-alarm/operations` | 자동알림 운영현황 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-072A", rows, metrics, permissions, policyFlags }` |
+| SCR-072A.fc-후속-액션-연결-실패-미응답 | PATCH | `/api/admin/message/auto-alarm/operations/actions/fc-후속-액션-연결-실패-미응답` | 자동알림 운영현황 - FC 후속 액션 연결 (실패·미응답) 처리 | `{ ok: true, toast: "FC 후속 액션 연결 (실패·미응답) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-072A.발송-이력-상세-mkt-01-통합-이력 | PATCH | `/api/admin/message/auto-alarm/operations/actions/발송-이력-상세-mkt-01-통합-이력` | 자동알림 운영현황 - 발송 이력 상세 (MKT-01 통합 이력) 처리 | `{ ok: true, toast: "발송 이력 상세 (MKT-01 통합 이력) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-072A.엑셀-다운로드 | PATCH | `/api/admin/message/auto-alarm/operations/actions/엑셀-다운로드` | 자동알림 운영현황 - 엑셀 다운로드 처리 | `{ ok: true, toast: "엑셀 다운로드 mock 처리 완료", updatedRows?, nextState? }` |
 
 ### SCR-073 쿠폰 관리
 - Route: `/message/coupon`
@@ -1116,19 +1227,19 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-082A.출입-규칙-설정-허용-시간-중복-방지-만료-회원-직원-출석 | PATCH | `/api/admin/settings/iot/actions/출입-규칙-설정-허용-시간-중복-방지-만료-회원-직원-출석` | 키오스크 IoT 설정 - 출입 규칙 설정 (허용 시간·중복 방지·만료 회원·직원 출석) 처리 | `{ ok: true, toast: "출입 규칙 설정 (허용 시간·중복 방지·만료 회원·직원 출석) mock 처리 완료", updatedRows?, nextState? }` |
 
 ### SCR-083 IoT 출입 관리
-- Route: `/settings/iot`
+- Route: `/settings/iot/access`
 - Handoff: template-ready
 - Query Params: `연결-상태-ok-불안정-오류`, `기기-종류-4종`, `출입-수단-4종`
 - States: loading skeleton, empty state, filtered result, validation error, permission blocked, policy pending, mock success toast
 
 | Key | Method | Endpoint | Purpose | Response |
 |---|---|---|---|---|
-| SCR-083.list | GET | `/api/admin/settings/iot` | IoT 출입 관리 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-083", rows, metrics, permissions, policyFlags }` |
-| SCR-083.새-기기-등록-4종-중-선택-기기-코드-위치 | PATCH | `/api/admin/settings/iot/actions/새-기기-등록-4종-중-선택-기기-코드-위치` | IoT 출입 관리 - 새 기기 등록 (4종 중 선택 + 기기 코드 + 위치) 처리 | `{ ok: true, toast: "새 기기 등록 (4종 중 선택 + 기기 코드 + 위치) mock 처리 완료", updatedRows?, nextState? }` |
-| SCR-083.재연결-시도 | PATCH | `/api/admin/settings/iot/actions/재연결-시도` | IoT 출입 관리 - 재연결 시도 처리 | `{ ok: true, toast: "재연결 시도 mock 처리 완료", updatedRows?, nextState? }` |
-| SCR-083.출입-수단-활성-비활성-토글 | PATCH | `/api/admin/settings/iot/actions/출입-수단-활성-비활성-토글` | IoT 출입 관리 - 출입 수단 활성/비활성 토글 처리 | `{ ok: true, toast: "출입 수단 활성/비활성 토글 mock 처리 완료", updatedRows?, nextState? }` |
-| SCR-083.중복-출입-방지-시간-이력-보관-기간-설정 | PATCH | `/api/admin/settings/iot/actions/중복-출입-방지-시간-이력-보관-기간-설정` | IoT 출입 관리 - 중복 출입 방지 시간·이력 보관 기간 설정 처리 | `{ ok: true, toast: "중복 출입 방지 시간·이력 보관 기간 설정 mock 처리 완료", updatedRows?, nextState? }` |
-| SCR-083.출입-알림-설정-입장-퇴장-비정상 | PATCH | `/api/admin/settings/iot/actions/출입-알림-설정-입장-퇴장-비정상` | IoT 출입 관리 - 출입 알림 설정 (입장/퇴장/비정상) 처리 | `{ ok: true, toast: "출입 알림 설정 (입장/퇴장/비정상) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-083.list | GET | `/api/admin/settings/iot/access` | IoT 출입 관리 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-083", rows, metrics, permissions, policyFlags }` |
+| SCR-083.새-기기-등록-4종-중-선택-기기-코드-위치 | PATCH | `/api/admin/settings/iot/access/actions/새-기기-등록-4종-중-선택-기기-코드-위치` | IoT 출입 관리 - 새 기기 등록 (4종 중 선택 + 기기 코드 + 위치) 처리 | `{ ok: true, toast: "새 기기 등록 (4종 중 선택 + 기기 코드 + 위치) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-083.재연결-시도 | PATCH | `/api/admin/settings/iot/access/actions/재연결-시도` | IoT 출입 관리 - 재연결 시도 처리 | `{ ok: true, toast: "재연결 시도 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-083.출입-수단-활성-비활성-토글 | PATCH | `/api/admin/settings/iot/access/actions/출입-수단-활성-비활성-토글` | IoT 출입 관리 - 출입 수단 활성/비활성 토글 처리 | `{ ok: true, toast: "출입 수단 활성/비활성 토글 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-083.중복-출입-방지-시간-이력-보관-기간-설정 | PATCH | `/api/admin/settings/iot/access/actions/중복-출입-방지-시간-이력-보관-기간-설정` | IoT 출입 관리 - 중복 출입 방지 시간·이력 보관 기간 설정 처리 | `{ ok: true, toast: "중복 출입 방지 시간·이력 보관 기간 설정 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-083.출입-알림-설정-입장-퇴장-비정상 | PATCH | `/api/admin/settings/iot/access/actions/출입-알림-설정-입장-퇴장-비정상` | IoT 출입 관리 - 출입 알림 설정 (입장/퇴장/비정상) 처리 | `{ ok: true, toast: "출입 알림 설정 (입장/퇴장/비정상) mock 처리 완료", updatedRows?, nextState? }` |
 
 ### SCR-084 구독 결제 관리
 - Route: `/subscription`
@@ -1428,19 +1539,19 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-I004.엑셀-다운로드 | PATCH | `/api/admin/clothing-locker/actions/엑셀-다운로드` | 옷 락커 운영 관리 - 엑셀 다운로드 처리 | `{ ok: true, toast: "엑셀 다운로드 mock 처리 완료", updatedRows?, nextState? }` |
 
 ### SCR-I005 고정 물품 락커 관리
-- Route: `/locker/management`
+- Route: `/locker/fixed-assets`
 - Handoff: template-ready
 - Query Params: `상태-전체-사용-중-만료-예정-만료-회수-대기`, `만료-기간-이번-주-이번-달-직접`, `검색-회원명-락커-번호-상품명`
 - States: loading skeleton, empty state, filtered result, validation error, permission blocked, policy pending, mock success toast
 
 | Key | Method | Endpoint | Purpose | Response |
 |---|---|---|---|---|
-| SCR-I005.list | GET | `/api/admin/locker/management` | 고정 물품 락커 관리 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-I005", rows, metrics, permissions, policyFlags }` |
-| SCR-I005.배정하기 | PATCH | `/api/admin/locker/management/actions/배정하기` | 고정 물품 락커 관리 - 배정하기 처리 | `{ ok: true, toast: "배정하기 mock 처리 완료", updatedRows?, nextState? }` |
-| SCR-I005.연장 | PATCH | `/api/admin/locker/management/actions/연장` | 고정 물품 락커 관리 - 연장 처리 | `{ ok: true, toast: "연장 mock 처리 완료", updatedRows?, nextState? }` |
-| SCR-I005.회수 | PATCH | `/api/admin/locker/management/actions/회수` | 고정 물품 락커 관리 - 회수 처리 | `{ ok: true, toast: "회수 mock 처리 완료", updatedRows?, nextState? }` |
-| SCR-I005.상태-동기화 | PATCH | `/api/admin/locker/management/actions/상태-동기화` | 고정 물품 락커 관리 - 상태 동기화 처리 | `{ ok: true, toast: "상태 동기화 mock 처리 완료", updatedRows?, nextState? }` |
-| SCR-I005.엑셀-다운로드 | PATCH | `/api/admin/locker/management/actions/엑셀-다운로드` | 고정 물품 락커 관리 - 엑셀 다운로드 처리 | `{ ok: true, toast: "엑셀 다운로드 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-I005.list | GET | `/api/admin/locker/fixed-assets` | 고정 물품 락커 관리 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-I005", rows, metrics, permissions, policyFlags }` |
+| SCR-I005.배정하기 | PATCH | `/api/admin/locker/fixed-assets/actions/배정하기` | 고정 물품 락커 관리 - 배정하기 처리 | `{ ok: true, toast: "배정하기 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-I005.연장 | PATCH | `/api/admin/locker/fixed-assets/actions/연장` | 고정 물품 락커 관리 - 연장 처리 | `{ ok: true, toast: "연장 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-I005.회수 | PATCH | `/api/admin/locker/fixed-assets/actions/회수` | 고정 물품 락커 관리 - 회수 처리 | `{ ok: true, toast: "회수 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-I005.상태-동기화 | PATCH | `/api/admin/locker/fixed-assets/actions/상태-동기화` | 고정 물품 락커 관리 - 상태 동기화 처리 | `{ ok: true, toast: "상태 동기화 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-I005.엑셀-다운로드 | PATCH | `/api/admin/locker/fixed-assets/actions/엑셀-다운로드` | 고정 물품 락커 관리 - 엑셀 다운로드 처리 | `{ ok: true, toast: "엑셀 다운로드 mock 처리 완료", updatedRows?, nextState? }` |
 
 ### SCR-I006 체성분 통합 관리
 - Route: `/body-composition-2`
@@ -1457,6 +1568,20 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-I006.회원-직접-매칭 | PATCH | `/api/admin/body-composition-2/actions/회원-직접-매칭` | 체성분 통합 관리 - 회원 직접 매칭 처리 | `{ ok: true, toast: "회원 직접 매칭 mock 처리 완료", updatedRows?, nextState? }` |
 | SCR-I006.무시 | PATCH | `/api/admin/body-composition-2/actions/무시` | 체성분 통합 관리 - 무시 처리 | `{ ok: true, toast: "무시 mock 처리 완료", updatedRows?, nextState? }` |
 
+### SCR-I003 IoT 연동 관리
+- Route: `/iot-overview`
+- Handoff: policy-pending
+- Query Params: `기기-종류-출입-게이트-키오스크-락커-컨트롤러-inbody`, `표시-화면-이동-i001-i004-i005-i006-i007`
+- States: loading skeleton, empty state, filtered result, validation error, permission blocked, policy pending, mock success toast
+
+| Key | Method | Endpoint | Purpose | Response |
+|---|---|---|---|---|
+| SCR-I003.list | GET | `/api/admin/iot-overview` | IoT 연동 관리 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-I003", rows, metrics, permissions, policyFlags }` |
+| SCR-I003.통합-출석-관리로-이동-i001 | PATCH | `/api/admin/iot-overview/actions/통합-출석-관리로-이동-i001` | IoT 연동 관리 - 통합 출석 관리로 이동 (SCR-I001) 처리 | `{ ok: true, toast: "통합 출석 관리로 이동 (SCR-I001) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-I003.옷-락커-운영-관리로-이동-i004 | PATCH | `/api/admin/iot-overview/actions/옷-락커-운영-관리로-이동-i004` | IoT 연동 관리 - 옷 락커 운영 관리로 이동 (SCR-I004) 처리 | `{ ok: true, toast: "옷 락커 운영 관리로 이동 (SCR-I004) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-I003.체성분-통합-관리로-이동-i006 | PATCH | `/api/admin/iot-overview/actions/체성분-통합-관리로-이동-i006` | IoT 연동 관리 - 체성분 통합 관리로 이동 (SCR-I006) 처리 | `{ ok: true, toast: "체성분 통합 관리로 이동 (SCR-I006) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-I003.d09-설정관리로-이동-기기-등록-설정-tts | PATCH | `/api/admin/iot-overview/actions/d09-설정관리로-이동-기기-등록-설정-tts` | IoT 연동 관리 - D09 설정관리로 이동(기기 등록·설정·TTS) 처리 | `{ ok: true, toast: "D09 설정관리로 이동(기기 등록·설정·TTS) mock 처리 완료", updatedRows?, nextState? }` |
+
 ### SCR-I007 회원 건강 연동 요약
 - Route: `/members/health`
 - Handoff: template-ready
@@ -1468,6 +1593,20 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-I007.list | GET | `/api/admin/members/health` | 회원 건강 연동 요약 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-I007", rows, metrics, permissions, policyFlags }` |
 | SCR-I007.수기-등록 | PATCH | `/api/admin/members/health/actions/수기-등록` | 회원 건강 연동 요약 - 수기 등록 처리 | `{ ok: true, toast: "수기 등록 mock 처리 완료", updatedRows?, nextState? }` |
 | SCR-I007.상담-메모-바로가기 | PATCH | `/api/admin/members/health/actions/상담-메모-바로가기` | 회원 건강 연동 요약 - 상담 메모 바로가기 처리 | `{ ok: true, toast: "상담 메모 바로가기 mock 처리 완료", updatedRows?, nextState? }` |
+
+### SCR-I008 키오스크 운영 현황
+- Route: `/kiosk-ops`
+- Handoff: policy-pending
+- Query Params: `표시-위치-i001-공통-대시보드-nfr-19-알림-센터`, `상태-정상-불안정-오류`
+- States: loading skeleton, empty state, filtered result, validation error, permission blocked, policy pending, mock success toast
+
+| Key | Method | Endpoint | Purpose | Response |
+|---|---|---|---|---|
+| SCR-I008.list | GET | `/api/admin/kiosk-ops` | 키오스크 운영 현황 목록/상세 화면 초기 데이터 조회 | `{ screenId: "SCR-I008", rows, metrics, permissions, policyFlags }` |
+| SCR-I008.통합-출석-관리로-이동-i001 | PATCH | `/api/admin/kiosk-ops/actions/통합-출석-관리로-이동-i001` | 키오스크 운영 현황 - 통합 출석 관리로 이동 (SCR-I001) 처리 | `{ ok: true, toast: "통합 출석 관리로 이동 (SCR-I001) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-I008.공통-대시보드로-이동 | PATCH | `/api/admin/kiosk-ops/actions/공통-대시보드로-이동` | 키오스크 운영 현황 - 공통 대시보드로 이동 처리 | `{ ok: true, toast: "공통 대시보드로 이동 mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-I008.알림-센터로-이동-104 | PATCH | `/api/admin/kiosk-ops/actions/알림-센터로-이동-104` | 키오스크 운영 현황 - 알림 센터로 이동 (SCR-104) 처리 | `{ ok: true, toast: "알림 센터로 이동 (SCR-104) mock 처리 완료", updatedRows?, nextState? }` |
+| SCR-I008.kiosk-기획문서-안내-외부-링크 | PATCH | `/api/admin/kiosk-ops/actions/kiosk-기획문서-안내-외부-링크` | 키오스크 운영 현황 - KIOSK 기획문서 안내(외부 링크) 처리 | `{ ok: true, toast: "KIOSK 기획문서 안내(외부 링크) mock 처리 완료", updatedRows?, nextState? }` |
 
 
 ## Dialog Submit Contracts
@@ -1733,6 +1872,36 @@ Generated: 2026-05-29T00:39:03.295Z
 - Handoff: policy-pending
 - Endpoint: `/api/admin/sales/dialogs/s015`
 - Request: `{ dialogId: "DLG-S015", values: { 환불-대상, 요청자, 요청-사유 }, actorRole, sourceScreenId }`
+- States: open, dirty, invalid, submitting, success toast, permission blocked, closed
+
+### DLG-S016 결제링크 발송
+- Handoff: policy-pending
+- Endpoint: `/api/admin/sales/dialogs/s016`
+- Request: `{ dialogId: "DLG-S016", values: { 수신자-회원, 결제-금액, 발송-채널-sms-카톡, 메시지-템플릿, 유효기간-기본-3일 }, actorRole, sourceScreenId }`
+- States: open, dirty, invalid, submitting, success toast, permission blocked, closed
+
+### DLG-001 로그아웃 확인
+- Handoff: policy-pending
+- Endpoint: `/api/admin/common/dialogs/001`
+- Request: `{ dialogId: "DLG-001", values: { 안내-메시지, 미저장-작업-요약, 다른-기기-세션-함께-종료-옵션, 취소-로그아웃 }, actorRole, sourceScreenId }`
+- States: open, dirty, invalid, submitting, success toast, permission blocked, closed
+
+### DLG-002 이탈 경고
+- Handoff: policy-pending
+- Endpoint: `/api/admin/common/dialogs/002`
+- Request: `{ dialogId: "DLG-002", values: { 변경-사항-요약, 이동-시-손실-안내, 계속-작성-저장-후-이동-저장-없이-이동 }, actorRole, sourceScreenId }`
+- States: open, dirty, invalid, submitting, success toast, permission blocked, closed
+
+### DLG-003 삭제 확인
+- Handoff: policy-pending
+- Endpoint: `/api/admin/common/dialogs/003`
+- Request: `{ dialogId: "DLG-003", values: { 삭제-대상-요약, 복구-불가-안내, 사유-입력-선택, 취소-삭제-확인 }, actorRole, sourceScreenId }`
+- States: open, dirty, invalid, submitting, success toast, permission blocked, closed
+
+### DLG-004 저장 확인
+- Handoff: policy-pending
+- Endpoint: `/api/admin/common/dialogs/004`
+- Request: `{ dialogId: "DLG-004", values: { 변경-요약-before-after, 영향-범위-안내, 취소-저장 }, actorRole, sourceScreenId }`
 - States: open, dirty, invalid, submitting, success toast, permission blocked, closed
 
 ### DLG-C001 수업 등록/수정 (캘린더)

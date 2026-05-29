@@ -83,8 +83,8 @@ export const d08Screens: ScreenDefinition[] = [
     roleNotes: { OWNER: "전체 자동 알림 규칙 ON/OFF, 회원 이용권 만료·락커 만료 지점 추가 step 생성/수정/삭제, 전체 ON/OFF, 상세 설정.", MANAGER: "전체 자동 알림 규칙 조회·상세 설정 편집. 규칙 ON/OFF, 지점 추가 step 변경, 전체 ON/OFF 불가.", FC: "접근 제한.", TRAINER: "접근 제한.", STAFF: "접근 제한." }
   },
   {
-    id: "SCR-072A", title: "자동알림 운영현황", domain: "D08", route: "/message/auto-alarm", source: v1Source, feature: "MKT-02",
-    purpose: "동일한 `/message/auto-alarm` 페이지의 운영현황 탭. SCR-072 설정 탭에서 켠 정책의 발송 건수·성공률·실패 사유·후속 액션 필요 건을 마케팅 관점에서 확인. 알림 규칙 생성/수정/ON/OFF는 SCR-072에서 처리.",
+    id: "SCR-072A", title: "자동알림 운영현황", domain: "D08", route: "/message/auto-alarm/operations", source: v1Source, feature: "MKT-02",
+    purpose: "`/message/auto-alarm/operations` 운영현황 탭. SCR-072 설정 탭에서 켠 정책의 발송 건수·성공률·실패 사유·후속 액션 필요 건을 마케팅 관점에서 확인. 알림 규칙 생성/수정/ON/OFF는 SCR-072에서 처리.",
     tabs: ["설정(SCR-072)", "운영현황(현재)"],
     metrics: [{ label: "이번 달 자동 발송", value: "3,248건", hint: "전체 자동 알림" }, { label: "평균 성공률", value: "92%", hint: "발송 성공/시도" }, { label: "실패 사유 1위", value: "비친구(카톡)", hint: "184건" }, { label: "FC 후속 액션 대상", value: "32명", hint: "실패·미응답·상담 필요" }],
     filters: ["기간(주간/월간)", "정책 유형", "발송 채널", "성공/실패"],

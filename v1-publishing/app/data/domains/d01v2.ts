@@ -285,7 +285,7 @@ export const d01v2Screens: ScreenDefinition[] = [
     source: v2Source,
     feature: "MFN-SCR-107",
     purpose:
-      "현재 보고 있는 화면의 SCR-ID·DLG 연결·docs4 출처를 오버레이로 표시(V2 신규). Cmd+/로 토글. 개발 인수·QA 검수 시 docs4 정합성을 즉시 확인.",
+      "현재 보고 있는 화면의 SCR-ID·DLG 연결·docs4 출처를 오버레이로 표시(V2 신규). Cmd+/로 토글. 퍼블리싱 인수·QA 검수 시 docs4 정합성을 즉시 확인.",
     tabs: ["현재 화면 메타", "DLG 연결 목록", "권한 매트릭스 요약", "docs4 출처"],
     metrics: [
       { label: "단축키", value: "Cmd+/", hint: "토글" },

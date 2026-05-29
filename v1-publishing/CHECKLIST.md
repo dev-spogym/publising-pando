@@ -1,6 +1,6 @@
 # V1 D01~D11 Coverage Report
 
-- Generated: 2026-05-29T00:58:17.723Z
+- Generated: 2026-05-29T08:26:08.570Z
 - 기준 문서: docs4/V1 D01~D11 화면설계 문서
 - 화면 구현: 118/91
 - 다이얼로그 구현: 156/137
@@ -128,7 +128,7 @@
 - SCR-056 장비 점검 일정: `/equipment-check`
 - SCR-057 소모품 재고 관리: `/consumables`
 - SCR-058 청소 스케줄: `/cleaning-schedule`
-- SCR-059 공간 자산 관리: `/rooms`
+- SCR-059 공간 자산 관리: `/rooms/assets`
 - SCR-060 직원 목록: `/staff`
 - SCR-061 직원 등록/수정: `/staff/new`
 - SCR-062 직원 퇴사 처리: `/staff/resignation`
@@ -138,7 +138,7 @@
 - SCR-070 리드 관리: `/leads`
 - SCR-071 메시지 발송: `/message`
 - SCR-072 자동 알림 설정: `/message/auto-alarm`
-- SCR-072A 자동알림 운영현황: `/message/auto-alarm`
+- SCR-072A 자동알림 운영현황: `/message/auto-alarm/operations`
 - SCR-073 쿠폰 관리: `/message/coupon`
 - SCR-074 마일리지 관리: `/mileage`
 - SCR-075 전자 계약: `/contracts/new`
@@ -151,7 +151,7 @@
 - SCR-081 권한 설정: `/settings/permissions`
 - SCR-082 키오스크 설정: `/settings/082`
 - SCR-082A 키오스크 IoT 설정: `/settings/iot`
-- SCR-083 IoT 출입 관리: `/settings/iot`
+- SCR-083 IoT 출입 관리: `/settings/iot/access`
 - SCR-084 구독 결제 관리: `/subscription`
 - SCR-085 공지사항 관리: `/notices`
 - SCR-086 출석 관리 설정: `/settings/attendance`
@@ -175,7 +175,7 @@
 - SCR-H1004 예측 분석: `/analytics/forecast`
 - SCR-I001 통합 출석 관리: `/attendance`
 - SCR-I004 옷 락커 운영 관리: `/clothing-locker`
-- SCR-I005 고정 물품 락커 관리: `/locker/management`
+- SCR-I005 고정 물품 락커 관리: `/locker/fixed-assets`
 - SCR-I006 체성분 통합 관리: `/body-composition-2`
 - SCR-I003 IoT 연동 관리: `/iot-overview`
 - SCR-I007 회원 건강 연동 요약: `/members/health`

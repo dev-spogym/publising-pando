@@ -1,6 +1,6 @@
 # V1 Role Policy
 
-Generated: 2026-05-29T00:39:03.295Z
+Generated: 2026-05-29T08:26:08.943Z
 
 ## Roles
 | Role | Label | Scope | Permissions |
@@ -72,6 +72,7 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-S007 | 환불 상세 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | Y | 모든 역할 실행 가능 |
 | SCR-S007 | 엑셀 내보내기 | salesWrite | OWNER, MANAGER, FC, STAFF | N | salesWrite 권한 필요 |
 | SCR-S008 | 납입 처리 | installment | OWNER, MANAGER | N | installment 권한 필요 |
+| SCR-S008 | 결제링크 발송 (DLG-S016, V2) | salesWrite | OWNER, MANAGER, FC, STAFF | N | salesWrite 권한 필요 |
 | SCR-S008 | 메모 편집 | salesWrite | OWNER, MANAGER, FC, STAFF | N | salesWrite 권한 필요 |
 | SCR-S008 | 엑셀 내보내기 | salesWrite | OWNER, MANAGER, FC, STAFF | N | salesWrite 권한 필요 |
 | SCR-S009 | 할부 상세 (회차별 펼침) | installment | OWNER, MANAGER | N | installment 권한 필요 |
@@ -87,6 +88,36 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-S012 | 환불 처리 (Owner 완료) | refundApprove | OWNER | Y | refundApprove 권한 필요 |
 | SCR-S012 | 처리 결과 보기 | refundApprove | OWNER | N | refundApprove 권한 필요 |
 | SCR-S012 | 전체 취소 / 부분 환불 선택 | salesWrite | OWNER, MANAGER, FC, STAFF | Y | salesWrite 권한 필요 |
+| SCR-101 | 지점 필터 변경 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-101 | 오늘 집중 업무 우선순위 보기 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-101 | 엑셀 내보내기 | viewAllBranches | HQ_ADMIN | N | viewAllBranches 권한 필요 |
+| SCR-101 | 로그아웃 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-102 | 역할 전환 시뮬레이션 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-102 | 펼침/접힘 토글 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-102 | 모바일 햄버거 메뉴 열기 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-103 | 검색 오버레이 열기 (Cmd+K) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-103 | 최근 검색어 삭제 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | Y | 모든 역할 실행 가능 |
+| SCR-103 | 결과 클릭 → 상세 이동 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-103 | ESC로 닫기 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-105 | 저장 (DLG-004) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-105 | 비밀번호 변경 → SCR-106 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-105 | 다른 기기 로그아웃 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-105 | 이탈 경고 (DLG-002) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-105 | 로그아웃 (DLG-001) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-106 | 비밀번호 변경 (DLG-004) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-106 | 취소 → SCR-105 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-106 | 첫 로그인 모드 강제 변경 차단 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-107 | 오버레이 토글 (Cmd+/) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-107 | docs4 출처 파일 열기(외부 링크) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-107 | DLG 출처로 이동 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-107 | 현재 권한 매트릭스 펼침 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | Y | 모든 역할 실행 가능 |
+| SCR-108 | 홈으로 이동 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-108 | 다시 시도 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-108 | 관리자 문의 (에러 ID 복사) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-108 | 이전 페이지 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-109 | 로그아웃 확인 (DLG-001) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-109 | 다른 기기 세션 함께 종료 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-109 | 로그인 화면으로 즉시 이동 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
 | SCR-C001 | 수업 등록 (DLG-C001) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
 | SCR-C001 | 일정 상세 (DLG-C002) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
 | SCR-C001 | 일괄 변경 (DLG-C004) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
@@ -397,5 +428,13 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-I006 | 확정 처리 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
 | SCR-I006 | 회원 직접 매칭 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
 | SCR-I006 | 무시 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-I003 | 통합 출석 관리로 이동 (SCR-I001) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-I003 | 옷 락커 운영 관리로 이동 (SCR-I004) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-I003 | 체성분 통합 관리로 이동 (SCR-I006) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-I003 | D09 설정관리로 이동(기기 등록·설정·TTS) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
 | SCR-I007 | 수기 등록 | bodyWrite | OWNER, MANAGER, TRAINER | N | bodyWrite 권한 필요 |
 | SCR-I007 | 상담 메모 바로가기 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-I008 | 통합 출석 관리로 이동 (SCR-I001) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-I008 | 공통 대시보드로 이동 | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-I008 | 알림 센터로 이동 (SCR-104) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |
+| SCR-I008 | KIOSK 기획문서 안내(외부 링크) | none | HQ_ADMIN, OWNER, MANAGER, FC, TRAINER, STAFF | N | 모든 역할 실행 가능 |

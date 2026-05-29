@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npm run test:unit && npm run test:integration && npm run test:contract && npm run test:snapshot && npm run test:e2e",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -16,7 +16,17 @@
     "preview": "serve out -l 3100",
     "docs:handoff": "tsx scripts/generate-handoff-docs.ts",
     "verify:handoff": "npm run docs:handoff && tsx scripts/verify-handoff.ts",
-    "visual:audit": "tsx scripts/visual-audit.ts"
+    "visual:audit": "tsx scripts/visual-audit.ts",
+    "test:unit": "node --import tsx --test tests/unit/**/*.test.ts",
+    "test:integration": "node --import tsx --test tests/integration/**/*.test.ts",
+    "test:contract": "node --import tsx --test tests/contract/**/*.test.ts",
+    "test:snapshot": "node --import tsx --test tests/snapshot/**/*.test.ts",
+    "test:smoke": "playwright test tests/e2e/smoke-sanity-regression.spec.ts",
+    "test:accessibility": "playwright test tests/e2e/accessibility.spec.ts",
+    "test:responsive": "playwright test tests/e2e/responsive.spec.ts",
+    "test:visual-regression": "playwright test tests/e2e/visual-regression.spec.ts",
+    "test:cross-browser": "playwright test --config playwright.cross-browser.config.ts",
+    "test:publishing:all": "npm run verify:coverage && npm run verify:handoff && npm run test:unit && npm run test:integration && npm run test:contract && npm run test:snapshot && npm run build && npm run test:smoke && npm run test:accessibility && npm run test:responsive && npm run test:e2e -- tests/e2e/admin-pando-screens.spec.ts tests/e2e/product-management.spec.ts tests/e2e/full-page-coverage.spec.ts && npm run test:visual-regression && npm run test:cross-browser && npm run visual:audit"
   },
   "keywords": [],
   "author": "",

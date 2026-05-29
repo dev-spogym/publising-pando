@@ -142,7 +142,7 @@ const coreScreens: ScreenDefinition[] = [
   },
   {
     id: "SCR-DLG", title: "DLG 컴포넌트 갤러리", domain: "D01", route: "/dialogs", source: "docs4/V1/D01~D03", feature: "DLG-COMPONENTS",
-    purpose: "D01 공통, D02 회원관리, D03 매출관리의 연결 다이얼로그를 컴포넌트 단위로 검수하고 개발 인수 기준을 확인합니다.", tabs: ["D01 공통", "D02 회원관리", "D03 매출관리"],
+    purpose: "D01 공통, D02 회원관리, D03 매출관리의 연결 다이얼로그를 컴포넌트 단위로 검수하고 퍼블리싱 인수 기준을 확인합니다.", tabs: ["D01 공통", "D02 회원관리", "D03 매출관리"],
     metrics: [{ label: "D02 DLG", value: "28", hint: "회원관리" }, { label: "D03 DLG", value: "15", hint: "매출관리" }, { label: "정책 보류", value: "표시", hint: "임의 확정 없음" }, { label: "API", value: "없음", hint: "mock/local" }],
     filters: ["도메인", "정책 확인", "권한", "처리 유형"], tableColumns: ["DLG", "제목", "권한", "상태"], rows: [], dialogs: [],
     primaryActions: [], roleNotes: {}

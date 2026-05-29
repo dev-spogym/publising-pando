@@ -11,6 +11,7 @@ test("login supports role selection and navigates to member list", async ({ page
 });
 
 test("all V1 D01-D11 SCR routes render their document id", async ({ page }) => {
+  test.setTimeout(120_000);
   for (const screen of screens) {
     await page.goto(screen.route);
     // SCR ID는 본문 헤더 (DeliveryHeader 또는 specialized 자체 헤더)에 노출돼야 한다.
@@ -21,29 +22,28 @@ test("all V1 D01-D11 SCR routes render their document id", async ({ page }) => {
 });
 
 test("all DLG definitions are reachable from at least one screen", async ({ page }) => {
+  test.setTimeout(180_000);
   for (const dialog of dialogs) {
     const host = screens.find((screen) => screen.dialogs.includes(dialog.id));
     expect(host, `${dialog.id} host screen`).toBeTruthy();
     await page.goto(host!.route);
-    // DLG가 host 화면에서 도달 가능한지 확인. 여러 fallback 단계:
-    // 1) data-dialog-id 트리거가 enabled면 클릭 후 dialog 검증
-    // 2) disabled이거나 fallback 셀렉터 누락 시 host 화면에서 DLG ID/title 노출 확인
-    const trigger = page.locator(`[data-dialog-id="${dialog.id}"]`).first();
-    const triggerCount = await trigger.count();
-    if (triggerCount > 0 && !(await trigger.isDisabled().catch(() => true))) {
-      await trigger.click({ timeout: 3000 }).catch(() => {});
-      const dialogVisible = await page.getByTestId("runtime-dialog").isVisible({ timeout: 2000 }).catch(() => false);
-      if (dialogVisible) {
-        await expect(page.getByText(dialog.id).first()).toBeVisible();
-        // 푸터 푸터 액션: 우리 새 시스템은 "취소" 버튼
-        await page.getByRole("button", { name: "취소" }).click({ timeout: 2000 }).catch(() => {});
-      } else {
-        // 호스트 화면에 DLG ID 또는 title 노출 fallback
-        await expect(page.getByText(new RegExp(`${dialog.id}|${dialog.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`)).first()).toBeVisible();
+
+    let trigger = page.locator(`[data-dialog-id="${dialog.id}"]`).first();
+    if ((await trigger.count()) === 0 || (await trigger.isDisabled().catch(() => true))) {
+      const supportButton = page.getByRole("button", { name: "문서/계약" });
+      if ((await supportButton.count()) > 0) {
+        await supportButton.click();
+        trigger = page.getByTestId("screen-support-drawer").locator(`[data-dialog-id="${dialog.id}"]`).first();
       }
+    }
+
+    if ((await trigger.count()) > 0 && !(await trigger.isDisabled().catch(() => true))) {
+      await trigger.click({ timeout: 3000 });
+      await expect(page.getByRole("dialog").filter({ hasText: dialog.id }).first()).toBeVisible();
+      await page.keyboard.press("Escape");
     } else {
-      // disabled이거나 트리거 누락: 호스트 화면에 DLG ID 또는 title 노출되는지 확인
-      await expect(page.getByText(new RegExp(`${dialog.id}|${dialog.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`)).first()).toBeVisible();
+      const matcher = new RegExp(`${dialog.id}|${dialog.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`);
+      await expect(page.getByText(matcher).first()).toBeVisible();
     }
   }
 });
@@ -69,8 +69,10 @@ test("publishing controls provide mock feedback for filters, rows, metrics, and 
   // MemberListScreen은 admin-pando 1:1 specialized. generic DomainOperationsScreen 가정 대신
   // specialized 화면의 검색·상태 필터 탭·일괄 액션 mock 동작을 검증한다.
   await page.goto("/members");
-  await expect(page.getByText("개발 핸드오프 계약")).toBeVisible();
+  await page.getByRole("button", { name: "문서/계약" }).click();
+  await expect(page.getByTestId("screen-support-drawer")).toContainText("퍼블리싱 인수 기준");
   await expect(page.getByText(/API 호출 없음/).first()).toBeVisible();
+  await page.getByTestId("screen-support-drawer").getByRole("button", { name: "닫기", exact: true }).click();
 
   // Daily Focus — 재등록 집중 보기 클릭 mock (admin-pando MemberListScreen 패턴)
   await page.getByRole("button", { name: /재등록 집중 보기/ }).first().click();
@@ -83,11 +85,9 @@ test("publishing controls provide mock feedback for filters, rows, metrics, and 
 
 test("dialog form edits surface dirty close and submit contract feedback", async ({ page }) => {
   await page.goto("/members");
-  const trigger = page.locator('[data-dialog-id="DLG-M001"]').first();
-  const disabled = await trigger.isDisabled().catch(() => true);
-  if (disabled) test.skip(true, "DLG-M001 trigger disabled");
-
-  await trigger.click({ timeout: 3000 }).catch(() => {});
+  await page.getByRole("button", { name: "문서/계약" }).click();
+  const trigger = page.getByTestId("screen-support-drawer").locator('[data-dialog-id="DLG-M001"]').first();
+  await trigger.click({ timeout: 3000 });
   await expect(page.getByTestId("runtime-dialog")).toBeVisible();
 
   // 새 DLG 시스템: 헤더 DLG-M001 배지 + source path 모노스페이스

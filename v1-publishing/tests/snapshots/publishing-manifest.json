@@ -1,0 +1,1786 @@
+{
+  "counts": {
+    "screens": 118,
+    "dialogs": 156,
+    "domains": 11
+  },
+  "domains": {
+    "D01": 11,
+    "D02": 10,
+    "D03": 12,
+    "D04": 16,
+    "D05": 8,
+    "D06": 10,
+    "D07": 6,
+    "D08": 11,
+    "D09": 12,
+    "D10": 15,
+    "D11": 7
+  },
+  "screens": [
+    {
+      "id": "SCR-100",
+      "domain": "D01",
+      "route": "/login",
+      "dialogs": 1,
+      "actions": 1
+    },
+    {
+      "id": "SCR-104",
+      "domain": "D01",
+      "route": "/notifications",
+      "dialogs": 1,
+      "actions": 2
+    },
+    {
+      "id": "SCR-DLG",
+      "domain": "D01",
+      "route": "/dialogs",
+      "dialogs": 0,
+      "actions": 0
+    },
+    {
+      "id": "SCR-M001",
+      "domain": "D02",
+      "route": "/members",
+      "dialogs": 4,
+      "actions": 4
+    },
+    {
+      "id": "SCR-M002",
+      "domain": "D02",
+      "route": "/members/new",
+      "dialogs": 4,
+      "actions": 4
+    },
+    {
+      "id": "SCR-M003",
+      "domain": "D02",
+      "route": "/members/edit",
+      "dialogs": 4,
+      "actions": 5
+    },
+    {
+      "id": "SCR-M004",
+      "domain": "D02",
+      "route": "/members/detail",
+      "dialogs": 16,
+      "actions": 4
+    },
+    {
+      "id": "SCR-M005",
+      "domain": "D02",
+      "route": "/members/transfer",
+      "dialogs": 1,
+      "actions": 2
+    },
+    {
+      "id": "SCR-M006",
+      "domain": "D02",
+      "route": "/body-composition",
+      "dialogs": 3,
+      "actions": 4
+    },
+    {
+      "id": "SCR-M007",
+      "domain": "D02",
+      "route": "/members/merge",
+      "dialogs": 1,
+      "actions": 1
+    },
+    {
+      "id": "SCR-M008",
+      "domain": "D02",
+      "route": "/members/family",
+      "dialogs": 1,
+      "actions": 4
+    },
+    {
+      "id": "SCR-M009",
+      "domain": "D02",
+      "route": "/members/grade",
+      "dialogs": 1,
+      "actions": 1
+    },
+    {
+      "id": "SCR-M010",
+      "domain": "D02",
+      "route": "/members/segment",
+      "dialogs": 1,
+      "actions": 5
+    },
+    {
+      "id": "SCR-S001",
+      "domain": "D03",
+      "route": "/sales",
+      "dialogs": 3,
+      "actions": 3
+    },
+    {
+      "id": "SCR-S002",
+      "domain": "D03",
+      "route": "/sales/pos",
+      "dialogs": 3,
+      "actions": 3
+    },
+    {
+      "id": "SCR-S003",
+      "domain": "D03",
+      "route": "/sales/payment",
+      "dialogs": 4,
+      "actions": 3
+    },
+    {
+      "id": "SCR-S004",
+      "domain": "D03",
+      "route": "/sales/stats",
+      "dialogs": 1,
+      "actions": 3
+    },
+    {
+      "id": "SCR-S005",
+      "domain": "D03",
+      "route": "/sales/statistics-admin",
+      "dialogs": 1,
+      "actions": 1
+    },
+    {
+      "id": "SCR-S006",
+      "domain": "D03",
+      "route": "/sales/deferred-revenue",
+      "dialogs": 1,
+      "actions": 2
+    },
+    {
+      "id": "SCR-S007",
+      "domain": "D03",
+      "route": "/sales/refunds",
+      "dialogs": 4,
+      "actions": 4
+    },
+    {
+      "id": "SCR-S008",
+      "domain": "D03",
+      "route": "/sales/receivables",
+      "dialogs": 3,
+      "actions": 4
+    },
+    {
+      "id": "SCR-S009",
+      "domain": "D03",
+      "route": "/sales/installments",
+      "dialogs": 3,
+      "actions": 4
+    },
+    {
+      "id": "SCR-S010",
+      "domain": "D03",
+      "route": "/sales/tax-invoice",
+      "dialogs": 2,
+      "actions": 4
+    },
+    {
+      "id": "SCR-S011",
+      "domain": "D03",
+      "route": "/sales/forecast",
+      "dialogs": 1,
+      "actions": 1
+    },
+    {
+      "id": "SCR-S012",
+      "domain": "D03",
+      "route": "/sales/refund-partial",
+      "dialogs": 3,
+      "actions": 4
+    },
+    {
+      "id": "SCR-101",
+      "domain": "D01",
+      "route": "/hq/super-dashboard",
+      "dialogs": 2,
+      "actions": 4
+    },
+    {
+      "id": "SCR-102",
+      "domain": "D01",
+      "route": "/components/sidebar",
+      "dialogs": 1,
+      "actions": 3
+    },
+    {
+      "id": "SCR-103",
+      "domain": "D01",
+      "route": "/search",
+      "dialogs": 0,
+      "actions": 4
+    },
+    {
+      "id": "SCR-105",
+      "domain": "D01",
+      "route": "/profile",
+      "dialogs": 3,
+      "actions": 5
+    },
+    {
+      "id": "SCR-106",
+      "domain": "D01",
+      "route": "/password-reset",
+      "dialogs": 1,
+      "actions": 3
+    },
+    {
+      "id": "SCR-107",
+      "domain": "D01",
+      "route": "/spec-overlay",
+      "dialogs": 0,
+      "actions": 4
+    },
+    {
+      "id": "SCR-108",
+      "domain": "D01",
+      "route": "/error",
+      "dialogs": 0,
+      "actions": 4
+    },
+    {
+      "id": "SCR-109",
+      "domain": "D01",
+      "route": "/logout",
+      "dialogs": 1,
+      "actions": 3
+    },
+    {
+      "id": "SCR-C001",
+      "domain": "D04",
+      "route": "/classes/c001",
+      "dialogs": 4,
+      "actions": 5
+    },
+    {
+      "id": "SCR-C002",
+      "domain": "D04",
+      "route": "/lessons",
+      "dialogs": 3,
+      "actions": 4
+    },
+    {
+      "id": "SCR-C003",
+      "domain": "D04",
+      "route": "/class-schedule",
+      "dialogs": 1,
+      "actions": 3
+    },
+    {
+      "id": "SCR-C004",
+      "domain": "D04",
+      "route": "/class-templates",
+      "dialogs": 1,
+      "actions": 4
+    },
+    {
+      "id": "SCR-C005",
+      "domain": "D04",
+      "route": "/classes/c005",
+      "dialogs": 0,
+      "actions": 3
+    },
+    {
+      "id": "SCR-C006",
+      "domain": "D04",
+      "route": "/instructor-status",
+      "dialogs": 1,
+      "actions": 2
+    },
+    {
+      "id": "SCR-C007",
+      "domain": "D04",
+      "route": "/lesson-counts",
+      "dialogs": 2,
+      "actions": 2
+    },
+    {
+      "id": "SCR-C008",
+      "domain": "D04",
+      "route": "/penalties",
+      "dialogs": 3,
+      "actions": 4
+    },
+    {
+      "id": "SCR-C009",
+      "domain": "D04",
+      "route": "/schedule-requests",
+      "dialogs": 1,
+      "actions": 3
+    },
+    {
+      "id": "SCR-C010",
+      "domain": "D04",
+      "route": "/exercise-programs",
+      "dialogs": 1,
+      "actions": 5
+    },
+    {
+      "id": "SCR-C011",
+      "domain": "D04",
+      "route": "/valid-lessons",
+      "dialogs": 2,
+      "actions": 3
+    },
+    {
+      "id": "SCR-C012",
+      "domain": "D04",
+      "route": "/class-waitlist",
+      "dialogs": 0,
+      "actions": 4
+    },
+    {
+      "id": "SCR-C013",
+      "domain": "D04",
+      "route": "/class-feedback",
+      "dialogs": 0,
+      "actions": 3
+    },
+    {
+      "id": "SCR-C014",
+      "domain": "D04",
+      "route": "/attendance/lesson-completion",
+      "dialogs": 0,
+      "actions": 4
+    },
+    {
+      "id": "SCR-C015",
+      "domain": "D04",
+      "route": "/class-recording",
+      "dialogs": 1,
+      "actions": 5
+    },
+    {
+      "id": "SCR-C016",
+      "domain": "D04",
+      "route": "/class-reservations",
+      "dialogs": 0,
+      "actions": 6
+    },
+    {
+      "id": "SCR-P001",
+      "domain": "D05",
+      "route": "/products/p001",
+      "dialogs": 8,
+      "actions": 4
+    },
+    {
+      "id": "SCR-P002",
+      "domain": "D05",
+      "route": "/products/p002",
+      "dialogs": 3,
+      "actions": 4
+    },
+    {
+      "id": "SCR-P003",
+      "domain": "D05",
+      "route": "/products/detail",
+      "dialogs": 4,
+      "actions": 5
+    },
+    {
+      "id": "SCR-P004",
+      "domain": "D05",
+      "route": "/products/p004",
+      "dialogs": 5,
+      "actions": 4
+    },
+    {
+      "id": "SCR-P005",
+      "domain": "D05",
+      "route": "/products/catalog",
+      "dialogs": 3,
+      "actions": 5
+    },
+    {
+      "id": "SCR-P006",
+      "domain": "D05",
+      "route": "/products/compare",
+      "dialogs": 1,
+      "actions": 5
+    },
+    {
+      "id": "SCR-P007",
+      "domain": "D05",
+      "route": "/products/inventory",
+      "dialogs": 4,
+      "actions": 4
+    },
+    {
+      "id": "SCR-P008",
+      "domain": "D05",
+      "route": "/products/seasonal-price",
+      "dialogs": 1,
+      "actions": 4
+    },
+    {
+      "id": "SCR-050",
+      "domain": "D06",
+      "route": "/facilities/050",
+      "dialogs": 7,
+      "actions": 7
+    },
+    {
+      "id": "SCR-051",
+      "domain": "D06",
+      "route": "/locker/management",
+      "dialogs": 0,
+      "actions": 4
+    },
+    {
+      "id": "SCR-052",
+      "domain": "D06",
+      "route": "/rfid",
+      "dialogs": 3,
+      "actions": 4
+    },
+    {
+      "id": "SCR-053",
+      "domain": "D06",
+      "route": "/rooms",
+      "dialogs": 2,
+      "actions": 4
+    },
+    {
+      "id": "SCR-054",
+      "domain": "D06",
+      "route": "/golf-bays",
+      "dialogs": 0,
+      "actions": 7
+    },
+    {
+      "id": "SCR-055",
+      "domain": "D06",
+      "route": "/facility/inventory",
+      "dialogs": 0,
+      "actions": 5
+    },
+    {
+      "id": "SCR-056",
+      "domain": "D06",
+      "route": "/equipment-check",
+      "dialogs": 3,
+      "actions": 4
+    },
+    {
+      "id": "SCR-057",
+      "domain": "D06",
+      "route": "/consumables",
+      "dialogs": 3,
+      "actions": 4
+    },
+    {
+      "id": "SCR-058",
+      "domain": "D06",
+      "route": "/cleaning-schedule",
+      "dialogs": 1,
+      "actions": 3
+    },
+    {
+      "id": "SCR-059",
+      "domain": "D06",
+      "route": "/rooms/assets",
+      "dialogs": 0,
+      "actions": 4
+    },
+    {
+      "id": "SCR-060",
+      "domain": "D07",
+      "route": "/staff",
+      "dialogs": 2,
+      "actions": 5
+    },
+    {
+      "id": "SCR-061",
+      "domain": "D07",
+      "route": "/staff/new",
+      "dialogs": 1,
+      "actions": 2
+    },
+    {
+      "id": "SCR-062",
+      "domain": "D07",
+      "route": "/staff/resignation",
+      "dialogs": 1,
+      "actions": 5
+    },
+    {
+      "id": "SCR-063",
+      "domain": "D07",
+      "route": "/staff/attendance",
+      "dialogs": 0,
+      "actions": 3
+    },
+    {
+      "id": "SCR-064",
+      "domain": "D07",
+      "route": "/payroll",
+      "dialogs": 3,
+      "actions": 5
+    },
+    {
+      "id": "SCR-065",
+      "domain": "D07",
+      "route": "/payroll/statements",
+      "dialogs": 0,
+      "actions": 5
+    },
+    {
+      "id": "SCR-070",
+      "domain": "D08",
+      "route": "/leads",
+      "dialogs": 2,
+      "actions": 5
+    },
+    {
+      "id": "SCR-071",
+      "domain": "D08",
+      "route": "/message",
+      "dialogs": 2,
+      "actions": 4
+    },
+    {
+      "id": "SCR-072",
+      "domain": "D08",
+      "route": "/message/auto-alarm",
+      "dialogs": 2,
+      "actions": 4
+    },
+    {
+      "id": "SCR-072A",
+      "domain": "D08",
+      "route": "/message/auto-alarm/operations",
+      "dialogs": 1,
+      "actions": 3
+    },
+    {
+      "id": "SCR-073",
+      "domain": "D08",
+      "route": "/message/coupon",
+      "dialogs": 3,
+      "actions": 4
+    },
+    {
+      "id": "SCR-074",
+      "domain": "D08",
+      "route": "/mileage",
+      "dialogs": 2,
+      "actions": 4
+    },
+    {
+      "id": "SCR-075",
+      "domain": "D08",
+      "route": "/contracts/new",
+      "dialogs": 0,
+      "actions": 5
+    },
+    {
+      "id": "SCR-076",
+      "domain": "D08",
+      "route": "/marketing/campaign",
+      "dialogs": 2,
+      "actions": 4
+    },
+    {
+      "id": "SCR-077",
+      "domain": "D08",
+      "route": "/marketing/referral",
+      "dialogs": 2,
+      "actions": 4
+    },
+    {
+      "id": "SCR-078",
+      "domain": "D08",
+      "route": "/marketing/sms",
+      "dialogs": 2,
+      "actions": 4
+    },
+    {
+      "id": "SCR-079",
+      "domain": "D08",
+      "route": "/marketing/ab-test",
+      "dialogs": 2,
+      "actions": 2
+    },
+    {
+      "id": "SCR-080",
+      "domain": "D09",
+      "route": "/settings",
+      "dialogs": 1,
+      "actions": 3
+    },
+    {
+      "id": "SCR-080A",
+      "domain": "D09",
+      "route": "/settings/automation",
+      "dialogs": 1,
+      "actions": 5
+    },
+    {
+      "id": "SCR-081",
+      "domain": "D09",
+      "route": "/settings/permissions",
+      "dialogs": 6,
+      "actions": 7
+    },
+    {
+      "id": "SCR-082",
+      "domain": "D09",
+      "route": "/settings/082",
+      "dialogs": 1,
+      "actions": 2
+    },
+    {
+      "id": "SCR-082A",
+      "domain": "D09",
+      "route": "/settings/iot",
+      "dialogs": 0,
+      "actions": 2
+    },
+    {
+      "id": "SCR-083",
+      "domain": "D09",
+      "route": "/settings/iot/access",
+      "dialogs": 0,
+      "actions": 5
+    },
+    {
+      "id": "SCR-084",
+      "domain": "D09",
+      "route": "/subscription",
+      "dialogs": 2,
+      "actions": 4
+    },
+    {
+      "id": "SCR-085",
+      "domain": "D09",
+      "route": "/notices",
+      "dialogs": 2,
+      "actions": 4
+    },
+    {
+      "id": "SCR-086",
+      "domain": "D09",
+      "route": "/settings/attendance",
+      "dialogs": 1,
+      "actions": 3
+    },
+    {
+      "id": "SCR-087",
+      "domain": "D09",
+      "route": "/settings/custom-role",
+      "dialogs": 1,
+      "actions": 4
+    },
+    {
+      "id": "SCR-088",
+      "domain": "D09",
+      "route": "/settings/language",
+      "dialogs": 1,
+      "actions": 4
+    },
+    {
+      "id": "SCR-089",
+      "domain": "D09",
+      "route": "/settings/089",
+      "dialogs": 2,
+      "actions": 4
+    },
+    {
+      "id": "SCR-090",
+      "domain": "D10",
+      "route": "/hq/branch-dashboard",
+      "dialogs": 0,
+      "actions": 2
+    },
+    {
+      "id": "SCR-091",
+      "domain": "D10",
+      "route": "/super-dashboard",
+      "dialogs": 0,
+      "actions": 1
+    },
+    {
+      "id": "SCR-096",
+      "domain": "D10",
+      "route": "/onboarding",
+      "dialogs": 0,
+      "actions": 1
+    },
+    {
+      "id": "SCR-H1002",
+      "domain": "D10",
+      "route": "/dashboard/builder",
+      "dialogs": 0,
+      "actions": 4
+    },
+    {
+      "id": "SCR-H1003",
+      "domain": "D10",
+      "route": "/benchmark",
+      "dialogs": 0,
+      "actions": 2
+    },
+    {
+      "id": "SCR-H1005",
+      "domain": "D10",
+      "route": "/nps",
+      "dialogs": 0,
+      "actions": 3
+    },
+    {
+      "id": "SCR-092",
+      "domain": "D10",
+      "route": "/branches",
+      "dialogs": 2,
+      "actions": 2
+    },
+    {
+      "id": "SCR-093",
+      "domain": "D10",
+      "route": "/branch-report",
+      "dialogs": 0,
+      "actions": 2
+    },
+    {
+      "id": "SCR-094",
+      "domain": "D10",
+      "route": "/kpi",
+      "dialogs": 1,
+      "actions": 1
+    },
+    {
+      "id": "SCR-095",
+      "domain": "D10",
+      "route": "/kpi-preview",
+      "dialogs": 0,
+      "actions": 2
+    },
+    {
+      "id": "SCR-097",
+      "domain": "D10",
+      "route": "/audit-log",
+      "dialogs": 0,
+      "actions": 1
+    },
+    {
+      "id": "SCR-098",
+      "domain": "D10",
+      "route": "/today-tasks",
+      "dialogs": 2,
+      "actions": 2
+    },
+    {
+      "id": "SCR-099",
+      "domain": "D10",
+      "route": "/reports",
+      "dialogs": 0,
+      "actions": 3
+    },
+    {
+      "id": "SCR-H1001",
+      "domain": "D10",
+      "route": "/hq/automation-policies",
+      "dialogs": 1,
+      "actions": 5
+    },
+    {
+      "id": "SCR-H1004",
+      "domain": "D10",
+      "route": "/analytics/forecast",
+      "dialogs": 0,
+      "actions": 3
+    },
+    {
+      "id": "SCR-I001",
+      "domain": "D11",
+      "route": "/attendance",
+      "dialogs": 2,
+      "actions": 4
+    },
+    {
+      "id": "SCR-I004",
+      "domain": "D11",
+      "route": "/clothing-locker",
+      "dialogs": 1,
+      "actions": 6
+    },
+    {
+      "id": "SCR-I005",
+      "domain": "D11",
+      "route": "/locker/fixed-assets",
+      "dialogs": 0,
+      "actions": 5
+    },
+    {
+      "id": "SCR-I006",
+      "domain": "D11",
+      "route": "/body-composition-2",
+      "dialogs": 1,
+      "actions": 5
+    },
+    {
+      "id": "SCR-I003",
+      "domain": "D11",
+      "route": "/iot-overview",
+      "dialogs": 0,
+      "actions": 4
+    },
+    {
+      "id": "SCR-I007",
+      "domain": "D11",
+      "route": "/members/health",
+      "dialogs": 1,
+      "actions": 2
+    },
+    {
+      "id": "SCR-I008",
+      "domain": "D11",
+      "route": "/kiosk-ops",
+      "dialogs": 0,
+      "actions": 4
+    }
+  ],
+  "dialogs": [
+    {
+      "id": "DLG-000",
+      "domain": "D01",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M001",
+      "domain": "D02",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-M002",
+      "domain": "D02",
+      "destructive": true,
+      "components": 3
+    },
+    {
+      "id": "DLG-M003",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M004",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M005",
+      "domain": "D02",
+      "destructive": true,
+      "components": 3
+    },
+    {
+      "id": "DLG-M006",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M007",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M008",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M009",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M010",
+      "domain": "D02",
+      "destructive": true,
+      "components": 3
+    },
+    {
+      "id": "DLG-M011",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M012",
+      "domain": "D02",
+      "destructive": true,
+      "components": 3
+    },
+    {
+      "id": "DLG-M013",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M014",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M015",
+      "domain": "D02",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-M016",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M017",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M018",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M019",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M020",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M022",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M023",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M024",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M026",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M027",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M028",
+      "domain": "D02",
+      "destructive": true,
+      "components": 3
+    },
+    {
+      "id": "DLG-M029",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-M030",
+      "domain": "D02",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-S001",
+      "domain": "D03",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-S002",
+      "domain": "D03",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-S003",
+      "domain": "D03",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-S004",
+      "domain": "D03",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-S005",
+      "domain": "D03",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-S006",
+      "domain": "D03",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-S007",
+      "domain": "D03",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-S008",
+      "domain": "D03",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-S009",
+      "domain": "D03",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-S010",
+      "domain": "D03",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-S011",
+      "domain": "D03",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-S012",
+      "domain": "D03",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-S013",
+      "domain": "D03",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-S014",
+      "domain": "D03",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-S015",
+      "domain": "D03",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-S016",
+      "domain": "D03",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-001",
+      "domain": "D01",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-002",
+      "domain": "D01",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-003",
+      "domain": "D01",
+      "destructive": true,
+      "components": 4
+    },
+    {
+      "id": "DLG-004",
+      "domain": "D01",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-C001",
+      "domain": "D04",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-C002",
+      "domain": "D04",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-C003",
+      "domain": "D04",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-C004",
+      "domain": "D04",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-C005",
+      "domain": "D04",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-C006",
+      "domain": "D04",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-C007",
+      "domain": "D04",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-C008",
+      "domain": "D04",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-C009",
+      "domain": "D04",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-C010",
+      "domain": "D04",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-C011",
+      "domain": "D04",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-C012",
+      "domain": "D04",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-C013",
+      "domain": "D04",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-C014",
+      "domain": "D04",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-C015",
+      "domain": "D04",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-C016",
+      "domain": "D04",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-P001-상품등록모달",
+      "domain": "D05",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-P002-전지점배포",
+      "domain": "D05",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-P003-작업취소확인",
+      "domain": "D05",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-P004-가격이력",
+      "domain": "D05",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-P005-상품삭제확인",
+      "domain": "D05",
+      "destructive": true,
+      "components": 4
+    },
+    {
+      "id": "DLG-P006-비활성화안내",
+      "domain": "D05",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-P007-할인규칙등록",
+      "domain": "D05",
+      "destructive": false,
+      "components": 7
+    },
+    {
+      "id": "DLG-P008-상품가져오기",
+      "domain": "D05",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-P009-할인규칙수정",
+      "domain": "D05",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-P010-상품삭제최종확인",
+      "domain": "D05",
+      "destructive": true,
+      "components": 4
+    },
+    {
+      "id": "DLG-P011-할인규칙삭제확인",
+      "domain": "D05",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-P012-상품이미지업로드",
+      "domain": "D05",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-P013-할인정책추가수정",
+      "domain": "D05",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-P014-가격이력조회",
+      "domain": "D05",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-P015-할인정책삭제확인",
+      "domain": "D05",
+      "destructive": true,
+      "components": 3
+    },
+    {
+      "id": "DLG-P016",
+      "domain": "D05",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-P017",
+      "domain": "D05",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-P018",
+      "domain": "D05",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-P019",
+      "domain": "D05",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-P020",
+      "domain": "D05",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-P021",
+      "domain": "D05",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-P022",
+      "domain": "D05",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-P023",
+      "domain": "D05",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-050-001",
+      "domain": "D06",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-050-002",
+      "domain": "D06",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-050-003",
+      "domain": "D06",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-050-004",
+      "domain": "D06",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-050-005",
+      "domain": "D06",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-050-006",
+      "domain": "D06",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-050-007",
+      "domain": "D06",
+      "destructive": true,
+      "components": 3
+    },
+    {
+      "id": "DLG-052-001",
+      "domain": "D06",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-052-002",
+      "domain": "D06",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-052-003",
+      "domain": "D06",
+      "destructive": true,
+      "components": 4
+    },
+    {
+      "id": "DLG-053-001",
+      "domain": "D06",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-053-002",
+      "domain": "D06",
+      "destructive": true,
+      "components": 4
+    },
+    {
+      "id": "DLG-056-001",
+      "domain": "D06",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-056-002",
+      "domain": "D06",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-056-003",
+      "domain": "D06",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-057-001",
+      "domain": "D06",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-057-002",
+      "domain": "D06",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-057-003",
+      "domain": "D06",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-058-001",
+      "domain": "D06",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-060-001",
+      "domain": "D07",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-060-002",
+      "domain": "D07",
+      "destructive": true,
+      "components": 5
+    },
+    {
+      "id": "DLG-061-001",
+      "domain": "D07",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-064-001",
+      "domain": "D07",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-064-002",
+      "domain": "D07",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-064-003",
+      "domain": "D07",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-070-001",
+      "domain": "D08",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-070-002",
+      "domain": "D08",
+      "destructive": true,
+      "components": 4
+    },
+    {
+      "id": "DLG-071-001",
+      "domain": "D08",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-071-002",
+      "domain": "D08",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-072-001",
+      "domain": "D08",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-072-002",
+      "domain": "D08",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-073-001",
+      "domain": "D08",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-073-002",
+      "domain": "D08",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-073-003",
+      "domain": "D08",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-074-001",
+      "domain": "D08",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-074-002",
+      "domain": "D08",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-076-001",
+      "domain": "D08",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-076-002",
+      "domain": "D08",
+      "destructive": true,
+      "components": 4
+    },
+    {
+      "id": "DLG-077-001",
+      "domain": "D08",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-077-002",
+      "domain": "D08",
+      "destructive": true,
+      "components": 4
+    },
+    {
+      "id": "DLG-078-001",
+      "domain": "D08",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-078-002",
+      "domain": "D08",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-079-001",
+      "domain": "D08",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-079-002",
+      "domain": "D08",
+      "destructive": true,
+      "components": 4
+    },
+    {
+      "id": "DLG-080-001",
+      "domain": "D09",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-080A-001",
+      "domain": "D09",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-081-006",
+      "domain": "D09",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-084-001",
+      "domain": "D09",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-084-002",
+      "domain": "D09",
+      "destructive": true,
+      "components": 5
+    },
+    {
+      "id": "DLG-089-001",
+      "domain": "D09",
+      "destructive": true,
+      "components": 5
+    },
+    {
+      "id": "DLG-089-002",
+      "domain": "D09",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-081-001",
+      "domain": "D09",
+      "destructive": false,
+      "components": 3
+    },
+    {
+      "id": "DLG-081-002",
+      "domain": "D09",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-081-003",
+      "domain": "D09",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-081-004",
+      "domain": "D09",
+      "destructive": true,
+      "components": 5
+    },
+    {
+      "id": "DLG-081-005",
+      "domain": "D09",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-087-001",
+      "domain": "D09",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-085-001",
+      "domain": "D09",
+      "destructive": false,
+      "components": 8
+    },
+    {
+      "id": "DLG-085-002",
+      "domain": "D09",
+      "destructive": true,
+      "components": 4
+    },
+    {
+      "id": "DLG-092-001",
+      "domain": "D10",
+      "destructive": false,
+      "components": 9
+    },
+    {
+      "id": "DLG-092-002",
+      "domain": "D10",
+      "destructive": true,
+      "components": 10
+    },
+    {
+      "id": "DLG-094-001",
+      "domain": "D10",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-098-001",
+      "domain": "D10",
+      "destructive": false,
+      "components": 6
+    },
+    {
+      "id": "DLG-098-002",
+      "domain": "D10",
+      "destructive": false,
+      "components": 7
+    },
+    {
+      "id": "DLG-H1001-001",
+      "domain": "D10",
+      "destructive": false,
+      "components": 8
+    },
+    {
+      "id": "DLG-I001",
+      "domain": "D11",
+      "destructive": false,
+      "components": 5
+    },
+    {
+      "id": "DLG-I002",
+      "domain": "D11",
+      "destructive": false,
+      "components": 4
+    },
+    {
+      "id": "DLG-I003",
+      "domain": "D11",
+      "destructive": false,
+      "components": 11
+    }
+  ]
+}

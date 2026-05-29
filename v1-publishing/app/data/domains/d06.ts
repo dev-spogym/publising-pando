@@ -190,8 +190,8 @@ export const d06Screens: ScreenDefinition[] = [
     policyPending: true
   },
   {
-    id: "SCR-059", title: "공간 자산 관리", domain: "D06", route: "/rooms", source: v2Source, feature: "FAC-EXT-05",
-    purpose: "지점 내 공간 자산(운동룸·골프 타석·기타 예약 가능 공간) 통합 조회(V2 신규). `/rooms` 메인 화면이며 SCR-053 운동룸 관리가 운동룸 탭/섹션으로 종속. SCR-053과 동일 route 공유.",
+    id: "SCR-059", title: "공간 자산 관리", domain: "D06", route: "/rooms/assets", source: v2Source, feature: "FAC-EXT-05",
+    purpose: "지점 내 공간 자산(운동룸·골프 타석·기타 예약 가능 공간) 통합 조회(V2 신규). `/rooms` 메인 화면이며 SCR-053 운동룸 관리가 운동룸 탭/섹션으로 종속. SCR-053과 같은 공간 자산군이지만 전수 검수를 위해 /rooms/assets 독립 route로 분리.",
     tabs: ["운동룸 (SCR-053)", "골프 타석", "기타 공간"],
     metrics: [{ label: "전체 자산", value: "38개", hint: "운동룸+골프+기타" }, { label: "운영중", value: "32개", hint: "초록 배지" }, { label: "점검·고장", value: "4개", hint: "주황·빨강" }, { label: "미사용", value: "2개", hint: "회색" }],
     filters: ["탭(운동룸/골프 타석/기타 공간)"],

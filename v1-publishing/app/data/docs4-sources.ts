@@ -309,7 +309,7 @@ const baseDialogBlueprint = (source: PublishingSource): DialogBlueprint => ({
     { label: "닫기", variant: "outline" },
     { label: source.status ? "정책 확인 필요로 저장" : "확인", variant: source.status === "policy-pending" ? "secondary" : "primary" },
   ],
-  backendPolicy: "퍼블리싱 범위: API/DB/외부 연동 호출 없음. 개발 인수 시 이벤트 핸들러만 실제 service layer에 연결합니다.",
+  backendPolicy: "퍼블리싱 범위: API/DB/외부 연동 호출 없음. 이벤트 핸들러 식별자와 mock 피드백만 제공하며 실제 service/API 구현은 범위 밖입니다.",
 });
 
 export const dialogBlueprints: Record<string, DialogBlueprint> = Object.fromEntries(
@@ -401,7 +401,7 @@ Object.assign(dialogBlueprints, {
       { title: "외부 연동 제외", items: ["카드 승인/현금영수증/알림 발송은 퍼블리싱에서 실행하지 않음", "영수증 첨부 여부는 UI 상태만 표시"], tone: "info" },
     ],
     actions: [{ label: "이전", variant: "outline" }, { label: "결제 확정", variant: "primary" }],
-    backendPolicy: "실제 승인/영수증/알림 연동은 개발 단계에서 결제 서비스와 연결합니다.",
+    backendPolicy: "실제 승인/영수증/알림 연동은 퍼블리싱 범위 밖이며, 이 화면은 결제 서비스 연결 전 mock 상태만 제공합니다.",
   },
   "DLG-S013": {
     source: publishingDialogs["DLG-S013"],

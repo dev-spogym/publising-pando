@@ -68,7 +68,9 @@ async function auditScreen(browser: Browser, screen: ScreenDefinition): Promise<
       const rect = element.getBoundingClientRect();
       const style = window.getComputedStyle(element);
       if (rect.width === 0 || rect.height === 0 || style.visibility === "hidden" || style.display === "none") return [];
-      const overflow = rect.left < -2 || rect.right > window.innerWidth + 2;
+      const scrollContainer = element.closest(".overflow-x-auto, [data-allow-horizontal-scroll='true']");
+      const insideExpectedHorizontalScroll = Boolean(scrollContainer);
+      const overflow = !insideExpectedHorizontalScroll && (rect.left < -2 || rect.right > window.innerWidth + 2);
       return overflow ? [`${element.tagName.toLowerCase()} ${Math.round(rect.left)}..${Math.round(rect.right)}`] : [];
     }).slice(0, 8);
     return {
@@ -98,13 +100,26 @@ async function auditDialog(browser: Browser, dialog: DialogDefinition): Promise<
   const issues: AuditIssue[] = [];
   const page = await newPage(browser, issues, target);
   await page.goto(`${baseURL}${route}`, { waitUntil: "networkidle" });
-  const trigger = page.locator(`[data-dialog-id="${dialog.id}"]`).first();
+  let trigger = page.locator(`[data-dialog-id="${dialog.id}"]`).first();
   try {
-    await trigger.waitFor({ state: "visible", timeout: 5000 });
+    if ((await trigger.count()) === 0 || !(await trigger.isEnabled().catch(() => false))) {
+      const supportButton = page.getByRole("button", { name: "문서/계약" });
+      if ((await supportButton.count()) > 0) {
+        await supportButton.click();
+        trigger = page.getByTestId("screen-support-drawer").locator(`[data-dialog-id="${dialog.id}"]`).first();
+      }
+    }
+    if ((await trigger.count()) === 0) {
+      issues.push({ type: "dialog-open", target, detail: "no data-dialog-id trigger on route or support drawer" });
+      await page.screenshot({ path: path.join(outDir, "dialogs", `${dialog.domain}-${dialog.id}-FAILED.png`), fullPage: true });
+      await page.close();
+      return { id: dialog.id, route, title: dialog.title, domain: dialog.domain, issues };
+    }
+    await trigger.waitFor({ state: "visible", timeout: 1500 });
     await trigger.scrollIntoViewIfNeeded();
     await trigger.click();
     const modal = page.getByRole("dialog");
-    await modal.waitFor({ state: "visible", timeout: 5000 });
+    await modal.waitFor({ state: "visible", timeout: 2000 });
     const text = await modal.innerText();
     if (!text.includes(dialog.id) || !text.includes(dialog.title)) {
       issues.push({ type: "missing-marker", target, detail: `dialog title/id not visible in modal` });

@@ -1,6 +1,6 @@
 # V1 Policy / External Integration Pending
 
-Generated: 2026-05-29T00:39:03.295Z
+Generated: 2026-05-29T08:26:08.943Z
 
 ## Screens
 | ID | Title | Status | Source |
@@ -11,6 +11,14 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-S010 | 세금계산서 발행 | policy-pending | docs4/V1/D03-매출관리/매출관리.md:872 |
 | SCR-S011 | 매출 예측 | policy-pending | docs4/V1/D03-매출관리/매출관리.md |
 | SCR-S012 | 결제 취소 / 부분 환불 | policy-pending | docs4/V1/D03-매출관리/매출관리.md:1105 |
+| SCR-101 | 대시보드 통합 | policy-pending | share/docs4/V2/D01-공통/공통.md |
+| SCR-102 | 사이드바 네비게이션 | policy-pending | share/docs4/V2/D01-공통/공통.md |
+| SCR-103 | 글로벌 검색 | policy-pending | share/docs4/V2/D01-공통/공통.md |
+| SCR-105 | 프로필 / 계정 설정 | policy-pending | share/docs4/V2/D01-공통/공통.md |
+| SCR-106 | 비밀번호 재설정 | policy-pending | share/docs4/V2/D01-공통/공통.md |
+| SCR-107 | 화면설계서 오버레이 (Cmd+/) | policy-pending | share/docs4/V2/D01-공통/공통.md |
+| SCR-108 | 에러 페이지 | policy-pending | share/docs4/V2/D01-공통/공통.md |
+| SCR-109 | 로그아웃 | policy-pending | share/docs4/V2/D01-공통/공통.md |
 | SCR-C001 | 수업 캘린더 | template-ready | docs4/V1/D04-수업관리/수업관리.md |
 | SCR-C002 | 수업 관리 | template-ready | docs4/V1/D04-수업관리/수업관리.md |
 | SCR-C003 | 시간표 일괄 등록 | template-ready | docs4/V1/D04-수업관리/수업관리.md |
@@ -93,7 +101,9 @@ Generated: 2026-05-29T00:39:03.295Z
 | SCR-I004 | 옷 락커 운영 관리 | template-ready | share/docs4/V1/D11-통합운영/통합운영.md:240 |
 | SCR-I005 | 고정 물품 락커 관리 | template-ready | share/docs4/V1/D11-통합운영/통합운영.md:351 |
 | SCR-I006 | 체성분 통합 관리 | template-ready | share/docs4/V1/D11-통합운영/통합운영.md:470 |
+| SCR-I003 | IoT 연동 관리 | policy-pending | share/docs4/V1/D11-통합운영/통합운영.md:196 |
 | SCR-I007 | 회원 건강 연동 요약 | template-ready | share/docs4/V1/D11-통합운영/통합운영.md:584 |
+| SCR-I008 | 키오스크 운영 현황 | policy-pending | share/docs4/V1/D11-통합운영/통합운영.md:718 |
 
 ## Dialogs
 | ID | Title | Status | Source |
@@ -102,6 +112,11 @@ Generated: 2026-05-29T00:39:03.295Z
 | DLG-S011 | 세금계산서 발행 | policy-pending | docs4/V1/D03-매출관리/매출관리.md |
 | DLG-S013 | 환불 처리 | policy-pending | docs4/V1/D03-매출관리/매출관리.md |
 | DLG-S015 | 환불 요청 | policy-pending | docs4/V1/D03-매출관리/매출관리.md |
+| DLG-S016 | 결제링크 발송 | policy-pending | docs4/V2/D03-매출관리/매출관리.md:1336 |
+| DLG-001 | 로그아웃 확인 | policy-pending | share/docs4/V2/D01-공통/공통.md |
+| DLG-002 | 이탈 경고 | policy-pending | share/docs4/V2/D01-공통/공통.md |
+| DLG-003 | 삭제 확인 | policy-pending | share/docs4/V2/D01-공통/공통.md |
+| DLG-004 | 저장 확인 | policy-pending | share/docs4/V2/D01-공통/공통.md |
 | DLG-C001 | 수업 등록/수정 (캘린더) | template-ready | docs4/V1/D04-수업관리/수업관리.md |
 | DLG-C002 | 일정 상세 | template-ready | docs4/V1/D04-수업관리/수업관리.md |
 | DLG-C003 | 수업 등록/수정 (관리) | template-ready | docs4/V1/D04-수업관리/수업관리.md |
