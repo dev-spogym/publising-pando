@@ -23,7 +23,16 @@ function extractIds(kind: "SCR" | "DLG") {
     const text = readFileSync(resolve(root, source), "utf8");
     const regex = new RegExp(`^## (${kind}-\\S+)`, "gm");
     let match: RegExpExecArray | null;
-    while ((match = regex.exec(text))) ids.add(match[1]);
+    while ((match = regex.exec(text))) {
+      // docs4 V1 D05는 `## DLG-Pxxx-한글이름` 형식을 사용. 코드는 단순 ID(DLG-Pxxx) 기준.
+      // 한글 suffix(`-한글이름`)를 떼어내 코드 ID와 매칭한다.
+      // 예: DLG-P023-시즌가격등록수정 → DLG-P023
+      const raw = match[1];
+      const normalized = kind === "DLG" && /^DLG-P\d+-[^\x00-\x7F]/.test(raw)
+        ? raw.replace(/^(DLG-P\d+)-[^\x00-\x7F].*$/, "$1")
+        : raw;
+      ids.add(normalized);
+    }
   }
   return [...ids].sort();
 }

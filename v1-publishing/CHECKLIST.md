@@ -1,9 +1,9 @@
 # V1 D01~D11 Coverage Report
 
-- Generated: 2026-05-29T00:16:20.551Z
+- Generated: 2026-05-29T00:51:01.785Z
 - 기준 문서: docs4/V1 D01~D11 화면설계 문서
-- 화면 구현: 108/82
-- 다이얼로그 구현: 151/129
+- 화면 구현: 110/91
+- 다이얼로그 구현: 151/137
 - 라우트 오류: 0
 - 화면 연결 없는 DLG: 0
 
@@ -11,26 +11,34 @@
 - 없음
 
 ## Missing Dialogs
-- 없음
+- DLG-P001
+- DLG-P002
+- DLG-P003
+- DLG-P004
+- DLG-P005
+- DLG-P006
+- DLG-P007
+- DLG-P008
+- DLG-P009
+- DLG-P010
+- DLG-P011
+- DLG-P012
+- DLG-P013
+- DLG-P014
+- DLG-P015
 
 ## Extra Implementations
-- SCR-051
-- SCR-052
-- SCR-053
-- SCR-054
 - SCR-055
 - SCR-056
 - SCR-057
 - SCR-058
 - SCR-059
 - SCR-077
-- SCR-085
 - SCR-088
 - SCR-090
 - SCR-091
 - SCR-096
 - SCR-C010
-- SCR-C012
 - SCR-C015
 - SCR-DLG
 - SCR-H1002
@@ -39,12 +47,6 @@
 - SCR-P005
 - SCR-P006
 - SCR-P007
-- SCR-P008
-- DLG-052-001
-- DLG-052-002
-- DLG-052-003
-- DLG-053-001
-- DLG-053-002
 - DLG-056-001
 - DLG-056-002
 - DLG-056-003
@@ -52,8 +54,21 @@
 - DLG-057-002
 - DLG-057-003
 - DLG-058-001
-- DLG-085-001
-- DLG-085-002
+- DLG-P001-상품등록모달
+- DLG-P002-전지점배포
+- DLG-P003-작업취소확인
+- DLG-P004-가격이력
+- DLG-P005-상품삭제확인
+- DLG-P006-비활성화안내
+- DLG-P007-할인규칙등록
+- DLG-P008-상품가져오기
+- DLG-P009-할인규칙수정
+- DLG-P010-상품삭제최종확인
+- DLG-P011-할인규칙삭제확인
+- DLG-P012-상품이미지업로드
+- DLG-P013-할인정책추가수정
+- DLG-P014-가격이력조회
+- DLG-P015-할인정책삭제확인
 - DLG-P016
 - DLG-P017
 - DLG-P018
@@ -61,7 +76,6 @@
 - DLG-P020
 - DLG-P021
 - DLG-P022
-- DLG-P023
 
 ## Routes
 - SCR-100 로그인: `/login`
@@ -171,4 +185,6 @@
 - SCR-I004 옷 락커 운영 관리: `/clothing-locker`
 - SCR-I005 고정 물품 락커 관리: `/locker/management`
 - SCR-I006 체성분 통합 관리: `/body-composition-2`
+- SCR-I003 IoT 연동 관리: `/iot-overview`
 - SCR-I007 회원 건강 연동 요약: `/members/health`
+- SCR-I008 키오스크 운영 현황: `/kiosk-ops`

@@ -604,10 +604,12 @@ const screenIdToPublishingKey: Record<string, keyof typeof publishingScreens> = 
   "SCR-H1005": "nps",
   // D11 통합운영
   "SCR-I001": "attendance",
+  "SCR-I003": "iotOverview",
   "SCR-I004": "clothLocker",
   "SCR-I005": "fixedLocker",
   "SCR-I006": "bodyCompositionIntegrated",
   "SCR-I007": "healthSummary",
+  "SCR-I008": "kioskOps",
 };
 
 export function resolveScreenSource(screenId: string): PublishingSource | undefined {

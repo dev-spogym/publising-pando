@@ -202,11 +202,13 @@ export const publishingScreens: Record<string, PublishingSource> = {
   nps: { version: "V2", kind: "screen", id: "SCR-H1005", label: "NPS 설문", source: v2HQ(), status: "policy-pending" },
 
   // === D11 통합운영 ===
-  attendance: { version: "V1", kind: "screen", id: "SCR-I001", label: "통합 출석 관리", source: v1Integrated(), referenceVersion: "V2", referenceSource: v2Integrated() },
-  clothLocker: { version: "V1", kind: "screen", id: "SCR-I004", label: "옷 락커 운영 관리", source: v1Integrated(), referenceVersion: "V2", referenceSource: v2Integrated() },
-  fixedLocker: { version: "V1", kind: "screen", id: "SCR-I005", label: "고정 물품 락커 관리", source: v1Integrated(), referenceVersion: "V2", referenceSource: v2Integrated() },
-  bodyCompositionIntegrated: { version: "V1", kind: "screen", id: "SCR-I006", label: "체성분 통합 관리", source: v1Integrated(), referenceVersion: "V2", referenceSource: v2Integrated() },
-  healthSummary: { version: "V1", kind: "screen", id: "SCR-I007", label: "회원 건강 연동 요약", source: v1Integrated(), status: "external-pending", referenceVersion: "V2", referenceSource: v2Integrated() },
+  attendance: { version: "V1", kind: "screen", id: "SCR-I001", label: "통합 출석 관리", source: v1Integrated(32), referenceVersion: "V2", referenceSource: v2Integrated() },
+  iotOverview: { version: "V1", kind: "screen", id: "SCR-I003", label: "IoT 연동 관리", source: v1Integrated(196), status: "policy-pending", referenceVersion: "V2", referenceSource: v2Integrated() },
+  clothLocker: { version: "V1", kind: "screen", id: "SCR-I004", label: "옷 락커 운영 관리", source: v1Integrated(243), referenceVersion: "V2", referenceSource: v2Integrated() },
+  fixedLocker: { version: "V1", kind: "screen", id: "SCR-I005", label: "고정 물품 락커 관리", source: v1Integrated(356), referenceVersion: "V2", referenceSource: v2Integrated() },
+  bodyCompositionIntegrated: { version: "V1", kind: "screen", id: "SCR-I006", label: "체성분 통합 관리", source: v1Integrated(476), referenceVersion: "V2", referenceSource: v2Integrated() },
+  healthSummary: { version: "V1", kind: "screen", id: "SCR-I007", label: "회원 건강 연동 요약", source: v1Integrated(591), status: "external-pending", referenceVersion: "V2", referenceSource: v2Integrated() },
+  kioskOps: { version: "V1", kind: "screen", id: "SCR-I008", label: "키오스크 운영 현황", source: v1Integrated(718), status: "policy-pending", referenceVersion: "V2", referenceSource: v2Integrated() },
 };
 
 const dialogSource = (
