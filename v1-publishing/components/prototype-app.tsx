@@ -620,6 +620,10 @@ function Sidebar({
         { id: "SCR-S003", label: "결제 처리" },
         { id: "SCR-S007", label: "환불 관리" },
         { id: "SCR-S008", label: "미수금 관리" },
+        { id: "SCR-S009", label: "할부결제" },
+        { id: "SCR-S010", label: "세금계산서" },
+        { id: "SCR-S011", label: "매출 예측" },
+        { id: "SCR-S012", label: "부분 환불" },
       ],
     },
     {
@@ -1409,6 +1413,16 @@ function AdminScreen({
   if (screen.id === "SCR-S012")
     return (
       <CancelRefundScreen
+        screen={screen}
+        role={role}
+        branch={branch}
+        openDialog={openDialog}
+        notify={notify}
+      />
+    );
+  if (["SCR-S005", "SCR-S011"].includes(screen.id))
+    return (
+      <SalesOperationsScreen
         screen={screen}
         role={role}
         branch={branch}
@@ -15250,6 +15264,387 @@ function PrimaryActionRow({
           </Button>
         );
       })}
+    </div>
+  );
+}
+
+
+// ---- D03 매출관리 보강 ----
+
+type SalesOperationConfig = {
+  flow: string[];
+  policy: string[];
+  result: string;
+  routes: { label: string; href: string }[];
+  queue: { title: string; amount: string; status: string; action: string; dialogId?: string }[];
+};
+
+const salesOperationConfigs: Record<string, SalesOperationConfig> = {
+  "SCR-S005": {
+    flow: [
+      "집계 항목과 실행 상태 확인",
+      "오류/정책 보류 행 선택",
+      "환불 차감·미수 회수·선수익 인식 기준 검토",
+      "DLG-S012에서 목표/기준값을 조정",
+      "집계 재실행은 mock/local state 결과로만 표시",
+    ],
+    policy: [
+      "환불 차감 산식은 정책 확인 전 임의 확정 금지",
+      "04:00 일별 집계 기준과 수동 재집계 결과를 분리",
+      "지점별 귀속/정산/인센티브 기준은 매출 원장과 일치해야 함",
+      "통계 기준 변경은 화면 결과와 감사 로그에 남김",
+    ],
+    result:
+      "집계 성공 98.7% · 오류 3건 · 정책 보류 5건 · 목표 기준 DLG-S012 확인 필요",
+    routes: [
+      { label: "매출 통계", href: "/sales/stats" },
+      { label: "매출 현황", href: "/sales" },
+    ],
+    queue: [
+      { title: "환불 차감 산식", amount: "정책 보류 5건", status: "검토", action: "목표 기준 설정", dialogId: "DLG-S012" },
+      { title: "미수 회수 집계", amount: "오류 2건", status: "오류", action: "재집계 mock" },
+      { title: "선수익 월 배치", amount: "06:00 완료", status: "정상", action: "원장 이동" },
+    ],
+  },
+  "SCR-S011": {
+    flow: [
+      "예측 기간과 목표 기준 선택",
+      "매출/목표/달성률 행 확인",
+      "낙관·기본·보수 시나리오 비교",
+      "DLG-S012에서 월 목표 조정",
+      "예측 산식은 mock으로 표시하고 확정값처럼 쓰지 않음",
+    ],
+    policy: [
+      "예측 산식은 정책 보류이며 실제 정산 기준 아님",
+      "목표 대비 달성률은 현재 필터의 결제완료 기준",
+      "환불/미수/선수익 영향은 별도 화면 근거를 연결",
+      "HQ는 전 지점, 지점 역할은 소속 지점 예측만 표시",
+    ],
+    result:
+      "다음 달 예측 42,000,000원 · 목표 달성률 82% · DLG-S012 목표 조정 가능",
+    routes: [
+      { label: "목표/KPI", href: "/kpi" },
+      { label: "매출 통계", href: "/sales/stats" },
+    ],
+    queue: [
+      { title: "다음 달 보수 시나리오", amount: "38,000,000원", status: "주의", action: "목표 매출 설정", dialogId: "DLG-S012" },
+      { title: "재등록 매출 민감도", amount: "+6.5%", status: "관찰", action: "통계 연결" },
+      { title: "미수 회수 반영", amount: "1,120,000원", status: "분리", action: "미수 원장 이동" },
+    ],
+  },
+};
+
+function getSalesConfig(screen: ScreenDefinition): SalesOperationConfig {
+  return (
+    salesOperationConfigs[screen.id] ?? {
+      flow: ["행 선택", "정책 확인", "DLG/액션 실행", "결과 상태 확인"],
+      policy: ["mock/local state만 수행", "권한별 버튼 노출", "결과는 화면에 남김"],
+      result: `${screen.title} mock 운영 결과 대기`,
+      routes: [{ label: "매출 현황", href: "/sales" }],
+      queue: [],
+    }
+  );
+}
+
+function SalesOperationsScreen({
+  screen,
+  role,
+  branch,
+  openDialog,
+  notify,
+}: SpecializedScreenProps) {
+  const config = getSalesConfig(screen);
+  const [tab, setTab] = useState(screen.tabs[0] ?? "전체");
+  const [selectedRow, setSelectedRow] = useState(0);
+  const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
+  const [lastFilter, setLastFilter] = useState("없음");
+  const [search, setSearch] = useState("");
+  const [operationResult, setOperationResult] = useState(config.result);
+  const [detailOpen, setDetailOpen] = useState(true);
+  const selected = screen.rows[selectedRow] ?? screen.rows[0] ?? {};
+  const allowed = ["HQ_ADMIN", "OWNER", "MANAGER", "FC", "STAFF"].includes(role);
+  const visibleRows = screen.rows.filter((row) => {
+    if (!search.trim()) return true;
+    return Object.values(row).some((value) =>
+      String(value).toLowerCase().includes(search.toLowerCase()),
+    );
+  });
+  const selectedTitle =
+    String(
+      selected["집계 항목"] ??
+        selected["월"] ??
+        selected["분석 항목명"] ??
+        selected["회원명"] ??
+        screen.title,
+    ) || screen.title;
+
+  const applyFilter = (filter: string) => {
+    setLastFilter(filter);
+    setDetailOpen(true);
+    setOperationResult(
+      `${filter} 기준으로 ${screen.title} 결과를 local state에서 재정렬했습니다.`,
+    );
+  };
+
+  const runAction = (label: string, dialogId?: string) => {
+    if (!allowed) {
+      notify(`${label}: 현재 역할로는 매출 처리를 실행할 수 없습니다.`, "warning");
+      return;
+    }
+    setLastFilter(label);
+    setDetailOpen(true);
+    setOperationResult(
+      `${label.replace(/\s*\([^)]*\)/g, "")} 준비 완료 · ${selectedTitle} · API 호출 없이 mock/local state만 갱신`,
+    );
+    if (dialogId) openDialog(dialogId);
+    else notify(`${label} mock/local state 반영`, "info");
+  };
+
+  return (
+    <div className="space-y-5">
+      <DeliveryHeader
+        screen={screen}
+        role={role}
+        branch={branch}
+        titleSuffix="매출 운영 플로우 강화"
+      />
+      <MetricGrid
+        metrics={screen.metrics}
+        active={selectedMetric}
+        onSelect={(label) => {
+          setSelectedMetric(label);
+          setOperationResult(`${label} 지표 기준으로 매출 운영 큐를 재검토합니다.`);
+        }}
+      />
+      <div className="grid grid-cols-[minmax(0,1fr)_360px] gap-5">
+        <div className="space-y-4">
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle>{screen.title} 작업대</CardTitle>
+              <CardDescription>{screen.purpose}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {screen.tabs.map((item) => (
+                  <Button
+                    key={item}
+                    size="sm"
+                    variant={tab === item ? "default" : "outline"}
+                    onClick={() => {
+                      setTab(item);
+                      setOperationResult(`${item} 탭으로 매출 작업대를 전환했습니다.`);
+                    }}
+                  >
+                    {item}
+                  </Button>
+                ))}
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="항목·회원·월 검색"
+                  className="ml-auto h-9 w-56"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {screen.filters.map((filter) => (
+                  <Button
+                    key={filter}
+                    type="button"
+                    size="sm"
+                    variant={lastFilter === filter ? "default" : "outline"}
+                    onClick={() => applyFilter(filter)}
+                  >
+                    {filter}
+                  </Button>
+                ))}
+              </div>
+              <div
+                data-testid={`${screen.id.toLowerCase()}-active-state`}
+                className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-medium text-emerald-800"
+              >
+                선택 기준: {tab} · 적용 필터: {lastFilter} · 선택 항목: {selectedTitle}
+              </div>
+              <div className="grid gap-2 md:grid-cols-5">
+                {config.flow.map((step, index) => (
+                  <button
+                    key={step}
+                    type="button"
+                    onClick={() =>
+                      setOperationResult(`Step ${index + 1}: ${step} 상태를 매출 패널에 반영했습니다.`)
+                    }
+                    className="rounded-xl border border-line bg-surface-secondary p-3 text-left text-xs text-content-secondary transition hover:border-primary hover:text-primary"
+                  >
+                    <b className="mb-1 block text-content">Step {index + 1}</b>
+                    {step}
+                  </button>
+                ))}
+              </div>
+              <div className="overflow-x-auto rounded-xl border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {screen.tableColumns.map((c) => (
+                        <TableHead key={c} className="whitespace-nowrap">
+                          {c}
+                        </TableHead>
+                      ))}
+                      <TableHead>운영 액션</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {visibleRows.map((row, index) => (
+                      <TableRow
+                        key={index}
+                        className={cn("cursor-pointer", selectedRow === index && "bg-emerald-50")}
+                        onClick={() => {
+                          setSelectedRow(index);
+                          setDetailOpen(true);
+                          setOperationResult(
+                            `${String(row[screen.tableColumns[0]] ?? screen.title)} 행을 선택했습니다. 우측 정책과 결과를 확인하세요.`,
+                          );
+                        }}
+                      >
+                        {screen.tableColumns.map((c) => (
+                          <TableCell key={c} className="whitespace-nowrap text-xs">
+                            {statusAwareValue(String(row[c] ?? "-"))}
+                          </TableCell>
+                        ))}
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              runAction(
+                                screen.primaryActions[0]?.label ?? "상세 보기",
+                                screen.primaryActions[0]?.dialogId,
+                              );
+                            }}
+                          >
+                            처리
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle>단계별 액션</CardTitle>
+              <CardDescription>
+                버튼은 실제 API 없이 DLG/local state/route/side panel 상태로 동작합니다.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              {screen.primaryActions.map((action) => (
+                <Button
+                  key={action.label}
+                  size="sm"
+                  variant={action.danger ? "destructive" : action.dialogId ? "default" : "outline"}
+                  data-dialog-id={action.dialogId}
+                  onClick={() => runAction(action.label, action.dialogId)}
+                >
+                  {action.label}
+                  {action.policyPending && <Badge variant="warning">정책</Badge>}
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+        <aside className="min-w-0 space-y-4">
+          {detailOpen && (
+            <Card
+              className="shadow-none"
+              data-testid={`${screen.id.toLowerCase()}-row-detail-panel`}
+            >
+              <CardHeader>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <CardTitle>선택 매출 운영 패널</CardTitle>
+                    <CardDescription>정책·결과·연결 화면을 본문을 가리지 않고 확인합니다.</CardDescription>
+                  </div>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    aria-label="닫기"
+                    onClick={() => setDetailOpen(false)}
+                  >
+                    <X size={16} />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <InfoCell label="선택" value={selectedTitle} />
+                <InfoCell label="화면" value={`${screen.id} · ${screen.title}`} />
+                <InfoCell label="지점/역할" value={`${branch} · ${roleById.get(role)?.label ?? role}`} />
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
+                  {operationResult}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle>검토 큐</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {config.queue.map((item) => (
+                <div key={item.title} className="rounded-xl border border-line bg-white p-3 text-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <b>{item.title}</b>
+                      <p className="mt-0.5 text-xs text-content-secondary">{item.amount}</p>
+                    </div>
+                    <Badge variant={item.status === "오류" ? "destructive" : item.status === "정상" ? "success" : "warning"}>
+                      {item.status}
+                    </Badge>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2 w-full"
+                    data-dialog-id={item.dialogId}
+                    onClick={() => runAction(item.action, item.dialogId)}
+                  >
+                    {item.action}
+                  </Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle>정책 체크</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-xs text-content-secondary">
+              {config.policy.map((item) => (
+                <div key={item} className="flex gap-2 rounded-lg border border-line bg-white p-2">
+                  <CheckCircle2 className="mt-0.5 size-3.5 text-emerald-600" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle>연결 화면</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {config.routes.map((route) => (
+                <Button key={route.href} asChild variant="outline" className="w-full">
+                  <Link href={route.href}>{route.label}</Link>
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+          <DialogDock screen={screen} openDialog={openDialog} />
+          <HandoffContractCard screen={screen} />
+        </aside>
+      </div>
     </div>
   );
 }
